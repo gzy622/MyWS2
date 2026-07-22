@@ -1,320 +1,576 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-  <meta name="theme-color" content="#f4f1e9" />
-  <title>方寸 · 单手生活面板</title>
-  <style>
-    :root {
-      --ink: #17252a;
-      --muted: #748084;
-      --paper: #f4f1e9;
-      --card: #fffdf8;
-      --line: #dedbd1;
-      --accent: #ef6a3a;
-      --accent-soft: #ffe1d4;
-      --teal: #165b61;
-      --nav-h: 88px;
-      --ease: cubic-bezier(.22,.8,.25,1);
-    }
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
-    body {
-      font-family: Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-      color: var(--ink); background: #d9ddd8; display: grid; place-items: center;
-    }
-    button { font: inherit; color: inherit; }
-    .app {
-      position: relative; width: min(100%, 430px); height: 100%; max-height: 920px;
-      overflow: hidden; background: var(--paper); isolation: isolate;
-      box-shadow: 0 20px 70px rgba(23,37,42,.18);
-    }
-    .topbar {
-      position: absolute; z-index: 4; inset: 0 0 auto; height: 88px;
-      padding: max(22px, env(safe-area-inset-top)) 22px 12px;
-      display: flex; align-items: flex-end; justify-content: space-between;
-      pointer-events: none;
-    }
-    .brand { font-size: 12px; letter-spacing: .18em; font-weight: 800; color: var(--teal); }
-    .date { font-size: 12px; color: var(--muted); }
-    .viewport { position: absolute; inset: 0 0 var(--nav-h); overflow: hidden; touch-action: pan-y; }
-    .pages {
-      width: 300%; height: 100%; display: flex; will-change: transform;
-      transform: translate3d(0,0,0); transition: transform .42s var(--ease);
-    }
-    .pages.dragging, .nav-glider.dragging { transition: none; }
-    .page { width: 33.3333%; height: 100%; flex: none; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-width: none; }
-    .page::-webkit-scrollbar { display:none; }
-    .page-inner { min-height: 100%; padding: 102px 20px 38px; }
-    .eyebrow { margin: 0 0 5px; color: var(--accent); font-size: 12px; font-weight: 800; letter-spacing: .08em; }
-    h1 { margin: 0; font-size: clamp(31px, 8vw, 38px); line-height: 1.08; letter-spacing: -.045em; }
-    .summary { margin: 9px 0 18px; font-size: 14px; line-height: 1.55; color: var(--muted); }
-    .segments {
-      width: 100%; border: 1px solid var(--line); padding: 4px; border-radius: 15px;
-      background: rgba(255,255,255,.55); display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
-      margin-bottom: 18px;
-    }
-    .segment { border: 0; background: transparent; border-radius: 11px; padding: 10px; font-weight: 750; font-size: 13px; cursor: pointer; }
-    .segment.active { color: white; background: var(--ink); box-shadow: 0 5px 14px rgba(23,37,42,.18); }
-    .subview { display: none; animation: rise .35s var(--ease); }
-    .subview.active { display: block; }
-    @keyframes rise { from { opacity: 0; transform: translateY(7px); } }
-    .hero-card {
-      position: relative; overflow: hidden; padding: 20px; min-height: 170px; border-radius: 25px;
-      background: var(--teal); color: white; box-shadow: 0 15px 30px rgba(22,91,97,.18);
-    }
-    .hero-card.orange { background: var(--accent); box-shadow: 0 15px 30px rgba(239,106,58,.2); }
-    .hero-card.dark { background: var(--ink); }
-    .hero-card::after { content:""; position:absolute; width:145px; height:145px; border: 32px solid rgba(255,255,255,.08); border-radius:50%; right:-62px; bottom:-75px; }
-    .hero-label { font-size: 12px; opacity: .72; letter-spacing: .08em; }
-    .hero-value { margin: 13px 0 5px; font-size: 42px; font-weight: 800; letter-spacing: -.05em; }
-    .hero-note { font-size: 13px; opacity: .78; }
-    .progress { height: 5px; border-radius: 9px; background: rgba(255,255,255,.2); margin-top: 20px; overflow:hidden; }
-    .progress i { display:block; height:100%; border-radius:inherit; background:white; }
-    .section-title { margin: 23px 2px 11px; display:flex; justify-content:space-between; align-items:center; font-size: 14px; font-weight: 800; }
-    .section-title span { color: var(--muted); font-size: 11px; font-weight: 600; }
-    .card { background: var(--card); border: 1px solid rgba(222,219,209,.8); border-radius: 20px; padding: 16px; margin: 9px 0; box-shadow: 0 7px 18px rgba(23,37,42,.035); }
-    .row { display:flex; align-items:center; gap:12px; }
-    .row + .row { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
-    .icon { width:42px; height:42px; flex:none; border-radius:14px; display:grid; place-items:center; background:var(--accent-soft); color:var(--accent); font-size:19px; }
-    .icon.teal { background:#d9ebea; color:var(--teal); }
-    .grow { flex:1; min-width:0; }
-    .item-title { font-size:14px; font-weight:750; }
-    .item-note { margin-top:3px; font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .pill { padding:5px 8px; border-radius:9px; background:#eef0eb; color:var(--muted); font-size:11px; font-weight:700; }
-    .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-    .metric { min-height:105px; margin:0; }
-    .metric strong { display:block; margin-top:17px; font-size:24px; letter-spacing:-.04em; }
-    .metric small { color:var(--muted); }
-
-    .bottom-shell {
-      position:absolute; z-index:8; inset:auto 0 0; height:calc(var(--nav-h) + env(safe-area-inset-bottom));
-      padding: 8px 14px max(9px, env(safe-area-inset-bottom));
-      background:linear-gradient(to top, var(--paper) 78%, rgba(244,241,233,.84));
-    }
-    .nav {
-      position:relative; height:72px; padding:5px; border:1px solid rgba(23,37,42,.1); border-radius:24px;
-      background:rgba(255,253,248,.94); box-shadow:0 10px 28px rgba(23,37,42,.12);
-      display:grid; grid-template-columns:repeat(3,1fr); touch-action:none; user-select:none;
-    }
-    .nav-glider { position:absolute; z-index:0; top:5px; bottom:5px; left:5px; width:calc((100% - 10px)/3); border-radius:19px; background:var(--ink); transition:transform .42s var(--ease); will-change:transform; }
-    .nav-btn { position:relative; z-index:1; border:0; background:transparent; color:var(--muted); border-radius:18px; cursor:pointer; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:5px; font-size:11px; font-weight:750; }
-    .nav-btn.active { color:white; }
-    .nav-icon { height:20px; display:grid; place-items:center; }
-    .nav-icon svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
-    .subdots { display:flex; gap:4px; height:3px; }
-    .subdots i { width:4px; height:3px; border-radius:4px; background:currentColor; opacity:.28; transition:.25s; }
-    .subdots i.on { width:13px; opacity:1; }
-    .menu-fab {
-      position:absolute; z-index:9; right:18px; bottom:calc(var(--nav-h) + 10px + env(safe-area-inset-bottom));
-      border:0; width:44px; height:44px; border-radius:15px; background:var(--accent); color:white;
-      box-shadow:0 8px 20px rgba(239,106,58,.3); display:grid; place-items:center; cursor:pointer;
-    }
-    .menu-fab svg { width:21px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; }
-    .gesture-tip { position:absolute; z-index:7; bottom:calc(var(--nav-h) + 15px); left:50%; translate:-50% 0; padding:6px 10px; border-radius:10px; background:rgba(23,37,42,.83); color:white; font-size:10px; opacity:0; pointer-events:none; transition:.25s; white-space:nowrap; }
-    .gesture-tip.show { opacity:1; transform:translateY(-5px); }
-
-    .scrim { position:absolute; z-index:20; inset:0; background:rgba(13,25,29,.46); opacity:0; pointer-events:none; transition:opacity .32s; backdrop-filter:blur(2px); }
-    .drawer {
-      position:absolute; z-index:21; left:0; right:0; bottom:0; height:min(58%, 520px); border-radius:29px 29px 0 0;
-      background:var(--card); transform:translateY(105%); transition:transform .4s var(--ease); box-shadow:0 -20px 50px rgba(10,24,28,.2);
-      padding:8px 20px max(24px, env(safe-area-inset-bottom)); overflow:hidden;
-    }
-    .app.drawer-open .scrim { opacity:1; pointer-events:auto; }
-    .app.drawer-open .drawer { transform:translateY(0); }
-    .drawer.dragging { transition:none; }
-    .drawer-handle-zone { height:38px; display:flex; justify-content:center; align-items:flex-start; padding-top:7px; touch-action:none; cursor:grab; }
-    .handle { width:42px; height:5px; border-radius:5px; background:#ccd0ca; }
-    .drawer-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
-    .profile { display:flex; align-items:center; gap:12px; }
-    .avatar { width:48px; height:48px; border-radius:17px; background:var(--teal); color:white; display:grid; place-items:center; font-weight:800; }
-    .profile strong { display:block; font-size:16px; }
-    .profile small { color:var(--muted); }
-    .close { border:0; width:38px; height:38px; border-radius:13px; background:#eeeee8; cursor:pointer; font-size:20px; }
-    .menu-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-    .menu-item { border:1px solid var(--line); background:white; border-radius:18px; min-height:82px; padding:14px; text-align:left; cursor:pointer; }
-    .menu-item b { display:block; margin-top:8px; font-size:13px; }
-    .menu-item span { font-size:20px; }
-    .drawer-foot { margin-top:16px; padding:14px 4px; color:var(--muted); font-size:12px; text-align:center; }
-    .toast { position:absolute; z-index:40; left:50%; top:102px; transform:translate(-50%,-12px); background:var(--ink); color:white; border-radius:13px; padding:10px 14px; font-size:12px; opacity:0; pointer-events:none; transition:.25s; white-space:nowrap; }
-    .toast.show { opacity:1; transform:translate(-50%,0); }
-    @media (min-width: 600px) { .app { height:min(900px, 96vh); border-radius:32px; } }
-    @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration:.01ms!important; transition-duration:.01ms!important; } }
-  </style>
-</head>
-<body>
-  <main class="app" id="app" aria-label="方寸生活面板">
-    <header class="topbar"><div class="brand">方寸 FANGCUN</div><div class="date" id="today"></div></header>
-    <div class="viewport" id="viewport">
-      <div class="pages" id="pages">
-        <section class="page" data-page="0"><div class="page-inner">
-          <p class="eyebrow">TODAY · 今日</p><h1>上午好，林然</h1><p class="summary">把重要的事放在拇指够得到的地方。</p>
-          <div class="segments" role="tablist"><button class="segment active" data-sub="0">概览</button><button class="segment" data-sub="1">日程</button></div>
-          <div class="subview active" data-view="0">
-            <div class="hero-card"><div class="hero-label">今日专注</div><div class="hero-value">3h 20m</div><div class="hero-note">比昨日多 24 分钟</div><div class="progress"><i style="width:68%"></i></div></div>
-            <div class="section-title">下一步 <span>3 项待办</span></div>
-            <div class="card"><div class="row"><div class="icon">✓</div><div class="grow"><div class="item-title">整理季度方案</div><div class="item-note">10:30 · 工作室</div></div><span class="pill">40 分钟</span></div><div class="row"><div class="icon teal">☕</div><div class="grow"><div class="item-title">和安然喝咖啡</div><div class="item-note">14:00 · 街角咖啡</div></div></div></div>
-          </div>
-          <div class="subview" data-view="1">
-            <div class="hero-card orange"><div class="hero-label">下一项日程</div><div class="hero-value">10:30</div><div class="hero-note">季度方案评审 · 线上会议</div><div class="progress"><i style="width:42%"></i></div></div>
-            <div class="section-title">时间线 <span>7 月 22 日</span></div>
-            <div class="card"><div class="row"><span class="pill">09:00</span><div class="grow"><div class="item-title">回复项目邮件</div><div class="item-note">已完成</div></div></div><div class="row"><span class="pill">10:30</span><div class="grow"><div class="item-title">季度方案评审</div><div class="item-note">4 位参与者</div></div></div><div class="row"><span class="pill">16:20</span><div class="grow"><div class="item-title">30 分钟慢跑</div><div class="item-note">滨河公园</div></div></div></div>
-          </div>
-        </div></section>
-
-        <section class="page" data-page="1"><div class="page-inner">
-          <p class="eyebrow">MOTION · 动态</p><h1>保持你的节奏</h1><p class="summary">活动与身心状态，一眼就能看明白。</p>
-          <div class="segments" role="tablist"><button class="segment active" data-sub="0">活动</button><button class="segment" data-sub="1">趋势</button></div>
-          <div class="subview active" data-view="0">
-            <div class="hero-card orange"><div class="hero-label">今日步数</div><div class="hero-value">7,842</div><div class="hero-note">目标 10,000 步 · 还差 2,158</div><div class="progress"><i style="width:78%"></i></div></div>
-            <div class="section-title">身体数据 <span>刚刚更新</span></div>
-            <div class="grid"><div class="card metric"><small>活动热量</small><strong>486</strong><small>千卡</small></div><div class="card metric"><small>站立时间</small><strong>8</strong><small>小时</small></div><div class="card metric"><small>心率</small><strong>72</strong><small>次 / 分</small></div><div class="card metric"><small>睡眠</small><strong>7.4</strong><small>小时</small></div></div>
-          </div>
-          <div class="subview" data-view="1">
-            <div class="hero-card dark"><div class="hero-label">本周完成度</div><div class="hero-value">86%</div><div class="hero-note">连续 5 天达成活动目标</div><div class="progress"><i style="width:86%"></i></div></div>
-            <div class="section-title">七日趋势 <span>稳定上升</span></div>
-            <div class="card"><div style="height:130px;display:flex;align-items:end;justify-content:space-around;gap:8px;padding:10px 4px 0"> <i style="height:48%;width:22px;background:#d9ebea;border-radius:8px"></i><i style="height:64%;width:22px;background:#d9ebea;border-radius:8px"></i><i style="height:52%;width:22px;background:#d9ebea;border-radius:8px"></i><i style="height:78%;width:22px;background:#165b61;border-radius:8px"></i><i style="height:70%;width:22px;background:#d9ebea;border-radius:8px"></i><i style="height:88%;width:22px;background:#ef6a3a;border-radius:8px"></i><i style="height:82%;width:22px;background:#ffe1d4;border-radius:8px"></i></div></div>
-          </div>
-        </div></section>
-
-        <section class="page" data-page="2"><div class="page-inner">
-          <p class="eyebrow">SPACE · 空间</p><h1>让家回应你</h1><p class="summary">常用场景已经就绪，轻触即可改变空间。</p>
-          <div class="segments" role="tablist"><button class="segment active" data-sub="0">房间</button><button class="segment" data-sub="1">场景</button></div>
-          <div class="subview active" data-view="0">
-            <div class="hero-card dark"><div class="hero-label">家中环境</div><div class="hero-value">24.5°</div><div class="hero-note">湿度 48% · 空气质量优秀</div><div class="progress"><i style="width:72%"></i></div></div>
-            <div class="section-title">常用设备 <span>6 个在线</span></div>
-            <div class="card"><div class="row"><div class="icon teal">◉</div><div class="grow"><div class="item-title">客厅主灯</div><div class="item-note">亮度 75% · 暖色</div></div><span class="pill">已开启</span></div><div class="row"><div class="icon">⌁</div><div class="grow"><div class="item-title">空气净化器</div><div class="item-note">自动模式 · 安静</div></div><span class="pill">优秀</span></div></div>
-          </div>
-          <div class="subview" data-view="1">
-            <div class="hero-card"><div class="hero-label">正在运行</div><div class="hero-value">归家</div><div class="hero-note">灯光、温度与音乐已调整</div><div class="progress"><i style="width:100%"></i></div></div>
-            <div class="section-title">一键场景 <span>长按可编辑</span></div>
-            <div class="grid"><div class="card metric"><small>☀️ 场景</small><strong style="font-size:18px">晨起</strong><small>5 个动作</small></div><div class="card metric"><small>🌙 场景</small><strong style="font-size:18px">晚安</strong><small>7 个动作</small></div><div class="card metric"><small>🎬 场景</small><strong style="font-size:18px">观影</strong><small>4 个动作</small></div><div class="card metric"><small>🚪 场景</small><strong style="font-size:18px">离家</strong><small>6 个动作</small></div></div>
-          </div>
-        </div></section>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#f4f1e9" />
+    <title>
+      方寸 · 单手生活面板
+    </title>
+    <link rel="stylesheet" href="./styles/main.css" />
+  </head>
+  <body>
+    <main class="app" id="app" aria-label="方寸生活面板">
+      <header class="topbar">
+        <div class="brand">
+          方寸 FANGCUN
+        </div>
+        <div class="date" id="today">
+        </div>
+      </header>
+      <div class="viewport" id="viewport">
+        <div class="pages" id="pages">
+          <section class="page" data-page="0">
+            <div class="page-inner">
+              <p class="eyebrow">
+                TODAY · 今日
+              </p>
+              <h1>
+                上午好，林然
+              </h1>
+              <p class="summary">
+                把重要的事放在拇指够得到的地方。
+              </p>
+              <div class="segments" role="tablist">
+                <button class="segment active" data-sub="0">
+                  概览
+                </button>
+                <button class="segment" data-sub="1">
+                  日程
+                </button>
+              </div>
+              <div class="subview active" data-view="0">
+                <div class="hero-card">
+                  <div class="hero-label">
+                    今日专注
+                  </div>
+                  <div class="hero-value">
+                    3h 20m
+                  </div>
+                  <div class="hero-note">
+                    比昨日多 24 分钟
+                  </div>
+                  <div class="progress">
+                    <i style="--progress: 68%">
+                    </i>
+                  </div>
+                </div>
+                <div class="section-title">
+                  下一步
+                  <span>
+                    3 项待办
+                  </span>
+                </div>
+                <div class="card">
+                  <div class="row">
+                    <div class="icon">
+                      ✓
+                    </div>
+                    <div class="grow">
+                      <div class="item-title">
+                        整理季度方案
+                      </div>
+                      <div class="item-note">
+                        10:30 · 工作室
+                      </div>
+                    </div>
+                    <span class="pill">
+                      40 分钟
+                    </span>
+                  </div>
+                  <div class="row">
+                    <div class="icon teal">
+                      ☕
+                    </div>
+                    <div class="grow">
+                      <div class="item-title">
+                        和安然喝咖啡
+                      </div>
+                      <div class="item-note">
+                        14:00 · 街角咖啡
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="subview" data-view="1">
+                <div class="hero-card orange">
+                  <div class="hero-label">
+                    下一项日程
+                  </div>
+                  <div class="hero-value">
+                    10:30
+                  </div>
+                  <div class="hero-note">
+                    季度方案评审 · 线上会议
+                  </div>
+                  <div class="progress">
+                    <i style="--progress: 42%">
+                    </i>
+                  </div>
+                </div>
+                <div class="section-title">
+                  时间线
+                  <span>
+                    7 月 22 日
+                  </span>
+                </div>
+                <div class="card">
+                  <div class="row">
+                    <span class="pill">
+                      09:00
+                    </span>
+                    <div class="grow">
+                      <div class="item-title">
+                        回复项目邮件
+                      </div>
+                      <div class="item-note">
+                        已完成
+                      </div>
+                    </div>
+                  </div>
+                  <div class="row">
+                    <span class="pill">
+                      10:30
+                    </span>
+                    <div class="grow">
+                      <div class="item-title">
+                        季度方案评审
+                      </div>
+                      <div class="item-note">
+                        4 位参与者
+                      </div>
+                    </div>
+                  </div>
+                  <div class="row">
+                    <span class="pill">
+                      16:20
+                    </span>
+                    <div class="grow">
+                      <div class="item-title">
+                        30 分钟慢跑
+                      </div>
+                      <div class="item-note">
+                        滨河公园
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+          <section class="page" data-page="1">
+            <div class="page-inner">
+              <p class="eyebrow">
+                MOTION · 动态
+              </p>
+              <h1>
+                保持你的节奏
+              </h1>
+              <p class="summary">
+                活动与身心状态，一眼就能看明白。
+              </p>
+              <div class="segments" role="tablist">
+                <button class="segment active" data-sub="0">
+                  活动
+                </button>
+                <button class="segment" data-sub="1">
+                  趋势
+                </button>
+              </div>
+              <div class="subview active" data-view="0">
+                <div class="hero-card orange">
+                  <div class="hero-label">
+                    今日步数
+                  </div>
+                  <div class="hero-value">
+                    7,842
+                  </div>
+                  <div class="hero-note">
+                    目标 10,000 步 · 还差 2,158
+                  </div>
+                  <div class="progress">
+                    <i style="--progress: 78%">
+                    </i>
+                  </div>
+                </div>
+                <div class="section-title">
+                  身体数据
+                  <span>
+                    刚刚更新
+                  </span>
+                </div>
+                <div class="grid">
+                  <div class="card metric">
+                    <small>
+                      活动热量
+                    </small>
+                    <strong>
+                      486
+                    </strong>
+                    <small>
+                      千卡
+                    </small>
+                  </div>
+                  <div class="card metric">
+                    <small>
+                      站立时间
+                    </small>
+                    <strong>
+                      8
+                    </strong>
+                    <small>
+                      小时
+                    </small>
+                  </div>
+                  <div class="card metric">
+                    <small>
+                      心率
+                    </small>
+                    <strong>
+                      72
+                    </strong>
+                    <small>
+                      次 / 分
+                    </small>
+                  </div>
+                  <div class="card metric">
+                    <small>
+                      睡眠
+                    </small>
+                    <strong>
+                      7.4
+                    </strong>
+                    <small>
+                      小时
+                    </small>
+                  </div>
+                </div>
+              </div>
+              <div class="subview" data-view="1">
+                <div class="hero-card dark">
+                  <div class="hero-label">
+                    本周完成度
+                  </div>
+                  <div class="hero-value">
+                    86%
+                  </div>
+                  <div class="hero-note">
+                    连续 5 天达成活动目标
+                  </div>
+                  <div class="progress">
+                    <i style="--progress: 86%">
+                    </i>
+                  </div>
+                </div>
+                <div class="section-title">
+                  七日趋势
+                  <span>
+                    稳定上升
+                  </span>
+                </div>
+                <div class="card">
+                  <div class="trend-chart">
+                    <i class="trend-bar" style="--bar-height: 48%">
+                    </i>
+                    <i class="trend-bar" style="--bar-height: 64%">
+                    </i>
+                    <i class="trend-bar" style="--bar-height: 52%">
+                    </i>
+                    <i class="trend-bar" style="--bar-height: 78%; --bar-color: #165b61">
+                    </i>
+                    <i class="trend-bar" style="--bar-height: 70%">
+                    </i>
+                    <i class="trend-bar" style="--bar-height: 88%; --bar-color: #ef6a3a">
+                    </i>
+                    <i class="trend-bar" style="--bar-height: 82%; --bar-color: #ffe1d4">
+                    </i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+          <section class="page" data-page="2">
+            <div class="page-inner">
+              <p class="eyebrow">
+                SPACE · 空间
+              </p>
+              <h1>
+                让家回应你
+              </h1>
+              <p class="summary">
+                常用场景已经就绪，轻触即可改变空间。
+              </p>
+              <div class="segments" role="tablist">
+                <button class="segment active" data-sub="0">
+                  房间
+                </button>
+                <button class="segment" data-sub="1">
+                  场景
+                </button>
+              </div>
+              <div class="subview active" data-view="0">
+                <div class="hero-card dark">
+                  <div class="hero-label">
+                    家中环境
+                  </div>
+                  <div class="hero-value">
+                    24.5°
+                  </div>
+                  <div class="hero-note">
+                    湿度 48% · 空气质量优秀
+                  </div>
+                  <div class="progress">
+                    <i style="--progress: 72%">
+                    </i>
+                  </div>
+                </div>
+                <div class="section-title">
+                  常用设备
+                  <span>
+                    6 个在线
+                  </span>
+                </div>
+                <div class="card">
+                  <div class="row">
+                    <div class="icon teal">
+                      ◉
+                    </div>
+                    <div class="grow">
+                      <div class="item-title">
+                        客厅主灯
+                      </div>
+                      <div class="item-note">
+                        亮度 75% · 暖色
+                      </div>
+                    </div>
+                    <span class="pill">
+                      已开启
+                    </span>
+                  </div>
+                  <div class="row">
+                    <div class="icon">
+                      ⌁
+                    </div>
+                    <div class="grow">
+                      <div class="item-title">
+                        空气净化器
+                      </div>
+                      <div class="item-note">
+                        自动模式 · 安静
+                      </div>
+                    </div>
+                    <span class="pill">
+                      优秀
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="subview" data-view="1">
+                <div class="hero-card">
+                  <div class="hero-label">
+                    正在运行
+                  </div>
+                  <div class="hero-value">
+                    归家
+                  </div>
+                  <div class="hero-note">
+                    灯光、温度与音乐已调整
+                  </div>
+                  <div class="progress">
+                    <i style="--progress: 100%">
+                    </i>
+                  </div>
+                </div>
+                <div class="section-title">
+                  一键场景
+                  <span>
+                    长按可编辑
+                  </span>
+                </div>
+                <div class="grid">
+                  <div class="card metric">
+                    <small>
+                      ☀️ 场景
+                    </small>
+                    <strong class="metric-label">
+                      晨起
+                    </strong>
+                    <small>
+                      5 个动作
+                    </small>
+                  </div>
+                  <div class="card metric">
+                    <small>
+                      🌙 场景
+                    </small>
+                    <strong class="metric-label">
+                      晚安
+                    </strong>
+                    <small>
+                      7 个动作
+                    </small>
+                  </div>
+                  <div class="card metric">
+                    <small>
+                      🎬 场景
+                    </small>
+                    <strong class="metric-label">
+                      观影
+                    </strong>
+                    <small>
+                      4 个动作
+                    </small>
+                  </div>
+                  <div class="card metric">
+                    <small>
+                      🚪 场景
+                    </small>
+                    <strong class="metric-label">
+                      离家
+                    </strong>
+                    <small>
+                      6 个动作
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
-    </div>
-
-    <div class="gesture-tip" id="gestureTip">继续上滑，打开通用菜单</div>
-    <button class="menu-fab" id="menuFab" aria-label="打开通用菜单"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button>
-    <div class="bottom-shell">
-      <nav class="nav" id="nav" aria-label="主导航">
-        <div class="nav-glider" id="glider"></div>
-        <button class="nav-btn active" data-index="0" aria-current="page"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 11.5 12 5l8 6.5V20H4z"/><path d="M9 20v-6h6v6"/></svg></span><span>今日</span><span class="subdots"><i class="on"></i><i></i></span></button>
-        <button class="nav-btn" data-index="1"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></span><span>动态</span><span class="subdots"><i class="on"></i><i></i></span></button>
-        <button class="nav-btn" data-index="2"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 10 12 4l8 6v10H4z"/><path d="M8 14h8"/></svg></span><span>空间</span><span class="subdots"><i class="on"></i><i></i></span></button>
-      </nav>
-    </div>
-
-    <div class="scrim" id="scrim"></div>
-    <aside class="drawer" id="drawer" aria-hidden="true">
-      <div class="drawer-handle-zone" id="drawerHandle"><div class="handle"></div></div>
-      <div class="drawer-head"><div class="profile"><div class="avatar">然</div><div><strong>林然</strong><small>个人账户 · 已同步</small></div></div><button class="close" id="closeDrawer" aria-label="关闭菜单">×</button></div>
-      <div class="menu-grid">
-        <button class="menu-item" data-action="账户"><span>◉</span><b>账户</b></button><button class="menu-item" data-action="消息"><span>✦</span><b>消息 · 2</b></button>
-        <button class="menu-item" data-action="收藏"><span>♡</span><b>收藏</b></button><button class="menu-item" data-action="设置"><span>⚙</span><b>设置</b></button>
+      <div class="gesture-tip" id="gestureTip">
+        继续上滑，打开通用菜单
       </div>
-      <div class="drawer-foot">向下拖动也可以关闭菜单</div>
-    </aside>
-    <div class="toast" id="toast" role="status"></div>
-  </main>
-
-  <script>
-    (() => {
-      const app = document.querySelector('#app');
-      const viewport = document.querySelector('#viewport');
-      const pages = document.querySelector('#pages');
-      const nav = document.querySelector('#nav');
-      const glider = document.querySelector('#glider');
-      const navBtns = [...document.querySelectorAll('.nav-btn')];
-      const pageEls = [...document.querySelectorAll('.page')];
-      const drawer = document.querySelector('#drawer');
-      const drawerHandle = document.querySelector('#drawerHandle');
-      const gestureTip = document.querySelector('#gestureTip');
-      const subState = [0, 0, 0];
-      let current = 0, suppressClick = false, toastTimer;
-
-      document.querySelector('#today').textContent = new Intl.DateTimeFormat('zh-CN', { month:'long', day:'numeric', weekday:'short' }).format(new Date());
-
-      function render(animate = true) {
-        pages.classList.toggle('dragging', !animate);
-        glider.classList.toggle('dragging', !animate);
-        pages.style.transform = `translate3d(${-current * 100 / 3}%,0,0)`;
-        glider.style.transform = `translate3d(${current * 100}%,0,0)`;
-        navBtns.forEach((btn, i) => {
-          btn.classList.toggle('active', i === current);
-          if (i === current) btn.setAttribute('aria-current','page'); else btn.removeAttribute('aria-current');
-        });
-      }
-      function setPage(index) { current = Math.max(0, Math.min(2, index)); render(true); }
-      function setSub(pageIndex, subIndex) {
-        subState[pageIndex] = subIndex;
-        const page = pageEls[pageIndex];
-        page.querySelectorAll('.segment').forEach((el,i) => el.classList.toggle('active', i === subIndex));
-        page.querySelectorAll('.subview').forEach((el,i) => el.classList.toggle('active', i === subIndex));
-        navBtns[pageIndex].querySelectorAll('.subdots i').forEach((el,i) => el.classList.toggle('on', i === subIndex));
-      }
-      pageEls.forEach((page, pi) => page.querySelectorAll('.segment').forEach((btn, si) => btn.addEventListener('click', () => setSub(pi, si))));
-      navBtns.forEach(btn => btn.addEventListener('click', () => {
-        if (suppressClick) return;
-        const target = +btn.dataset.index;
-        if (target === current) setSub(current, 1 - subState[current]); else setPage(target);
-      }));
-
-      function horizontalGesture(el, isNav = false) {
-        let active=false, id, sx=0, sy=0, dx=0, dy=0, axis=null;
-        el.addEventListener('pointerdown', e => {
-          if (app.classList.contains('drawer-open') || e.button > 0) return;
-          active=true; id=e.pointerId; sx=e.clientX; sy=e.clientY; dx=dy=0; axis=null;
-          el.setPointerCapture?.(id);
-        });
-        el.addEventListener('pointermove', e => {
-          if (!active || e.pointerId !== id) return;
-          dx=e.clientX-sx; dy=e.clientY-sy;
-          if (!axis && Math.hypot(dx,dy)>8) axis = Math.abs(dx) > Math.abs(dy)*1.15 ? 'x' : 'y';
-          if (isNav && axis==='y' && dy < 0) gestureTip.classList.toggle('show', dy < -24);
-          if (axis !== 'x') return;
-          e.preventDefault();
-          const width=viewport.clientWidth;
-          let resisted=dx;
-          if ((current===0 && dx>0)||(current===2 && dx<0)) resisted*=.28;
-          pages.classList.add('dragging'); glider.classList.add('dragging');
-          pages.style.transform=`translate3d(calc(${-current*100/3}% + ${resisted}px),0,0)`;
-          glider.style.transform=`translate3d(calc(${current*100}% + ${-resisted/3}px),0,0)`;
-        }, {passive:false});
-        const end = e => {
-          if (!active || (e.pointerId != null && e.pointerId !== id)) return;
-          active=false; gestureTip.classList.remove('show');
-          const wasGesture=Math.hypot(dx,dy)>10;
-          if (isNav && axis==='y' && dy < -58) openDrawer();
-          else if (axis==='x') {
-            const threshold=Math.min(72, viewport.clientWidth*.2);
-            if (Math.abs(dx)>threshold) current += dx<0 ? 1 : -1;
-            current=Math.max(0,Math.min(2,current)); render(true);
-          } else render(true);
-          if (wasGesture) { suppressClick=true; setTimeout(()=>suppressClick=false,80); }
-        };
-        el.addEventListener('pointerup',end); el.addEventListener('pointercancel',end);
-      }
-      horizontalGesture(viewport, false); horizontalGesture(nav, true);
-
-      function openDrawer() { app.classList.add('drawer-open'); drawer.setAttribute('aria-hidden','false'); document.querySelector('#closeDrawer').focus({preventScroll:true}); }
-      function closeDrawer() { drawer.style.transform=''; drawer.classList.remove('dragging'); app.classList.remove('drawer-open'); drawer.setAttribute('aria-hidden','true'); }
-      document.querySelector('#menuFab').addEventListener('click',openDrawer);
-      document.querySelector('#closeDrawer').addEventListener('click',closeDrawer);
-      document.querySelector('#scrim').addEventListener('click',closeDrawer);
-      document.addEventListener('keydown',e=>{if(e.key==='Escape') closeDrawer();});
-
-      let ds=false, dsy=0, ddy=0, did;
-      drawerHandle.addEventListener('pointerdown',e=>{ds=true;did=e.pointerId;dsy=e.clientY;ddy=0;drawer.classList.add('dragging');drawerHandle.setPointerCapture?.(did);});
-      drawerHandle.addEventListener('pointermove',e=>{if(!ds||e.pointerId!==did)return;ddy=Math.max(0,e.clientY-dsy);drawer.style.transform=`translateY(${ddy}px)`;});
-      const drawerEnd=e=>{if(!ds||(e.pointerId!=null&&e.pointerId!==did))return;ds=false;drawer.classList.remove('dragging');if(ddy>90)closeDrawer();else drawer.style.transform='';};
-      drawerHandle.addEventListener('pointerup',drawerEnd); drawerHandle.addEventListener('pointercancel',drawerEnd);
-
-      function toast(msg) { const el=document.querySelector('#toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),1600); }
-      document.querySelectorAll('.menu-item').forEach(btn=>btn.addEventListener('click',()=>toast(`${btn.dataset.action}功能已选择`)));
-      render(false);
-    })();
-  </script>
-</body>
+      <button class="menu-fab" id="menuFab" aria-label="打开通用菜单">
+        <svg viewBox="0 0 24 24">
+          <path d="M4 7h16M4 12h16M4 17h10"/>
+        </svg>
+      </button>
+      <div class="bottom-shell">
+        <nav class="nav" id="nav" aria-label="主导航">
+          <div class="nav-glider" id="glider">
+          </div>
+          <button class="nav-btn active" data-index="0" aria-current="page">
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24">
+                <path d="M4 11.5 12 5l8 6.5V20H4z"/>
+                <path d="M9 20v-6h6v6"/>
+              </svg>
+            </span>
+            <span>
+              今日
+            </span>
+            <span class="subdots">
+              <i class="on">
+              </i>
+              <i>
+              </i>
+            </span>
+          </button>
+          <button class="nav-btn" data-index="1">
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="8"/>
+                <path d="M12 8v4l3 2"/>
+              </svg>
+            </span>
+            <span>
+              动态
+            </span>
+            <span class="subdots">
+              <i class="on">
+              </i>
+              <i>
+              </i>
+            </span>
+          </button>
+          <button class="nav-btn" data-index="2">
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24">
+                <path d="M4 10 12 4l8 6v10H4z"/>
+                <path d="M8 14h8"/>
+              </svg>
+            </span>
+            <span>
+              空间
+            </span>
+            <span class="subdots">
+              <i class="on">
+              </i>
+              <i>
+              </i>
+            </span>
+          </button>
+        </nav>
+      </div>
+      <div class="scrim" id="scrim">
+      </div>
+      <aside class="drawer" id="drawer" aria-hidden="true">
+        <div class="drawer-handle-zone" id="drawerHandle">
+          <div class="handle">
+          </div>
+        </div>
+        <div class="drawer-head">
+          <div class="profile">
+            <div class="avatar">
+              然
+            </div>
+            <div>
+              <strong>
+                林然
+              </strong>
+              <small>
+                个人账户 · 已同步
+              </small>
+            </div>
+          </div>
+          <button class="close" id="closeDrawer" aria-label="关闭菜单">
+            ×
+          </button>
+        </div>
+        <div class="menu-grid">
+          <button class="menu-item" data-action="账户">
+            <span>
+              ◉
+            </span>
+            <b>
+              账户
+            </b>
+          </button>
+          <button class="menu-item" data-action="消息">
+            <span>
+              ✦
+            </span>
+            <b>
+              消息 · 2
+            </b>
+          </button>
+          <button class="menu-item" data-action="收藏">
+            <span>
+              ♡
+            </span>
+            <b>
+              收藏
+            </b>
+          </button>
+          <button class="menu-item" data-action="设置">
+            <span>
+              ⚙
+            </span>
+            <b>
+              设置
+            </b>
+          </button>
+        </div>
+        <div class="drawer-foot">
+          向下拖动也可以关闭菜单
+        </div>
+      </aside>
+      <div class="toast" id="toast" role="status">
+      </div>
+    </main>
+    <script type="module" src="./scripts/main.js">
+    </script>
+  </body>
 </html>

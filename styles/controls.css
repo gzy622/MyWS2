@@ -1,0 +1,50 @@
+.bottom-shell {
+  position: absolute; z-index: 8; inset: auto 0 0; height: calc(var(--nav-h) + env(safe-area-inset-bottom));
+  padding: 8px 14px max(9px, env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--paper) 78%, rgba(244, 241, 233, .84));
+}
+.nav {
+  position: relative; height: 72px; padding: 5px; border: 1px solid rgba(23, 37, 42, .1); border-radius: 24px;
+  background: rgba(255, 253, 248, .94); box-shadow: 0 10px 28px rgba(23, 37, 42, .12);
+  display: grid; grid-template-columns: repeat(3, 1fr); touch-action: none; user-select: none;
+}
+.nav-glider { position: absolute; z-index: 0; top: 5px; bottom: 5px; left: 5px; width: calc((100% - 10px) / 3); border-radius: 19px; background: var(--ink); transition: transform .42s var(--ease); will-change: transform; }
+.nav-btn { position: relative; z-index: 1; border: 0; background: transparent; color: var(--muted); border-radius: 18px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; font-size: 11px; font-weight: 750; }
+.nav-btn.active { color: white; }
+.nav-icon { height: 20px; display: grid; place-items: center; }
+.nav-icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.subdots { display: flex; gap: 4px; height: 3px; }
+.subdots i { width: 4px; height: 3px; border-radius: 4px; background: currentColor; opacity: .28; transition: .25s; }
+.subdots i.on { width: 13px; opacity: 1; }
+.menu-fab {
+  position: absolute; z-index: 9; right: 18px; bottom: calc(var(--nav-h) + 10px + env(safe-area-inset-bottom));
+  border: 0; width: 44px; height: 44px; border-radius: 15px; background: var(--accent); color: white;
+  box-shadow: 0 8px 20px rgba(239, 106, 58, .3); display: grid; place-items: center; cursor: pointer;
+}
+.menu-fab svg { width: 21px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.gesture-tip { position: absolute; z-index: 7; bottom: calc(var(--nav-h) + 15px); left: 50%; translate: -50% 0; padding: 6px 10px; border-radius: 10px; background: rgba(23, 37, 42, .83); color: white; font-size: 10px; opacity: 0; pointer-events: none; transition: .25s; white-space: nowrap; }
+.gesture-tip.show { opacity: 1; transform: translateY(-5px); }
+.scrim { position: absolute; z-index: 20; inset: 0; background: rgba(13, 25, 29, .46); opacity: 0; pointer-events: none; transition: opacity .32s; backdrop-filter: blur(2px); }
+.drawer {
+  position: absolute; z-index: 21; left: 0; right: 0; bottom: 0; height: min(58%, 520px); border-radius: 29px 29px 0 0;
+  background: var(--card); transform: translateY(105%); transition: transform .4s var(--ease); box-shadow: 0 -20px 50px rgba(10, 24, 28, .2);
+  padding: 8px 20px max(24px, env(safe-area-inset-bottom)); overflow: hidden;
+}
+.app.drawer-open .scrim { opacity: 1; pointer-events: auto; }
+.app.drawer-open .drawer { transform: translateY(0); }
+.drawer.dragging { transition: none; }
+.drawer-handle-zone { height: 38px; display: flex; justify-content: center; align-items: flex-start; padding-top: 7px; touch-action: none; cursor: grab; }
+.handle { width: 42px; height: 5px; border-radius: 5px; background: #ccd0ca; }
+.drawer-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.profile { display: flex; align-items: center; gap: 12px; }
+.avatar { width: 48px; height: 48px; border-radius: 17px; background: var(--teal); color: white; display: grid; place-items: center; font-weight: 800; }
+.profile strong { display: block; font-size: 16px; }
+.profile small { color: var(--muted); }
+.close { border: 0; width: 38px; height: 38px; border-radius: 13px; background: #eeeee8; cursor: pointer; font-size: 20px; }
+.menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.menu-item { border: 1px solid var(--line); background: white; border-radius: 18px; min-height: 82px; padding: 14px; text-align: left; cursor: pointer; }
+.menu-item b { display: block; margin-top: 8px; font-size: 13px; }
+.menu-item span { font-size: 20px; }
+.drawer-foot { margin-top: 16px; padding: 14px 4px; color: var(--muted); font-size: 12px; text-align: center; }
+.toast { position: absolute; z-index: 40; left: 50%; top: 102px; transform: translate(-50%, -12px); background: var(--ink); color: white; border-radius: 13px; padding: 10px 14px; font-size: 12px; opacity: 0; pointer-events: none; transition: .25s; white-space: nowrap; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }

@@ -1,0 +1,12 @@
+:root {
+  --ink: #17252a;
+  --muted: #748084;
+  --paper: #f4f1e9;
+  --card: #fffdf8;
+  --line: #dedbd1;
+  --accent: #ef6a3a;
+  --accent-soft: #ffe1d4;
+  --teal: #165b61;
+  --nav-h: 88px;
+  --ease: cubic-bezier(.22, .8, .25, 1);
+}
