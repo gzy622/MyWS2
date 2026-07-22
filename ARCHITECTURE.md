@@ -31,7 +31,9 @@ node lan-server.js
 
 ## 状态与 DOM 契约
 
-应用状态唯一来源是 `scripts/state.js`；刷新后从第一页和各页第一子视图开始。不要用 `localStorage` 保存这些状态。
+应用状态唯一来源是 `scripts/state.js`；刷新后从中间的“登记”页和各页第一子视图开始。不要用 `localStorage` 保存这些状态。
+
+实现或评审改动前，还应阅读 `specs/` 下的产品、视觉、交互与工程约束；根目录 `AGENTS.md` 定义了强制执行顺序。
 
 导航和内容依赖以下属性，修改结构时必须保留其含义：`data-page`、`data-index`、`data-sub`、`data-view`、`data-action`。
 
