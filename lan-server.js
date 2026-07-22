@@ -22,6 +22,16 @@ const mimeTypes = {
   '.ico': 'image/x-icon',
 };
 
+const noCacheHeaders = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+  'Pragma': 'no-cache',
+  'Expires': '0',
+};
+
+function sendHeaders(response, statusCode, headers = {}) {
+  response.writeHead(statusCode, { ...noCacheHeaders, ...headers });
+}
+
 function lanAddresses() {
   return Object.values(os.networkInterfaces())
     .flat()
@@ -35,7 +45,7 @@ const server = http.createServer((request, response) => {
   const filePath = path.resolve(root, `.${requestedPath}`);
 
   if (!filePath.startsWith(root + path.sep) && filePath !== root) {
-    response.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+    sendHeaders(response, 403, { 'Content-Type': 'text/plain; charset=utf-8' });
     response.end('Forbidden');
     return;
   }
@@ -44,11 +54,11 @@ const server = http.createServer((request, response) => {
     const target = !statError && stats.isDirectory() ? path.join(filePath, 'index.html') : filePath;
     fs.readFile(target, (readError, content) => {
       if (readError) {
-        response.writeHead(readError.code === 'ENOENT' ? 404 : 500, { 'Content-Type': 'text/plain; charset=utf-8' });
+        sendHeaders(response, readError.code === 'ENOENT' ? 404 : 500, { 'Content-Type': 'text/plain; charset=utf-8' });
         response.end(readError.code === 'ENOENT' ? 'Not found' : 'Server error');
         return;
       }
-      response.writeHead(200, { 'Content-Type': mimeTypes[path.extname(target).toLowerCase()] || 'application/octet-stream' });
+      sendHeaders(response, 200, { 'Content-Type': mimeTypes[path.extname(target).toLowerCase()] || 'application/octet-stream' });
       response.end(content);
     });
   });
