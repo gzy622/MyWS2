@@ -1,7 +1,7 @@
 export const PAGE_COUNT = 3;
 
 export const state = {
-  currentPage: 0,
+  currentPage: 1,
   subviews: [0, 0, 0],
   suppressNavClick: false,
   drawerOpen: false
