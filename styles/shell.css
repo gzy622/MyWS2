@@ -23,14 +23,18 @@
 .topbar-more circle { fill: currentColor; stroke: none; }
 .viewport {
   position: absolute; inset: 0 0 var(--nav-h); overflow: hidden;
-  touch-action: pan-y pinch-zoom; user-select: none; -webkit-user-select: none;
+  /* Pointer gestures own both axes so the browser cannot cancel a horizontal drag mid-swipe. */
+  touch-action: none; user-select: none; -webkit-user-select: none;
 }
 .pages {
   width: 300%; height: 100%; display: flex; will-change: transform;
   transform: translate3d(0, 0, 0); transition: transform .42s var(--ease);
 }
 .pages.dragging, .nav-glider.dragging { transition: none; }
-.page { width: 33.3333%; height: 100%; flex: none; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-width: none; }
+.page {
+  width: 33.3333%; height: 100%; flex: none; overflow-y: auto;
+  overscroll-behavior-y: contain; scrollbar-width: none; touch-action: none;
+}
 .page::-webkit-scrollbar { display: none; }
 .page-inner { min-height: 100%; padding: calc(var(--topbar-h) + env(safe-area-inset-top) + 16px) 20px 38px; }
 

@@ -23,6 +23,8 @@ export function initHorizontalGestures({ openDrawer }) {
     let sampleX = 0;
     let sampleTime = 0;
     let velocityX = 0;
+    let scrollPage = null;
+    let startScrollTop = 0;
     let suppressClicksUntil = 0;
 
     element.addEventListener('pointerdown', (event) => {
@@ -37,6 +39,9 @@ export function initHorizontalGestures({ openDrawer }) {
       sampleX = event.clientX;
       sampleTime = event.timeStamp;
       velocityX = 0;
+      scrollPage = isNav ? null : elements.pageElements[state.currentPage];
+      startScrollTop = scrollPage?.scrollTop || 0;
+      element.setPointerCapture?.(pointerId);
     });
 
     element.addEventListener('pointermove', (event) => {
@@ -51,11 +56,16 @@ export function initHorizontalGestures({ openDrawer }) {
 
       if (!axis && Math.hypot(deltaX, deltaY) > AXIS_LOCK_DISTANCE) {
         axis = Math.abs(deltaX) >= Math.abs(deltaY) ? 'x' : 'y';
-        if (axis === 'x') element.setPointerCapture?.(pointerId);
       }
 
-      if (isNav && axis === 'y' && deltaY < 0) {
-        elements.gestureTip.classList.toggle('show', deltaY < -NAV_DRAWER_HINT_DISTANCE);
+      if (axis === 'y') {
+        if (isNav && deltaY < 0) {
+          elements.gestureTip.classList.toggle('show', deltaY < -NAV_DRAWER_HINT_DISTANCE);
+        } else if (scrollPage) {
+          scrollPage.scrollTop = startScrollTop - deltaY;
+        }
+        event.preventDefault();
+        return;
       }
       if (axis !== 'x') return;
 
@@ -72,7 +82,7 @@ export function initHorizontalGestures({ openDrawer }) {
       active = false;
       elements.gestureTip.classList.remove('show');
 
-      const wasHorizontalGesture = axis === 'x' && Math.abs(deltaX) > SWIPE_MIN_DISTANCE;
+      const wasGesture = Math.hypot(deltaX, deltaY) > 10;
       if (!cancelled && isNav && axis === 'y' && deltaY < -NAV_DRAWER_OPEN_DISTANCE) {
         openDrawer();
       } else if (!cancelled && axis === 'x') {
@@ -91,7 +101,7 @@ export function initHorizontalGestures({ openDrawer }) {
         renderNavigation();
       }
 
-      if (wasHorizontalGesture) {
+      if (wasGesture) {
         suppressClicksUntil = performance.now() + CLICK_SUPPRESSION_MS;
         setSuppressNavClick(true);
         setTimeout(() => setSuppressNavClick(false), CLICK_SUPPRESSION_MS);
