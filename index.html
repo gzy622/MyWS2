@@ -11,11 +11,17 @@
   </head>
   <body>
     <main class="app" id="app" aria-label="方寸生活面板">
-      <header class="topbar">
+      <header class="topbar" aria-label="应用顶栏">
         <div class="brand">
-          方寸 FANGCUN
+          <span class="brand-mark" aria-hidden="true">寸</span>
+          <span class="brand-copy">
+            <strong>方寸</strong>
+            <small>FANGCUN</small>
+          </span>
         </div>
-        <div class="date" id="today">
+        <div class="topbar-meta">
+          <span class="sync-status"><i aria-hidden="true"></i>生活面板</span>
+          <time class="date" id="today"></time>
         </div>
       </header>
       <div class="viewport" id="viewport">
