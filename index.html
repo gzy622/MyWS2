@@ -12,17 +12,19 @@
   <body>
     <main class="app" id="app" aria-label="方寸生活面板">
       <header class="topbar" aria-label="应用顶栏">
-        <div class="brand">
-          <span class="brand-mark" aria-hidden="true">寸</span>
-          <span class="brand-copy">
-            <strong>方寸</strong>
-            <small>FANGCUN</small>
-          </span>
-        </div>
-        <div class="topbar-meta">
-          <span class="sync-status"><i aria-hidden="true"></i>生活面板</span>
-          <time class="date" id="today"></time>
-        </div>
+        <button class="topbar-action topbar-menu" id="menuButton" aria-label="打开菜单">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 7h16M4 12h16M4 17h10"/>
+          </svg>
+          <span>菜单</span>
+        </button>
+        <h2 class="topbar-title">方寸</h2>
+        <button class="topbar-action topbar-more" id="moreButton" aria-label="更多功能">
+          <span>更多</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>
+          </svg>
+        </button>
       </header>
       <div class="viewport" id="viewport">
         <div class="pages" id="pages">
@@ -448,11 +450,6 @@
       <div class="gesture-tip" id="gestureTip">
         继续上滑，打开通用菜单
       </div>
-      <button class="menu-fab" id="menuFab" aria-label="打开通用菜单">
-        <svg viewBox="0 0 24 24">
-          <path d="M4 7h16M4 12h16M4 17h10"/>
-        </svg>
-      </button>
       <div class="bottom-shell">
         <nav class="nav" id="nav" aria-label="主导航">
           <div class="nav-glider" id="glider">

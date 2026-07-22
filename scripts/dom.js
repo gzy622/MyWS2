@@ -21,10 +21,10 @@ export const elements = {
   drawer: required('#drawer'),
   drawerHandle: required('#drawerHandle'),
   gestureTip: required('#gestureTip'),
-  menuFab: required('#menuFab'),
+  menuButton: required('#menuButton'),
+  moreButton: required('#moreButton'),
   closeDrawerButton: required('#closeDrawer'),
   scrim: required('#scrim'),
   toast: required('#toast'),
-  today: required('#today'),
   menuItems: requiredAll('.menu-item')
 };

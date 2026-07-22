@@ -16,12 +16,6 @@
 .subdots { display: flex; gap: 4px; height: 3px; }
 .subdots i { width: 4px; height: 3px; border-radius: 4px; background: currentColor; opacity: .28; transition: .25s; }
 .subdots i.on { width: 13px; opacity: 1; }
-.menu-fab {
-  position: absolute; z-index: 9; right: 18px; bottom: calc(var(--nav-h) + 10px + env(safe-area-inset-bottom));
-  border: 0; width: 44px; height: 44px; border-radius: 15px; background: var(--accent); color: white;
-  box-shadow: 0 8px 20px rgba(239, 106, 58, .3); display: grid; place-items: center; cursor: pointer;
-}
-.menu-fab svg { width: 21px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 .gesture-tip { position: absolute; z-index: 7; bottom: calc(var(--nav-h) + 15px); left: 50%; translate: -50% 0; padding: 6px 10px; border-radius: 10px; background: rgba(23, 37, 42, .83); color: white; font-size: 10px; opacity: 0; pointer-events: none; transition: .25s; white-space: nowrap; }
 .gesture-tip.show { opacity: 1; transform: translateY(-5px); }
 .scrim { position: absolute; z-index: 20; inset: 0; background: rgba(13, 25, 29, .46); opacity: 0; pointer-events: none; transition: opacity .32s; backdrop-filter: blur(2px); }
@@ -46,5 +40,5 @@
 .menu-item b { display: block; margin-top: 8px; font-size: 13px; }
 .menu-item span { font-size: 20px; }
 .drawer-foot { margin-top: 16px; padding: 14px 4px; color: var(--muted); font-size: 12px; text-align: center; }
-.toast { position: absolute; z-index: 40; left: 50%; top: 102px; transform: translate(-50%, -12px); background: var(--ink); color: white; border-radius: 13px; padding: 10px 14px; font-size: 12px; opacity: 0; pointer-events: none; transition: .25s; white-space: nowrap; }
+.toast { position: absolute; z-index: 40; left: 50%; top: calc(var(--topbar-h) + env(safe-area-inset-top) + 10px); transform: translate(-50%, -12px); background: var(--ink); color: white; border-radius: 13px; padding: 10px 14px; font-size: 12px; opacity: 0; pointer-events: none; transition: .25s; white-space: nowrap; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
