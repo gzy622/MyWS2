@@ -10,6 +10,27 @@ h1 { margin: 0; font-size: clamp(31px, 8vw, 38px); line-height: 1.08; letter-spa
 .segment.active { color: white; background: var(--ink); box-shadow: 0 5px 14px rgba(23, 37, 42, .18); }
 .subview { display: none; animation: rise .35s var(--ease); }
 .subview.active { display: block; }
+.page[data-page="1"] .page-inner {
+  display: flex; flex-direction: column; height: 100%; min-height: 0;
+  padding: calc(var(--topbar-h) + env(safe-area-inset-top) + 10px) 12px 12px;
+}
+.page[data-page="1"] .subview.active { flex: 1; min-height: 0; }
+.student-grid {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: repeat(10, minmax(0, 1fr));
+  height: 100%; overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background-color: var(--card);
+  background-image:
+    repeating-linear-gradient(to right, transparent 0, transparent calc(20% - 1px), var(--line) calc(20% - 1px), var(--line) 20%),
+    repeating-linear-gradient(to bottom, transparent 0, transparent calc(10% - 1px), var(--line) calc(10% - 1px), var(--line) 10%);
+  box-shadow: 0 7px 18px rgba(23, 37, 42, .035);
+}
+.student-card {
+  position: relative; display: grid; min-height: 0; place-items: center; padding: 4px 3px; overflow: hidden; color: var(--ink);
+  font-size: var(--student-name-size, 16px); font-weight: 800; line-height: 1.15; text-align: center; white-space: nowrap;
+}
+.student-card[data-score]::after {
+  content: attr(data-score); position: absolute; top: 4px; right: 5px; color: var(--accent);
+  font-size: clamp(11px, 2.8vw, 12px); font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1;
+}
 .hero-card {
   position: relative; overflow: hidden; padding: 20px; min-height: 170px; border-radius: 25px;
   background: var(--teal); color: white; box-shadow: 0 15px 30px rgba(22, 91, 97, .18);

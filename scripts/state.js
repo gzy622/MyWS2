@@ -1,10 +1,15 @@
 export const PAGE_COUNT = 3;
+export const STUDENT_FONT_SIZE_MIN = 14;
+export const STUDENT_FONT_SIZE_MAX = 18;
+export const STUDENT_FONT_SIZE_DEFAULT = 16;
 
 export const state = {
   currentPage: 1,
   subviews: [0, 0, 0],
   suppressNavClick: false,
-  drawerOpen: false
+  drawerOpen: false,
+  studentFontSize: STUDENT_FONT_SIZE_DEFAULT,
+  fontSizePopoverOpen: false
 };
 
 export function clampPage(index) {
@@ -30,4 +35,14 @@ export function setSuppressNavClick(value) {
 
 export function setDrawerOpen(value) {
   state.drawerOpen = value;
+}
+
+export function setStudentFontSize(value) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return;
+  state.studentFontSize = Math.max(STUDENT_FONT_SIZE_MIN, Math.min(STUDENT_FONT_SIZE_MAX, numericValue));
+}
+
+export function setFontSizePopoverOpen(value) {
+  state.fontSizePopoverOpen = Boolean(value);
 }

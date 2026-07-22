@@ -10,7 +10,6 @@ export function showToast(message) {
 }
 
 export function initMenuActions() {
-  elements.moreButton.addEventListener('click', () => showToast('更多功能即将推出'));
   elements.menuItems.forEach((button) => {
     button.addEventListener('click', () => showToast(`${button.dataset.action}功能已选择`));
   });

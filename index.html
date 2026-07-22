@@ -16,14 +16,23 @@
           </svg>
           <span>菜单</span>
         </button>
-        <h2 class="topbar-title">工作台</h2>
-        <button class="topbar-action topbar-more" id="moreButton" aria-label="更多功能">
+        <h2 class="topbar-title" id="topbarTitle">登记</h2>
+        <button class="topbar-action topbar-more" id="moreButton" aria-label="更多功能" aria-controls="fontSizePopover" aria-expanded="false">
           <span>更多</span>
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" />
           </svg>
         </button>
       </header>
+
+      <div class="font-size-popover" id="fontSizePopover" role="group" aria-label="学生姓名字号" aria-hidden="true">
+        <div class="font-size-popover-head">
+          <label for="studentFontSize">姓名字号</label>
+          <output id="studentFontSizeValue" for="studentFontSize">16px</output>
+        </div>
+        <input id="studentFontSize" type="range" min="14" max="18" step="1" value="16" />
+        <div class="font-size-popover-scale" aria-hidden="true"><span>小</span><span>大</span></div>
+      </div>
 
       <div class="viewport" id="viewport">
         <div class="pages" id="pages">
@@ -77,29 +86,54 @@
 
           <section class="page" data-page="1" aria-label="登记">
             <div class="page-inner">
-              <p class="eyebrow">REGISTER · 登记</p>
-              <h1>登记</h1>
-              <p class="summary">快速记录课堂与学生信息。</p>
-              <div class="segments" role="tablist" aria-label="登记分类">
-                <button class="segment active" data-sub="0">网格</button>
-                <button class="segment" data-sub="1">座位</button>
-              </div>
               <div class="subview active" data-view="0">
-                <div class="hero-card orange">
-                  <div class="hero-label">网格</div>
-                  <div class="hero-value">页面占位</div>
-                  <div class="hero-note">网格化快捷登记功能将在这里呈现。</div>
-                  <div class="progress"><i style="--progress: 24%"></i></div>
-                </div>
-                <div class="section-title">网格内容 <span>待完善</span></div>
-                <div class="card">
-                  <div class="row">
-                    <div class="icon">格</div>
-                    <div class="grow">
-                      <div class="item-title">功能区域占位</div>
-                      <div class="item-note">后续接入正式项目内容</div>
-                    </div>
-                  </div>
+                <div class="student-grid" id="studentGrid" role="list" aria-label="学生名单">
+                  <div class="student-card" role="listitem">赵予安</div>
+                  <div class="student-card" role="listitem">钱书宁</div>
+                  <div class="student-card" role="listitem">孙知远</div>
+                  <div class="student-card" role="listitem">李念初</div>
+                  <div class="student-card" role="listitem">周星禾</div>
+                  <div class="student-card" role="listitem">吴乐言</div>
+                  <div class="student-card" role="listitem">郑清晏</div>
+                  <div class="student-card" role="listitem">王向晚</div>
+                  <div class="student-card" role="listitem">冯予墨</div>
+                  <div class="student-card" role="listitem">陈安然</div>
+                  <div class="student-card" role="listitem">褚知行</div>
+                  <div class="student-card" role="listitem">卫语桐</div>
+                  <div class="student-card" role="listitem">蒋时安</div>
+                  <div class="student-card" role="listitem">沈若川</div>
+                  <div class="student-card" role="listitem">韩书言</div>
+                  <div class="student-card" role="listitem">杨清越</div>
+                  <div class="student-card" role="listitem">朱明澈</div>
+                  <div class="student-card" role="listitem">秦乐知</div>
+                  <div class="student-card" role="listitem">尤可心</div>
+                  <div class="student-card" role="listitem">许景初</div>
+                  <div class="student-card" role="listitem">何星语</div>
+                  <div class="student-card" role="listitem">吕安歌</div>
+                  <div class="student-card" role="listitem">施雨桐</div>
+                  <div class="student-card" role="listitem">张慕白</div>
+                  <div class="student-card" role="listitem">孔念安</div>
+                  <div class="student-card" role="listitem">曹云舒</div>
+                  <div class="student-card" role="listitem">严知夏</div>
+                  <div class="student-card" role="listitem">华以宁</div>
+                  <div class="student-card" role="listitem">金思远</div>
+                  <div class="student-card" role="listitem">魏雨泽</div>
+                  <div class="student-card" role="listitem">陶书涵</div>
+                  <div class="student-card" role="listitem">姜望舒</div>
+                  <div class="student-card" role="listitem">戚予乐</div>
+                  <div class="student-card" role="listitem">谢北辰</div>
+                  <div class="student-card" role="listitem">邹清妍</div>
+                  <div class="student-card" role="listitem">喻昭然</div>
+                  <div class="student-card" role="listitem">柏言蹊</div>
+                  <div class="student-card" role="listitem">水知微</div>
+                  <div class="student-card" role="listitem">窦安宁</div>
+                  <div class="student-card" role="listitem">章乐之</div>
+                  <div class="student-card" role="listitem">云舒然</div>
+                  <div class="student-card" role="listitem">苏清和</div>
+                  <div class="student-card" role="listitem">潘星河</div>
+                  <div class="student-card" role="listitem">葛知新</div>
+                  <div class="student-card" role="listitem">奚望安</div>
+                  <div class="student-card" role="listitem">范语晨</div>
                 </div>
               </div>
               <div class="subview" data-view="1">
@@ -177,34 +211,31 @@
       <div class="bottom-shell">
         <nav class="nav" id="nav" aria-label="主导航">
           <div class="nav-glider" id="glider"></div>
-          <button class="nav-btn active" data-index="0" aria-current="page">
+          <button class="nav-btn" data-index="0" aria-label="安排">
             <span class="nav-icon">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <rect x="4" y="5" width="16" height="15" rx="2" />
                 <path d="M8 3v4M16 3v4M4 10h16" />
               </svg>
             </span>
-            <span>安排</span>
             <span class="subdots"><i class="on"></i><i></i></span>
           </button>
-          <button class="nav-btn" data-index="1">
+          <button class="nav-btn active" data-index="1" aria-label="登记" aria-current="page">
             <span class="nav-icon">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M7 4h10v16H7zM9 8h6M9 12h6M9 16h4" />
                 <path d="m4 12 1.5 1.5L8 11" />
               </svg>
             </span>
-            <span>登记</span>
             <span class="subdots"><i class="on"></i><i></i></span>
           </button>
-          <button class="nav-btn" data-index="2">
+          <button class="nav-btn" data-index="2" aria-label="课程">
             <span class="nav-icon">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M4 5.5A3.5 3.5 0 0 1 7.5 4H11v16H7.5A3.5 3.5 0 0 0 4 21.5z" />
                 <path d="M20 5.5A3.5 3.5 0 0 0 16.5 4H13v16h3.5a3.5 3.5 0 0 1 3.5 1.5z" />
               </svg>
             </span>
-            <span>课程</span>
             <span class="subdots"><i class="on"></i><i></i></span>
           </button>
         </nav>

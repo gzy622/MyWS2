@@ -1,21 +1,33 @@
 .bottom-shell {
   position: absolute; z-index: 8; inset: auto 0 0; height: calc(var(--nav-h) + env(safe-area-inset-bottom));
-  padding: 8px 14px max(9px, env(safe-area-inset-bottom));
+  padding: 6px 14px max(6px, env(safe-area-inset-bottom));
   background: linear-gradient(to top, var(--paper) 78%, rgba(244, 241, 233, .84));
 }
 .nav {
-  position: relative; height: 72px; padding: 5px; border: 1px solid rgba(23, 37, 42, .1); border-radius: 24px;
-  background: rgba(255, 253, 248, .94); box-shadow: 0 10px 28px rgba(23, 37, 42, .12);
+  position: relative; height: 54px; padding: 4px; border: 1px solid rgba(23, 37, 42, .1); border-radius: 20px;
+  background: rgba(255, 253, 248, .94); box-shadow: 0 8px 22px rgba(23, 37, 42, .11);
   display: grid; grid-template-columns: repeat(3, 1fr); touch-action: none; user-select: none;
 }
-.nav-glider { position: absolute; z-index: 0; top: 5px; bottom: 5px; left: 5px; width: calc((100% - 10px) / 3); border-radius: 19px; background: var(--ink); transition: transform .42s var(--ease); will-change: transform; }
-.nav-btn { position: relative; z-index: 1; border: 0; background: transparent; color: var(--muted); border-radius: 18px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; font-size: 11px; font-weight: 750; }
+.nav-glider { position: absolute; z-index: 0; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3); border-radius: 15px; background: var(--ink); transition: transform .42s var(--ease); will-change: transform; }
+.nav-btn { position: relative; z-index: 1; border: 0; background: transparent; color: var(--muted); border-radius: 14px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; }
 .nav-btn.active { color: white; }
-.nav-icon { height: 20px; display: grid; place-items: center; }
-.nav-icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.nav-icon { height: 22px; display: grid; place-items: center; }
+.nav-icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .subdots { display: flex; gap: 4px; height: 3px; }
 .subdots i { width: 4px; height: 3px; border-radius: 4px; background: currentColor; opacity: .28; transition: .25s; }
 .subdots i.on { width: 13px; opacity: 1; }
+.font-size-popover {
+  position: absolute; z-index: 10; top: calc(var(--topbar-h) + env(safe-area-inset-top) + 8px); right: 12px;
+  width: min(250px, calc(100% - 24px)); padding: 13px 14px 10px; border: 1px solid var(--line); border-radius: 16px;
+  background: var(--card); box-shadow: 0 12px 28px rgba(23, 37, 42, .16); opacity: 0; pointer-events: none;
+  transform: translateY(-6px) scale(.98); transform-origin: top right; transition: opacity .25s, transform .25s var(--ease);
+}
+.font-size-popover.show { opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); }
+.font-size-popover-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
+.font-size-popover label { font-size: 13px; font-weight: 800; }
+.font-size-popover output { color: var(--teal); font-size: 12px; font-weight: 800; }
+.font-size-popover input { display: block; width: 100%; margin: 0; accent-color: var(--teal); cursor: pointer; touch-action: none; }
+.font-size-popover-scale { display: flex; justify-content: space-between; margin-top: 2px; color: var(--muted); font-size: 10px; }
 .gesture-tip { position: absolute; z-index: 7; bottom: calc(var(--nav-h) + 15px); left: 50%; translate: -50% 0; padding: 6px 10px; border-radius: 10px; background: rgba(23, 37, 42, .83); color: white; font-size: 10px; opacity: 0; pointer-events: none; transition: .25s; white-space: nowrap; }
 .gesture-tip.show { opacity: 1; transform: translateY(-5px); }
 .scrim { position: absolute; z-index: 20; inset: 0; background: rgba(13, 25, 29, .46); opacity: 0; pointer-events: none; transition: opacity .32s; backdrop-filter: blur(2px); }
