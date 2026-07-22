@@ -4,442 +4,167 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
     <meta name="theme-color" content="#f4f1e9" />
-    <title>
-      方寸 · 单手生活面板
-    </title>
+    <title>教师工作台 · UI/UX Demo</title>
     <link rel="stylesheet" href="./styles/main.css" />
   </head>
   <body>
-    <main class="app" id="app" aria-label="方寸生活面板">
+    <main class="app" id="app" aria-label="教师工作台">
       <header class="topbar" aria-label="应用顶栏">
         <button class="topbar-action topbar-menu" id="menuButton" aria-label="打开菜单">
           <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 7h16M4 12h16M4 17h10"/>
+            <path d="M4 7h16M4 12h16M4 17h10" />
           </svg>
           <span>菜单</span>
         </button>
-        <h2 class="topbar-title">方寸</h2>
+        <h2 class="topbar-title">工作台</h2>
         <button class="topbar-action topbar-more" id="moreButton" aria-label="更多功能">
           <span>更多</span>
           <svg viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>
+            <circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" />
           </svg>
         </button>
       </header>
+
       <div class="viewport" id="viewport">
         <div class="pages" id="pages">
-          <section class="page" data-page="0">
+          <section class="page" data-page="0" aria-label="安排">
             <div class="page-inner">
-              <p class="eyebrow">
-                TODAY · 今日
-              </p>
-              <h1>
-                上午好，林然
-              </h1>
-              <p class="summary">
-                把重要的事放在拇指够得到的地方。
-              </p>
-              <div class="segments" role="tablist">
-                <button class="segment active" data-sub="0">
-                  概览
-                </button>
-                <button class="segment" data-sub="1">
-                  日程
-                </button>
+              <p class="eyebrow">ARRANGE · 安排</p>
+              <h1>安排</h1>
+              <p class="summary">班级事务与日常工作安排。</p>
+              <div class="segments" role="tablist" aria-label="安排分类">
+                <button class="segment active" data-sub="0">班干</button>
+                <button class="segment" data-sub="1">值日</button>
               </div>
               <div class="subview active" data-view="0">
                 <div class="hero-card">
-                  <div class="hero-label">
-                    今日专注
-                  </div>
-                  <div class="hero-value">
-                    3h 20m
-                  </div>
-                  <div class="hero-note">
-                    比昨日多 24 分钟
-                  </div>
-                  <div class="progress">
-                    <i style="--progress: 68%">
-                    </i>
-                  </div>
+                  <div class="hero-label">班干</div>
+                  <div class="hero-value">页面占位</div>
+                  <div class="hero-note">班干部安排与管理功能将在这里呈现。</div>
+                  <div class="progress"><i style="--progress: 24%"></i></div>
                 </div>
-                <div class="section-title">
-                  下一步
-                  <span>
-                    3 项待办
-                  </span>
-                </div>
+                <div class="section-title">班干内容 <span>待完善</span></div>
                 <div class="card">
                   <div class="row">
-                    <div class="icon">
-                      ✓
-                    </div>
+                    <div class="icon teal">班</div>
                     <div class="grow">
-                      <div class="item-title">
-                        整理季度方案
-                      </div>
-                      <div class="item-note">
-                        10:30 · 工作室
-                      </div>
-                    </div>
-                    <span class="pill">
-                      40 分钟
-                    </span>
-                  </div>
-                  <div class="row">
-                    <div class="icon teal">
-                      ☕
-                    </div>
-                    <div class="grow">
-                      <div class="item-title">
-                        和安然喝咖啡
-                      </div>
-                      <div class="item-note">
-                        14:00 · 街角咖啡
-                      </div>
+                      <div class="item-title">功能区域占位</div>
+                      <div class="item-note">后续接入正式项目内容</div>
                     </div>
                   </div>
                 </div>
               </div>
               <div class="subview" data-view="1">
                 <div class="hero-card orange">
-                  <div class="hero-label">
-                    下一项日程
-                  </div>
-                  <div class="hero-value">
-                    10:30
-                  </div>
-                  <div class="hero-note">
-                    季度方案评审 · 线上会议
-                  </div>
-                  <div class="progress">
-                    <i style="--progress: 42%">
-                    </i>
-                  </div>
+                  <div class="hero-label">值日</div>
+                  <div class="hero-value">页面占位</div>
+                  <div class="hero-note">值日安排与轮换功能将在这里呈现。</div>
+                  <div class="progress"><i style="--progress: 24%"></i></div>
                 </div>
-                <div class="section-title">
-                  时间线
-                  <span>
-                    7 月 22 日
-                  </span>
-                </div>
+                <div class="section-title">值日内容 <span>待完善</span></div>
                 <div class="card">
                   <div class="row">
-                    <span class="pill">
-                      09:00
-                    </span>
+                    <div class="icon">值</div>
                     <div class="grow">
-                      <div class="item-title">
-                        回复项目邮件
-                      </div>
-                      <div class="item-note">
-                        已完成
-                      </div>
-                    </div>
-                  </div>
-                  <div class="row">
-                    <span class="pill">
-                      10:30
-                    </span>
-                    <div class="grow">
-                      <div class="item-title">
-                        季度方案评审
-                      </div>
-                      <div class="item-note">
-                        4 位参与者
-                      </div>
-                    </div>
-                  </div>
-                  <div class="row">
-                    <span class="pill">
-                      16:20
-                    </span>
-                    <div class="grow">
-                      <div class="item-title">
-                        30 分钟慢跑
-                      </div>
-                      <div class="item-note">
-                        滨河公园
-                      </div>
+                      <div class="item-title">功能区域占位</div>
+                      <div class="item-note">后续接入正式项目内容</div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
           </section>
-          <section class="page" data-page="1">
+
+          <section class="page" data-page="1" aria-label="登记">
             <div class="page-inner">
-              <p class="eyebrow">
-                MOTION · 动态
-              </p>
-              <h1>
-                保持你的节奏
-              </h1>
-              <p class="summary">
-                活动与身心状态，一眼就能看明白。
-              </p>
-              <div class="segments" role="tablist">
-                <button class="segment active" data-sub="0">
-                  活动
-                </button>
-                <button class="segment" data-sub="1">
-                  趋势
-                </button>
+              <p class="eyebrow">REGISTER · 登记</p>
+              <h1>登记</h1>
+              <p class="summary">快速记录课堂与学生信息。</p>
+              <div class="segments" role="tablist" aria-label="登记分类">
+                <button class="segment active" data-sub="0">网格</button>
+                <button class="segment" data-sub="1">座位</button>
               </div>
               <div class="subview active" data-view="0">
                 <div class="hero-card orange">
-                  <div class="hero-label">
-                    今日步数
-                  </div>
-                  <div class="hero-value">
-                    7,842
-                  </div>
-                  <div class="hero-note">
-                    目标 10,000 步 · 还差 2,158
-                  </div>
-                  <div class="progress">
-                    <i style="--progress: 78%">
-                    </i>
-                  </div>
+                  <div class="hero-label">网格</div>
+                  <div class="hero-value">页面占位</div>
+                  <div class="hero-note">网格化快捷登记功能将在这里呈现。</div>
+                  <div class="progress"><i style="--progress: 24%"></i></div>
                 </div>
-                <div class="section-title">
-                  身体数据
-                  <span>
-                    刚刚更新
-                  </span>
-                </div>
-                <div class="grid">
-                  <div class="card metric">
-                    <small>
-                      活动热量
-                    </small>
-                    <strong>
-                      486
-                    </strong>
-                    <small>
-                      千卡
-                    </small>
-                  </div>
-                  <div class="card metric">
-                    <small>
-                      站立时间
-                    </small>
-                    <strong>
-                      8
-                    </strong>
-                    <small>
-                      小时
-                    </small>
-                  </div>
-                  <div class="card metric">
-                    <small>
-                      心率
-                    </small>
-                    <strong>
-                      72
-                    </strong>
-                    <small>
-                      次 / 分
-                    </small>
-                  </div>
-                  <div class="card metric">
-                    <small>
-                      睡眠
-                    </small>
-                    <strong>
-                      7.4
-                    </strong>
-                    <small>
-                      小时
-                    </small>
+                <div class="section-title">网格内容 <span>待完善</span></div>
+                <div class="card">
+                  <div class="row">
+                    <div class="icon">格</div>
+                    <div class="grow">
+                      <div class="item-title">功能区域占位</div>
+                      <div class="item-note">后续接入正式项目内容</div>
+                    </div>
                   </div>
                 </div>
               </div>
               <div class="subview" data-view="1">
                 <div class="hero-card dark">
-                  <div class="hero-label">
-                    本周完成度
-                  </div>
-                  <div class="hero-value">
-                    86%
-                  </div>
-                  <div class="hero-note">
-                    连续 5 天达成活动目标
-                  </div>
-                  <div class="progress">
-                    <i style="--progress: 86%">
-                    </i>
-                  </div>
+                  <div class="hero-label">座位</div>
+                  <div class="hero-value">页面占位</div>
+                  <div class="hero-note">基于座位表的登记功能将在这里呈现。</div>
+                  <div class="progress"><i style="--progress: 24%"></i></div>
                 </div>
-                <div class="section-title">
-                  七日趋势
-                  <span>
-                    稳定上升
-                  </span>
-                </div>
+                <div class="section-title">座位内容 <span>待完善</span></div>
                 <div class="card">
-                  <div class="trend-chart">
-                    <i class="trend-bar" style="--bar-height: 48%">
-                    </i>
-                    <i class="trend-bar" style="--bar-height: 64%">
-                    </i>
-                    <i class="trend-bar" style="--bar-height: 52%">
-                    </i>
-                    <i class="trend-bar" style="--bar-height: 78%; --bar-color: #165b61">
-                    </i>
-                    <i class="trend-bar" style="--bar-height: 70%">
-                    </i>
-                    <i class="trend-bar" style="--bar-height: 88%; --bar-color: #ef6a3a">
-                    </i>
-                    <i class="trend-bar" style="--bar-height: 82%; --bar-color: #ffe1d4">
-                    </i>
+                  <div class="row">
+                    <div class="icon teal">座</div>
+                    <div class="grow">
+                      <div class="item-title">功能区域占位</div>
+                      <div class="item-note">后续接入正式项目内容</div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </section>
-          <section class="page" data-page="2">
+
+          <section class="page" data-page="2" aria-label="课程">
             <div class="page-inner">
-              <p class="eyebrow">
-                SPACE · 空间
-              </p>
-              <h1>
-                让家回应你
-              </h1>
-              <p class="summary">
-                常用场景已经就绪，轻触即可改变空间。
-              </p>
-              <div class="segments" role="tablist">
-                <button class="segment active" data-sub="0">
-                  房间
-                </button>
-                <button class="segment" data-sub="1">
-                  场景
-                </button>
+              <p class="eyebrow">COURSE · 课程</p>
+              <h1>课程</h1>
+              <p class="summary">集中查看教学进度与学生成绩。</p>
+              <div class="segments" role="tablist" aria-label="课程分类">
+                <button class="segment active" data-sub="0">课表</button>
+                <button class="segment" data-sub="1">成绩</button>
               </div>
               <div class="subview active" data-view="0">
                 <div class="hero-card dark">
-                  <div class="hero-label">
-                    家中环境
-                  </div>
-                  <div class="hero-value">
-                    24.5°
-                  </div>
-                  <div class="hero-note">
-                    湿度 48% · 空气质量优秀
-                  </div>
-                  <div class="progress">
-                    <i style="--progress: 72%">
-                    </i>
-                  </div>
+                  <div class="hero-label">课表</div>
+                  <div class="hero-value">页面占位</div>
+                  <div class="hero-note">课程表与教学安排将在这里呈现。</div>
+                  <div class="progress"><i style="--progress: 24%"></i></div>
                 </div>
-                <div class="section-title">
-                  常用设备
-                  <span>
-                    6 个在线
-                  </span>
-                </div>
+                <div class="section-title">课表内容 <span>待完善</span></div>
                 <div class="card">
                   <div class="row">
-                    <div class="icon teal">
-                      ◉
-                    </div>
+                    <div class="icon teal">课</div>
                     <div class="grow">
-                      <div class="item-title">
-                        客厅主灯
-                      </div>
-                      <div class="item-note">
-                        亮度 75% · 暖色
-                      </div>
+                      <div class="item-title">功能区域占位</div>
+                      <div class="item-note">后续接入正式项目内容</div>
                     </div>
-                    <span class="pill">
-                      已开启
-                    </span>
-                  </div>
-                  <div class="row">
-                    <div class="icon">
-                      ⌁
-                    </div>
-                    <div class="grow">
-                      <div class="item-title">
-                        空气净化器
-                      </div>
-                      <div class="item-note">
-                        自动模式 · 安静
-                      </div>
-                    </div>
-                    <span class="pill">
-                      优秀
-                    </span>
                   </div>
                 </div>
               </div>
               <div class="subview" data-view="1">
                 <div class="hero-card">
-                  <div class="hero-label">
-                    正在运行
-                  </div>
-                  <div class="hero-value">
-                    归家
-                  </div>
-                  <div class="hero-note">
-                    灯光、温度与音乐已调整
-                  </div>
-                  <div class="progress">
-                    <i style="--progress: 100%">
-                    </i>
-                  </div>
+                  <div class="hero-label">成绩</div>
+                  <div class="hero-value">页面占位</div>
+                  <div class="hero-note">成绩录入、查询与分析将在这里呈现。</div>
+                  <div class="progress"><i style="--progress: 24%"></i></div>
                 </div>
-                <div class="section-title">
-                  一键场景
-                  <span>
-                    长按可编辑
-                  </span>
-                </div>
-                <div class="grid">
-                  <div class="card metric">
-                    <small>
-                      ☀️ 场景
-                    </small>
-                    <strong class="metric-label">
-                      晨起
-                    </strong>
-                    <small>
-                      5 个动作
-                    </small>
-                  </div>
-                  <div class="card metric">
-                    <small>
-                      🌙 场景
-                    </small>
-                    <strong class="metric-label">
-                      晚安
-                    </strong>
-                    <small>
-                      7 个动作
-                    </small>
-                  </div>
-                  <div class="card metric">
-                    <small>
-                      🎬 场景
-                    </small>
-                    <strong class="metric-label">
-                      观影
-                    </strong>
-                    <small>
-                      4 个动作
-                    </small>
-                  </div>
-                  <div class="card metric">
-                    <small>
-                      🚪 场景
-                    </small>
-                    <strong class="metric-label">
-                      离家
-                    </strong>
-                    <small>
-                      6 个动作
-                    </small>
+                <div class="section-title">成绩内容 <span>待完善</span></div>
+                <div class="card">
+                  <div class="row">
+                    <div class="icon">绩</div>
+                    <div class="grow">
+                      <div class="item-title">功能区域占位</div>
+                      <div class="item-note">后续接入正式项目内容</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -447,133 +172,69 @@
           </section>
         </div>
       </div>
-      <div class="gesture-tip" id="gestureTip">
-        继续上滑，打开通用菜单
-      </div>
+
+      <div class="gesture-tip" id="gestureTip">继续上滑，打开通用菜单</div>
       <div class="bottom-shell">
         <nav class="nav" id="nav" aria-label="主导航">
-          <div class="nav-glider" id="glider">
-          </div>
+          <div class="nav-glider" id="glider"></div>
           <button class="nav-btn active" data-index="0" aria-current="page">
             <span class="nav-icon">
-              <svg viewBox="0 0 24 24">
-                <path d="M4 11.5 12 5l8 6.5V20H4z"/>
-                <path d="M9 20v-6h6v6"/>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="4" y="5" width="16" height="15" rx="2" />
+                <path d="M8 3v4M16 3v4M4 10h16" />
               </svg>
             </span>
-            <span>
-              今日
-            </span>
-            <span class="subdots">
-              <i class="on">
-              </i>
-              <i>
-              </i>
-            </span>
+            <span>安排</span>
+            <span class="subdots"><i class="on"></i><i></i></span>
           </button>
           <button class="nav-btn" data-index="1">
             <span class="nav-icon">
-              <svg viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="8"/>
-                <path d="M12 8v4l3 2"/>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M7 4h10v16H7zM9 8h6M9 12h6M9 16h4" />
+                <path d="m4 12 1.5 1.5L8 11" />
               </svg>
             </span>
-            <span>
-              动态
-            </span>
-            <span class="subdots">
-              <i class="on">
-              </i>
-              <i>
-              </i>
-            </span>
+            <span>登记</span>
+            <span class="subdots"><i class="on"></i><i></i></span>
           </button>
           <button class="nav-btn" data-index="2">
             <span class="nav-icon">
-              <svg viewBox="0 0 24 24">
-                <path d="M4 10 12 4l8 6v10H4z"/>
-                <path d="M8 14h8"/>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 5.5A3.5 3.5 0 0 1 7.5 4H11v16H7.5A3.5 3.5 0 0 0 4 21.5z" />
+                <path d="M20 5.5A3.5 3.5 0 0 0 16.5 4H13v16h3.5a3.5 3.5 0 0 1 3.5 1.5z" />
               </svg>
             </span>
-            <span>
-              空间
-            </span>
-            <span class="subdots">
-              <i class="on">
-              </i>
-              <i>
-              </i>
-            </span>
+            <span>课程</span>
+            <span class="subdots"><i class="on"></i><i></i></span>
           </button>
         </nav>
       </div>
-      <div class="scrim" id="scrim">
-      </div>
+
+      <div class="scrim" id="scrim"></div>
       <aside class="drawer" id="drawer" aria-hidden="true">
         <div class="drawer-handle-zone" id="drawerHandle">
-          <div class="handle">
-          </div>
+          <div class="handle"></div>
         </div>
         <div class="drawer-head">
           <div class="profile">
-            <div class="avatar">
-              然
-            </div>
+            <div class="avatar">师</div>
             <div>
-              <strong>
-                林然
-              </strong>
-              <small>
-                个人账户 · 已同步
-              </small>
+              <strong>教师姓名</strong>
+              <small>学校 · 班级（占位）</small>
             </div>
           </div>
-          <button class="close" id="closeDrawer" aria-label="关闭菜单">
-            ×
-          </button>
+          <button class="close" id="closeDrawer" aria-label="关闭菜单">×</button>
         </div>
         <div class="menu-grid">
-          <button class="menu-item" data-action="账户">
-            <span>
-              ◉
-            </span>
-            <b>
-              账户
-            </b>
-          </button>
-          <button class="menu-item" data-action="消息">
-            <span>
-              ✦
-            </span>
-            <b>
-              消息 · 2
-            </b>
-          </button>
-          <button class="menu-item" data-action="收藏">
-            <span>
-              ♡
-            </span>
-            <b>
-              收藏
-            </b>
-          </button>
-          <button class="menu-item" data-action="设置">
-            <span>
-              ⚙
-            </span>
-            <b>
-              设置
-            </b>
-          </button>
+          <button class="menu-item" data-action="功能占位一"><span>◉</span><b>功能占位一</b></button>
+          <button class="menu-item" data-action="功能占位二"><span>✦</span><b>功能占位二</b></button>
+          <button class="menu-item" data-action="功能占位三"><span>◇</span><b>功能占位三</b></button>
+          <button class="menu-item" data-action="设置"><span>⚙</span><b>设置</b></button>
         </div>
-        <div class="drawer-foot">
-          向下拖动也可以关闭菜单
-        </div>
+        <div class="drawer-foot">菜单内容将在后续迁移中完善</div>
       </aside>
-      <div class="toast" id="toast" role="status">
-      </div>
+      <div class="toast" id="toast" role="status"></div>
     </main>
-    <script type="module" src="./scripts/main.js">
-    </script>
+    <script type="module" src="./scripts/main.js"></script>
   </body>
 </html>
