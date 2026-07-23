@@ -28,7 +28,7 @@ export function initHorizontalGestures({ openDrawer }) {
     let suppressClicksUntil = 0;
 
     element.addEventListener('pointerdown', (event) => {
-      if (state.drawerOpen || event.button > 0) return;
+      if (state.drawerOpen || event.button > 0 || event.target.closest?.('.seat-viewport')) return;
       active = true;
       pointerId = event.pointerId;
       startX = event.clientX;

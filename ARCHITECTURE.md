@@ -28,6 +28,7 @@ node lan-server.js
 | `scripts/drawer.js` | 抽屉开关与下拉关闭手势。 |
 | `scripts/toast.js` | 菜单反馈与 Toast 生命周期。 |
 | `scripts/student-font-size.js` | 网格姓名字号、“更多”浮层与字号持久化。 |
+| `scripts/seat-canvas.js` | 座位画布的自适应定位、平移与缩放手势。 |
 | `scripts/main.js` | 初始化编排。 |
 
 ## 状态与 DOM 契约
@@ -40,6 +41,6 @@ node lan-server.js
 
 ## 模块依赖
 
-`dom.js` 和 `state.js` 是基础模块。`navigation.js`、`gestures.js`、`drawer.js` 与 `toast.js` 只依赖基础模块（`gestures.js` 还使用导航的渲染接口）。`student-font-size.js` 依赖基础模块和 Toast 接口，独立管理字号浮层及持久化。`main.js` 负责导入并初始化全部功能；它将 `openDrawer` 注入手势模块，避免循环依赖。
+`dom.js` 和 `state.js` 是基础模块。`navigation.js`、`gestures.js`、`drawer.js` 与 `toast.js` 只依赖基础模块（`gestures.js` 还使用导航的渲染接口）。`student-font-size.js` 依赖基础模块和 Toast 接口，独立管理字号浮层及持久化。`seat-canvas.js` 只依赖固定 DOM 引用，独立管理座位画布的内存态 transform 与手势。`main.js` 负责导入并初始化全部功能；它将 `openDrawer` 注入手势模块，避免循环依赖。
 
 修改导航请编辑 `scripts/navigation.js`，修改手势请编辑 `scripts/gestures.js`，修改抽屉请编辑 `scripts/drawer.js`，修改网格姓名字号行为请编辑 `scripts/student-font-size.js`。视觉修改应按对应样式模块定位。
