@@ -7,7 +7,7 @@
 | 阶段 | 状态 | 开始时间 | 完成时间 | 提交 | 验证摘要 |
 | --- | --- | --- | --- | --- | --- |
 | 阶段 0 | 完成 | 2026-04-13 00:00 UTC | 2026-04-13 00:00 UTC | d9d7ae3 | 文档冲突均已决策；语法、静态 DOM、资源/存储扫描、启动与差异检查通过。 |
-| 阶段 1 | 完成 | 2026-04-13 00:00 UTC | 2026-07-23 00:40 UTC | — | 9 项领域测试、全量语法、DOM/资源/存储扫描、启动与差异检查通过；本阶段未改 UI。 |
+| 阶段 1 | 完成 | 2026-04-13 00:00 UTC | 2026-07-23 00:40 UTC | a0f41e7 | 9 项领域测试、全量语法、DOM/资源/存储扫描、启动与差异检查通过；本阶段未改 UI。 |
 | 阶段 2 | 待开始 | — | — | — | — |
 | 阶段 3 | 待开始 | — | — | — | — |
 | 阶段 4 | 待开始 | — | — | — | — |
@@ -34,6 +34,7 @@
 | 2026-07-23 00:40 UTC | 阶段 1 | 验证失败 | `rg -n 'https?://' index.html scripts styles lan-server.js` | 扫描命中 `lan-server.js` 自身输出的本地 `http://localhost`/局域网地址，不是远程资源；命令在后续检查前退出，未修改应用代码 | 排除服务器本地输出后重跑扫描和运行验证 |
 | 2026-07-23 00:40 UTC | 阶段 1 | 完成验证 | `node --test tests/roster-store.test.mjs`；`node --check scripts/*.js lan-server.js`；Node DOM/脚本/存储扫描；`git diff --check`；`node lan-server.js` + `curl` | 9 项领域测试、全部语法、ID/连续索引/46 静态学生格、无远程资源/未授权存储和差异检查均通过；本地页面可访问。Node 对无 package type 的 ES Module 给出重解析性能警告，非测试失败。Chrome/Edge 的 `--dump-dom` 均零字节且无 stderr，无法在当前自动化通道采集控制台；本阶段未修改 DOM、CSS 或交互，320/390/430px、reduced-motion 与真实输入回归沿用阶段 0 基线，待阶段 2 的 UI 接入进行实际回归 | 暂存并复核阶段文件，创建提交 |
 | 2026-07-23 00:40 UTC | 阶段 1 | 阶段完成 | `scripts/roster-model.js`、`scripts/roster-store.js`、`tests/roster-store.test.mjs`、`scripts/main.js` | 领域模型和内存 Store 已独立于 DOM；页面仍使用原有静态结构，未提前接入后续 UI 或持久化 | 创建阶段提交并复查工作区 |
+| 2026-07-23 00:40 UTC | 阶段 1 | 创建 Git 提交 | `git commit -m "feat: 建立登记业务模型与内存状态仓库"` | 已创建 `a0f41e7`；提交后 `git status --short` 为空 | 提交进度记录并确认工作区干净 |
 
 ### 阶段 0 · MyWS1 行为迁移检查表
 
