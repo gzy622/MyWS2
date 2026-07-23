@@ -1,5 +1,5 @@
 import { elements } from './dom.js';
-import { PAGE_COUNT, state, clampPage, setCurrentPage, setSuppressNavClick } from './state.js';
+import { PAGE_COUNT, state, clampPage, setCurrentPage } from './state.js';
 import { renderDrag, renderNavigation } from './navigation.js';
 
 const AXIS_LOCK_DISTANCE = 6;
@@ -9,7 +9,7 @@ const EDGE_RESISTANCE = 0.28;
 const SWIPE_MIN_DISTANCE = 20;
 const SWIPE_VELOCITY = 0.35;
 const SWIPE_PROJECTION_MS = 120;
-const CLICK_SUPPRESSION_MS = 350;
+const CLICK_SUPPRESSION_MS = 80;
 
 export function initHorizontalGestures({ openDrawer }) {
   function horizontalGesture(element, isNav = false) {
@@ -101,11 +101,7 @@ export function initHorizontalGestures({ openDrawer }) {
         renderNavigation();
       }
 
-      if (wasGesture) {
-        suppressClicksUntil = performance.now() + CLICK_SUPPRESSION_MS;
-        setSuppressNavClick(true);
-        setTimeout(() => setSuppressNavClick(false), CLICK_SUPPRESSION_MS);
-      }
+      if (wasGesture) suppressClicksUntil = event.timeStamp + CLICK_SUPPRESSION_MS;
 
       if (element.hasPointerCapture?.(pointerId)) element.releasePointerCapture(pointerId);
     };
@@ -114,7 +110,7 @@ export function initHorizontalGestures({ openDrawer }) {
     element.addEventListener('pointercancel', (event) => endGesture(event, true));
     element.addEventListener('lostpointercapture', (event) => endGesture(event, true));
     element.addEventListener('click', (event) => {
-      if (performance.now() >= suppressClicksUntil) return;
+      if (event.timeStamp > suppressClicksUntil) return;
       event.preventDefault();
       event.stopPropagation();
     }, true);
