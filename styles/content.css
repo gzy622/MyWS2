@@ -28,13 +28,10 @@ h1 { margin: 0; font-size: clamp(31px, 8vw, 38px); line-height: 1.08; letter-spa
   position: relative; display: grid; min-height: 0; place-items: center; padding: 4px 3px; overflow: hidden; color: var(--ink);
   font-size: var(--student-name-size, 16px); font-weight: 800; line-height: 1.15; text-align: center; white-space: nowrap;
 }
-.student-card.is-completed {
-  color: var(--teal); background: rgba(22, 91, 97, .10);
-  box-shadow: inset 0 0 0 1px rgba(22, 91, 97, .22);
-}
+.student-card.is-completed { color: var(--ink); background: rgba(239, 106, 58, .10); }
 .student-card.is-completed::before {
-  content: "✓"; position: absolute; top: 5px; right: 5px; display: grid; width: 15px; height: 15px; place-items: center;
-  border-radius: 50%; background: var(--teal); color: var(--card); font-size: 10px; font-weight: 800; line-height: 1;
+  content: "✓"; position: absolute; top: 4px; right: 5px; color: var(--accent);
+  font-size: clamp(11px, 2.8vw, 12px); font-weight: 800; line-height: 1;
 }
 .student-card:focus-visible { z-index: 1; outline: 2px solid var(--accent); outline-offset: -2px; }
 .student-card[data-score]::after {
