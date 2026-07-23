@@ -10,6 +10,7 @@ export const state = {
   drawerOpen: false,
   studentFontSize: STUDENT_FONT_SIZE_DEFAULT,
   fontSizePopoverOpen: false,
+  seatEditing: false,
   activeOverlay: null
 };
 
@@ -46,6 +47,10 @@ export function setStudentFontSize(value) {
 
 export function setFontSizePopoverOpen(value) {
   state.fontSizePopoverOpen = Boolean(value);
+}
+
+export function setSeatEditing(value) {
+  state.seatEditing = Boolean(value);
 }
 
 export function setActiveOverlay(value) {

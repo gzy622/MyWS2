@@ -23,6 +23,7 @@ export const elements = {
   studentFontSizeValue: required('#studentFontSizeValue'),
   seatViewport: required('#seatViewport'),
   seatStage: required('#seatStage'),
+  seatGrid: required('#seatGrid'),
   seatHint: required('#seatHint'),
   navButtons: requiredAll('.nav-btn'),
   pageElements: requiredAll('.page'),

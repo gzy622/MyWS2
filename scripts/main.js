@@ -22,5 +22,5 @@ initRosterRenderer(rosterStore);
 const studentRecord = initStudentRecord({ store: rosterStore, showToast });
 initAssignments({ store: rosterStore, showToast });
 initStudentInteractions({ store: rosterStore, showToast, openStudentRecord: studentRecord.open });
-initSeatCanvas();
+export const seatCanvas = initSeatCanvas({ store: rosterStore, showToast, openStudentRecord: studentRecord.open });
 renderNavigation({ animate: false });

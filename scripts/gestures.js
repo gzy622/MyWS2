@@ -41,7 +41,6 @@ export function initHorizontalGestures({ openDrawer }) {
       velocityX = 0;
       scrollPage = isNav ? null : elements.pageElements[state.currentPage];
       startScrollTop = scrollPage?.scrollTop || 0;
-      element.setPointerCapture?.(pointerId);
     });
 
     element.addEventListener('pointermove', (event) => {
@@ -56,6 +55,7 @@ export function initHorizontalGestures({ openDrawer }) {
 
       if (!axis && Math.hypot(deltaX, deltaY) > AXIS_LOCK_DISTANCE) {
         axis = Math.abs(deltaX) >= Math.abs(deltaY) ? 'x' : 'y';
+        element.setPointerCapture?.(pointerId);
       }
 
       if (axis === 'y') {
