@@ -11,8 +11,9 @@ import {
   SEAT_VIEW_ROW_HEIGHT
 } from './seat-geometry.js';
 
-function describeStudent(student, completed) {
-  return `${student.name}，${completed ? '已完成' : '未记录'}。轻点切换完成状态。`;
+function describeStudent(student, completed, score) {
+  const status = score === undefined ? (completed ? '已完成' : '未记录') : `已完成，${score} 分`;
+  return `${student.name}，${status}。轻点切换完成状态。`;
 }
 
 export function initRosterRenderer(store) {
@@ -45,14 +46,17 @@ export function initRosterRenderer(store) {
     const completedStudentIds = store.getCompletedStudentIds();
     const cards = state.students.map((student) => {
       const completed = completedStudentIds.has(student.id);
+      const score = store.getScore(student.id);
       const card = document.createElement('button');
       card.type = 'button';
       card.className = 'student-card';
       card.dataset.studentId = String(student.id);
       card.setAttribute('role', 'listitem');
       card.setAttribute('aria-pressed', String(completed));
-      card.setAttribute('aria-label', describeStudent(student, completed));
+      card.setAttribute('aria-label', describeStudent(student, completed, score));
       card.classList.toggle('is-completed', completed);
+      if (score === undefined) delete card.dataset.score;
+      else card.dataset.score = String(score);
       card.textContent = student.name;
       return card;
     });
@@ -85,7 +89,7 @@ export function initRosterRenderer(store) {
       card.dataset.studentId = String(student.id);
       card.dataset.seatIndex = String(seatIndex);
       card.setAttribute('aria-pressed', String(completed));
-      card.setAttribute('aria-label', `${describeStudent(student, completed)}座位表中。`);
+      card.setAttribute('aria-label', `${describeStudent(student, completed, score)}座位表中。`);
       card.classList.toggle('is-completed', completed);
       if (score === undefined) delete card.dataset.score;
       else card.dataset.score = String(score);

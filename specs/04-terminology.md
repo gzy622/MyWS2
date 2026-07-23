@@ -66,7 +66,7 @@
 | 字号滑杆 | `#studentFontSize` | `14～18px`、步长为 `1px` 的实时调节控件。 |
 | 字号数值 | `#studentFontSizeValue` | 显示当前字号，例如“16px”。 |
 | 字号刻度 | `.font-size-popover-scale` | 滑杆两端的“小 / 大”辅助文字。 |
-| 字号持久化键 | `teacher-workbench.student-name-font-size` | 唯一允许使用的 `localStorage` 键。 |
+| 字号持久化键 | `teacher-workbench.student-name-font-size` | 三个受控 `localStorage` 键之一，仅保存姓名字号。 |
 
 ## 6. 座位画布与编辑
 

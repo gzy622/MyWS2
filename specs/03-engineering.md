@@ -34,7 +34,7 @@
 | 网格姓名字号、浮层和持久化 | `scripts/student-font-size.js` |
 | 页面、导航手势 | `scripts/gestures.js` |
 | 抽屉行为 | `scripts/drawer.js` |
-| Toast 与抽屉占位反馈 | `scripts/toast.js` |
+| Toast 生命周期与临时反馈 | `scripts/toast.js` |
 | 初始化和依赖注入 | `scripts/main.js` |
 
 不得为了“小改动方便”把 CSS 或 JS 塞回 `index.html`。只有新增了清晰、独立的职责时才创建新模块。
