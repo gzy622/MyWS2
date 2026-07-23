@@ -23,8 +23,7 @@ export function initHorizontalGestures({ openDrawer }) {
     let velocityX = 0;
     let scrollPage = null;
     let startScrollTop = 0;
-    let suppressNextClick = false;
-    let suppressResetTimer;
+
 
     element.addEventListener('pointerdown', (event) => {
       if (state.drawerOpen || event.button > 0 || event.target.closest?.('.seat-viewport')) return;
@@ -100,11 +99,7 @@ export function initHorizontalGestures({ openDrawer }) {
         renderNavigation();
       }
 
-      if (wasGesture) {
-        suppressNextClick = true;
-        clearTimeout(suppressResetTimer);
-        suppressResetTimer = setTimeout(() => { suppressNextClick = false; }, 0);
-      }
+      if (wasGesture) event.preventDefault();
 
       if (element.hasPointerCapture?.(pointerId)) element.releasePointerCapture(pointerId);
     };
@@ -112,13 +107,7 @@ export function initHorizontalGestures({ openDrawer }) {
     element.addEventListener('pointerup', (event) => endGesture(event));
     element.addEventListener('pointercancel', (event) => endGesture(event, true));
     element.addEventListener('lostpointercapture', (event) => endGesture(event, true));
-    element.addEventListener('click', (event) => {
-      if (!suppressNextClick) return;
-      suppressNextClick = false;
-      clearTimeout(suppressResetTimer);
-      event.preventDefault();
-      event.stopPropagation();
-    }, true);
+
   }
 
   horizontalGesture(elements.viewport);
