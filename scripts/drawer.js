@@ -1,25 +1,36 @@
 import { elements } from './dom.js';
 import { setDrawerOpen } from './state.js';
 
+let closeBusinessOverlays = () => {};
+let drawerTrigger = null;
+
 export function openDrawer() {
+  closeBusinessOverlays('drawer');
+  drawerTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : elements.menuButton;
   setDrawerOpen(true);
   elements.app.classList.add('drawer-open');
+  elements.drawer.inert = false;
   elements.drawer.setAttribute('aria-hidden', 'false');
   elements.closeDrawerButton.focus({ preventScroll: true });
 }
 
-export function closeDrawer() {
+export function closeDrawer({ restoreFocus = true } = {}) {
+  if (!elements.app.classList.contains('drawer-open')) return;
   setDrawerOpen(false);
   elements.drawer.style.transform = '';
   elements.drawer.classList.remove('dragging');
   elements.app.classList.remove('drawer-open');
   elements.drawer.setAttribute('aria-hidden', 'true');
+  elements.drawer.inert = true;
+  if (restoreFocus) drawerTrigger?.focus({ preventScroll: true });
+  drawerTrigger = null;
 }
 
-export function initDrawer() {
+export function initDrawer({ closeOverlays } = {}) {
+  closeBusinessOverlays = closeOverlays ?? (() => {});
   elements.menuButton.addEventListener('click', openDrawer);
-  elements.closeDrawerButton.addEventListener('click', closeDrawer);
-  elements.scrim.addEventListener('click', closeDrawer);
+  elements.closeDrawerButton.addEventListener('click', () => closeDrawer());
+  elements.scrim.addEventListener('click', () => closeDrawer());
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') closeDrawer();
   });

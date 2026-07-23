@@ -3,14 +3,16 @@ import { setActiveOverlay } from './state.js';
 
 const QUICK_SCORES = [20, 50, 80, 100];
 
-export function initStudentRecord({ store, showToast }) {
+export function initStudentRecord({ store, showToast, closeOthers }) {
   let studentId = null;
   let trigger = null;
   let mode = 'completed';
 
   function close() {
+    if (!elements.studentRecordOverlay.classList.contains('show')) return;
     elements.studentRecordOverlay.classList.remove('show');
     elements.studentRecordOverlay.setAttribute('aria-hidden', 'true');
+    elements.studentRecordOverlay.inert = true;
     setActiveOverlay(null);
     trigger?.focus({ preventScroll: true });
     trigger = null;
@@ -25,6 +27,7 @@ export function initStudentRecord({ store, showToast }) {
     const state = store.getSnapshot();
     const student = state.students.find(({ id }) => id === nextStudentId);
     if (!student) return;
+    closeOthers?.('student-record');
     studentId = nextStudentId; trigger = source; mode = store.getScore(studentId) === undefined ? 'completed' : 'score';
     elements.studentRecordTitle.textContent = student.name;
     const score = store.getScore(studentId);
@@ -34,6 +37,7 @@ export function initStudentRecord({ store, showToast }) {
     elements.studentScoreError.textContent = '';
     renderMode(); setActiveOverlay('student-record');
     elements.studentRecordOverlay.classList.add('show'); elements.studentRecordOverlay.setAttribute('aria-hidden', 'false');
+    elements.studentRecordOverlay.inert = false;
     (mode === 'score' ? elements.studentScoreInput : elements.closeStudentRecordButton).focus({ preventScroll: true });
   }
 

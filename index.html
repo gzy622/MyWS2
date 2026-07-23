@@ -187,7 +187,7 @@
         </nav>
       </div>
 
-      <section class="student-record-overlay" id="studentRecordOverlay" role="dialog" aria-modal="true" aria-labelledby="studentRecordTitle" aria-hidden="true">
+      <section class="student-record-overlay" id="studentRecordOverlay" role="dialog" aria-modal="true" aria-labelledby="studentRecordTitle" aria-hidden="true" inert>
         <div class="student-record-panel">
           <button class="student-record-close" id="closeStudentRecord" aria-label="关闭学生记录">×</button>
           <h2 id="studentRecordTitle">学生记录</h2><p id="studentRecordStatus"></p>
@@ -196,8 +196,32 @@
           <div class="student-record-actions"><button type="button" id="clearStudentRecord">清除记录</button><button type="button" id="saveStudentRecord">保存</button></div>
         </div>
       </section>
+      <section class="more-overlay" id="moreOverlay" role="dialog" aria-modal="true" aria-labelledby="moreTitle" aria-hidden="true" inert>
+        <div class="more-panel">
+          <button class="more-close" id="closeMore" type="button" aria-label="关闭更多面板">×</button>
+          <h2 id="moreTitle">更多</h2>
+          <p>登记视图与当前作业操作</p>
+          <div class="more-actions">
+            <button type="button" data-more-action="theme"><b>主题设置</b><small>当前使用浅色外观</small></button>
+            <button type="button" data-more-action="clear-assignment"><b>清除当前作业</b><small>清除全部完成标记和分数</small></button>
+            <button type="button" data-more-action="font-size"><b>姓名字号</b><small>调整网格中的姓名大小</small></button>
+            <button type="button" data-more-action="seat-edit" aria-pressed="false"><b>编辑座位表</b><small>拖动学生可调整座位</small></button>
+            <button type="button" data-more-action="seat-reset"><b>复位座位视图</b><small>恢复默认缩放和位置</small></button>
+          </div>
+        </div>
+      </section>
+      <section class="confirm-overlay" id="confirmOverlay" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage" aria-hidden="true" inert>
+        <div class="confirm-panel">
+          <h2 id="confirmTitle">确认操作</h2>
+          <p id="confirmMessage"></p>
+          <div class="confirm-actions">
+            <button type="button" id="cancelConfirm">取消</button>
+            <button type="button" id="acceptConfirm">确认</button>
+          </div>
+        </div>
+      </section>
       <div class="scrim" id="scrim"></div>
-      <aside class="drawer" id="drawer" aria-hidden="true">
+      <aside class="drawer" id="drawer" aria-hidden="true" inert>
         <div class="drawer-handle-zone" id="drawerHandle">
           <div class="handle"></div>
         </div>
@@ -212,12 +236,14 @@
           <button class="close" id="closeDrawer" aria-label="关闭菜单">×</button>
         </div>
         <div class="menu-grid">
-          <button class="menu-item" data-action="功能占位一"><span>◉</span><b>功能占位一</b></button>
-          <button class="menu-item" data-action="功能占位二"><span>✦</span><b>功能占位二</b></button>
-          <button class="menu-item" data-action="功能占位三"><span>◇</span><b>功能占位三</b></button>
-          <button class="menu-item" data-action="设置"><span>⚙</span><b>设置</b></button>
+          <button class="menu-item" data-action="view-grid"><span>网</span><b>查看网格</b></button>
+          <button class="menu-item" data-action="view-seats"><span>座</span><b>查看座位表</b></button>
+          <button class="menu-item" data-action="mark-all"><span>全</span><b>全部标记已交</b></button>
+          <button class="menu-item" data-action="clear-all"><span>清</span><b>清除全部标记</b></button>
+          <button class="menu-item" data-action="copy-missing"><span>复</span><b>复制未交名单</b></button>
+          <button class="menu-item" data-action="reset-roster"><span>恢</span><b>恢复默认名单</b></button>
         </div>
-        <div class="drawer-foot">菜单内容将在后续迁移中完善</div>
+        <div class="drawer-foot">批量操作仅作用于当前作业</div>
       </aside>
       <div class="toast" id="toast" role="status"></div>
     </main>

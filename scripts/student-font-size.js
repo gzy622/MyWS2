@@ -1,6 +1,5 @@
 import { elements } from './dom.js';
 import { state, setFontSizePopoverOpen, setStudentFontSize } from './state.js';
-import { showToast } from './toast.js';
 
 const STORAGE_KEY = 'teacher-workbench.student-name-font-size';
 const REGISTER_PAGE_INDEX = 1;
@@ -48,6 +47,14 @@ function closePopover() {
   renderPopover();
 }
 
+function openPopover() {
+  if (!isStudentGridActive()) return false;
+  setFontSizePopoverOpen(true);
+  renderPopover();
+  elements.studentFontSizeInput.focus({ preventScroll: true });
+  return true;
+}
+
 function closePopoverFromOutside(event) {
   if (!state.fontSizePopoverOpen) return;
   if (elements.fontSizePopover.contains(event.target) || elements.moreButton.contains(event.target)) return;
@@ -58,18 +65,6 @@ export function initStudentFontSize() {
   restoreStudentFontSize();
   renderStudentFontSize();
   renderPopover();
-
-  elements.moreButton.addEventListener('click', () => {
-    if (!isStudentGridActive()) {
-      closePopover();
-      showToast('更多功能即将推出');
-      return;
-    }
-
-    setFontSizePopoverOpen(!state.fontSizePopoverOpen);
-    renderPopover();
-    if (state.fontSizePopoverOpen) elements.studentFontSizeInput.focus({ preventScroll: true });
-  });
 
   elements.studentFontSizeInput.addEventListener('pointerdown', (event) => event.stopPropagation());
   elements.studentFontSizeInput.addEventListener('input', (event) => {
@@ -84,4 +79,6 @@ export function initStudentFontSize() {
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && state.fontSizePopoverOpen) closePopover();
   });
+
+  return { open: openPopover, close: closePopover };
 }

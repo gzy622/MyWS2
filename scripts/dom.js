@@ -45,5 +45,13 @@ export const elements = {
   studentScoreError: required('#studentScoreError'),
   clearStudentRecordButton: required('#clearStudentRecord'),
   saveStudentRecordButton: required('#saveStudentRecord'),
+  moreOverlay: required('#moreOverlay'),
+  closeMoreButton: required('#closeMore'),
+  moreActions: requiredAll('[data-more-action]'),
+  confirmOverlay: required('#confirmOverlay'),
+  confirmTitle: required('#confirmTitle'),
+  confirmMessage: required('#confirmMessage'),
+  cancelConfirmButton: required('#cancelConfirm'),
+  acceptConfirmButton: required('#acceptConfirm'),
   menuItems: requiredAll('.menu-item')
 };

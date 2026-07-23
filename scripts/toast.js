@@ -8,9 +8,3 @@ export function showToast(message) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => elements.toast.classList.remove('show'), 1600);
 }
-
-export function initMenuActions() {
-  elements.menuItems.forEach((button) => {
-    button.addEventListener('click', () => showToast(`${button.dataset.action}功能已选择`));
-  });
-}
