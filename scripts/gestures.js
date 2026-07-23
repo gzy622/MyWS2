@@ -9,8 +9,6 @@ const EDGE_RESISTANCE = 0.28;
 const SWIPE_MIN_DISTANCE = 20;
 const SWIPE_VELOCITY = 0.35;
 const SWIPE_PROJECTION_MS = 120;
-const CLICK_SUPPRESSION_MS = 80;
-
 export function initHorizontalGestures({ openDrawer }) {
   function horizontalGesture(element, isNav = false) {
     let active = false;
@@ -25,7 +23,8 @@ export function initHorizontalGestures({ openDrawer }) {
     let velocityX = 0;
     let scrollPage = null;
     let startScrollTop = 0;
-    let suppressClicksUntil = 0;
+    let suppressNextClick = false;
+    let suppressResetTimer;
 
     element.addEventListener('pointerdown', (event) => {
       if (state.drawerOpen || event.button > 0 || event.target.closest?.('.seat-viewport')) return;
@@ -101,7 +100,11 @@ export function initHorizontalGestures({ openDrawer }) {
         renderNavigation();
       }
 
-      if (wasGesture) suppressClicksUntil = event.timeStamp + CLICK_SUPPRESSION_MS;
+      if (wasGesture) {
+        suppressNextClick = true;
+        clearTimeout(suppressResetTimer);
+        suppressResetTimer = setTimeout(() => { suppressNextClick = false; }, 0);
+      }
 
       if (element.hasPointerCapture?.(pointerId)) element.releasePointerCapture(pointerId);
     };
@@ -110,7 +113,9 @@ export function initHorizontalGestures({ openDrawer }) {
     element.addEventListener('pointercancel', (event) => endGesture(event, true));
     element.addEventListener('lostpointercapture', (event) => endGesture(event, true));
     element.addEventListener('click', (event) => {
-      if (event.timeStamp > suppressClicksUntil) return;
+      if (!suppressNextClick) return;
+      suppressNextClick = false;
+      clearTimeout(suppressResetTimer);
       event.preventDefault();
       event.stopPropagation();
     }, true);
