@@ -81,6 +81,7 @@ export function initSeatCanvas() {
   }
 
   function pointerDown(event) {
+    if (event.target.closest('.seat-card')) return;
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     event.preventDefault();
     viewport.setPointerCapture?.(event.pointerId);

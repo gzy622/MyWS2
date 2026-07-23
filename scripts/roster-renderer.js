@@ -21,6 +21,21 @@ export function initRosterRenderer(store) {
       return card;
     });
     elements.studentGrid.replaceChildren(...cards);
+    const studentById = new Map(state.students.map((student) => [student.id, student]));
+    [...document.querySelectorAll('.seat-card')].forEach((card, index) => {
+      const student = studentById.get(state.seats[index]?.studentId);
+      if (!student) return;
+      const completed = completedStudentIds.has(student.id);
+      const score = store.getScore(student.id);
+      card.dataset.studentId = String(student.id);
+      card.dataset.seatIndex = String(state.seats[index].seatIndex);
+      card.setAttribute('aria-pressed', String(completed));
+      card.setAttribute('aria-label', `${describeStudent(student, completed)}座位表中。`);
+      card.classList.toggle('is-completed', completed);
+      if (score === undefined) delete card.dataset.score;
+      else card.dataset.score = String(score);
+      card.textContent = student.name;
+    });
   }
 
   render();

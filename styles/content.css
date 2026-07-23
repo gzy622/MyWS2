@@ -61,11 +61,13 @@ h1 { margin: 0; font-size: clamp(31px, 8vw, 38px); line-height: 1.08; letter-spa
   grid-template-columns: 57px 114px 114px 57px 114px 114px 57px 114px 114px 57px 114px 114px 57px;
 }
 .seat-card {
-  width: 98px; height: 72px; align-self: start; justify-self: start; margin: 6px 0 0 8px;
+  width: 98px; height: 72px; align-self: start; justify-self: start; margin: 6px 0 0 8px; position: relative; cursor: pointer;
   display: grid; place-items: center; padding: 6px; overflow: hidden; color: #344044;
   background: #fff; border: 1px solid #d6dfe0; border-radius: 10px;
   box-shadow: 0 3px 7px rgba(38, 52, 54, .11); font-size: 18px; font-weight: 500; line-height: 1.1;
 }
+.seat-card.is-completed { color: var(--teal); background: rgba(22, 91, 97, .10); border-color: rgba(22, 91, 97, .35); }
+.seat-card[data-score]::after { content: attr(data-score); position: absolute; top: 5px; right: 6px; color: var(--accent); font-size: 11px; font-weight: 800; }
 .seat-column-1 { grid-column: 2; }
 .seat-column-2 { grid-column: 3; }
 .seat-column-4 { grid-column: 5; }
