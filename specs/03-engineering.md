@@ -6,7 +6,7 @@
 - 不新增 npm 依赖、框架、打包器、CSS-in-JS、图标库或远程 CDN。
 - 不增加构建步骤；运行入口始终是 `node lan-server.js`。
 - 代码应能在当前主流移动浏览器中工作；手势使用 Pointer Events。
-- 不使用 cookie 或 IndexedDB 保存界面状态。`localStorage` 仅允许 `scripts/student-font-size.js` 以键 `teacher-workbench.student-name-font-size` 保存学生姓名字号；禁止保存导航、子视图、抽屉或浮层开关状态。
+- 不使用 cookie 或 IndexedDB 保存界面状态。`localStorage` 仅允许以下键：`teacher-workbench.student-name-font-size`（姓名字号）、`teacher-workbench.roster.v1`（业务数据）和 `teacher-workbench.theme`（`light` 或 `dark`）。禁止保存导航、子视图、抽屉、浮层、座位编辑模式或画布 transform。
 
 ## 2. 文件职责
 
@@ -19,7 +19,17 @@
 | 页面内容、Hero、卡片、图表 | `styles/content.css` |
 | 底导航、字号浮层、抽屉、Toast | `styles/controls.css` |
 | DOM 查询及必需元素校验 | `scripts/dom.js` |
-| 状态和状态边界 | `scripts/state.js` |
+| UI 瞬时状态和状态边界 | `scripts/state.js` |
+| 默认数据、业务校验与领域常量 | `scripts/roster-model.js` |
+| 业务 Store、变更和订阅 | `scripts/roster-store.js` |
+| 业务存储 Schema、迁移与回退 | `scripts/roster-storage.js` |
+| 网格与座位共享渲染 | `scripts/roster-renderer.js` |
+| 学生轻点、长按和右键 | `scripts/student-interactions.js` |
+| 学生记录面板 | `scripts/student-record.js` |
+| 作业管理面板 | `scripts/assignments.js` |
+| 座位逻辑几何 | `scripts/seat-geometry.js` |
+| 登记上下文更多面板 | `scripts/more-sheet.js` |
+| Visual Viewport 同步 | `scripts/viewport.js` |
 | 主/子导航和渲染 | `scripts/navigation.js` |
 | 网格姓名字号、浮层和持久化 | `scripts/student-font-size.js` |
 | 页面、导航手势 | `scripts/gestures.js` |
@@ -41,14 +51,39 @@
 
 ## 4. 模块依赖边界
 
-- `dom.js`、`state.js` 为基础模块。
+- `dom.js`、`state.js` 与 `roster-model.js` 为基础模块。
+- `roster-store.js` 是学生、座位、作业、提交和分数的唯一可写来源；组件、渲染器和交互模块只能调用其方法，不得直接改业务数组或建立第二份可写副本。
+- `roster-storage.js` 只负责严格读取、已知版本迁移和写入；无法完整解析或校验的数据必须整体回退默认值。
 - `navigation.js` 负责状态到导航 DOM 和动态顶栏标题的统一渲染。
 - `gestures.js` 可以调用导航渲染，但不得直接形成新的导航状态源。
-- `student-font-size.js` 独立管理“更多”字号浮层、实时字号渲染和唯一允许的持久化键；不得把该逻辑复制到导航或 Toast 模块。
+- `student-font-size.js` 独立管理姓名字号控件、实时字号渲染和字号键；不得把该逻辑复制到导航或 Toast 模块。
 - `drawer.js` 独立管理抽屉；`main.js` 将 `openDrawer` 注入手势模块，以避免循环依赖。
-- `main.js` 只负责编排初始化，不承载业务逻辑。
+- `main.js` 只负责创建 Store、初始化和依赖注入，不承载业务逻辑。
 
 禁止复制一份类似的状态、渲染或手势逻辑到其他文件。
+
+## 4.1 业务数据与存储契约
+
+业务存储值必须是以下 Schema Version 1 的完整对象：
+
+```js
+{
+  schemaVersion: 1,
+  students: [{ id: 1, name: '示例学生' }],
+  seats: [{ studentId: 1, seatIndex: 0 }],
+  assignments: [{ id: 1, name: '作业 1' }],
+  activeAssignmentId: 1,
+  submissions: [{ assignmentId: 1, studentId: 1 }],
+  scores: [{ assignmentId: 1, studentId: 1, value: 95.5 }],
+  nextAssignmentId: 1
+}
+```
+
+- 默认值使用现有 46 名学生、稳定默认座位映射和“作业 1”；不得在 HTML、渲染器或交互模块复制默认名单或座位。
+- 学生 ID、作业 ID、座位索引唯一；每名学生恰有一个 `0～103` 的座位，所有引用必须存在。
+- 同一 `(assignmentId, studentId)` 最多一条提交和一条分数；分数必须为 `0～100`、最多一位小数且必须对应提交。清除完成记录同时清除分数。
+- 至少保留一个作业，活动作业必须存在，`nextAssignmentId` 不小于已有最大作业 ID。
+- `schemaVersion` 不匹配仅可进入显式的已知迁移；损坏 JSON、未知版本、引用失效、重复值或存储异常不得阻止启动，读取时整体回退默认值，写入失败保留当前内存会话。
 
 ## 5. 改动流程
 
@@ -65,9 +100,9 @@
 - 事件监听只在初始化函数中注册一次。
 - 所有手势结束路径（up / cancel / lost capture）都要恢复临时视觉状态。
 - DOM 查询集中在 `dom.js`，必需元素缺失时快速失败。
-- 状态变更通过 `state.js` 导出的函数完成。
+- UI 状态变更通过 `state.js` 导出的函数完成；领域状态变更仅通过 `roster-store.js` 的方法完成。
 - CSS 优先使用 token；相同值重复出现 3 次以上时考虑提取变量。
-- 持久化读写必须捕获存储不可用异常，并通过 `state.js` 的边界函数校验字号范围。
+- 持久化读写必须捕获存储不可用异常；姓名字号通过 `state.js` 边界校验，业务数据通过领域模型的严格 Schema 校验。
 - 不留下 `console.log`、调试边框、注释掉的大段代码或无用 selector。
 - 不做全文件无关格式化。
 
@@ -76,9 +111,9 @@
 ### 静态检查
 
 - [ ] `node --check` 检查所有 `scripts/*.js` 和 `lan-server.js` 无语法错误。
-- [ ] 页面中的 ID 唯一，`data-page` / `data-index` 连续且对应；登记网格恰有 46 个 `.student-card`。
-- [ ] 新增颜色、尺寸、动效符合视觉 Spec。
-- [ ] 没有远程资源、第三方依赖或内联脚本样式；`localStorage` 仅出现于姓名字号模块并使用规定键。
+- [ ] 页面中的 ID 唯一，`data-page` / `data-index` 连续且对应；登记网格恰有 46 个 `.student-card`，座位表恰有 104 个逻辑位置和 46 张座位卡。
+- [ ] 新增颜色、尺寸、动效符合视觉 Spec；深色仅覆盖 token。
+- [ ] 没有远程资源、第三方依赖或内联业务脚本样式；`localStorage` 仅使用三个规定键并由对应模块访问。
 - [ ] `git diff --check` 无空白错误。
 
 ### 运行检查
@@ -94,8 +129,9 @@
 - [ ] 执行 `specs/02-interaction.md` 的 10 个必测场景。
 - [ ] 点击和拖动不重复触发。
 - [ ] active class、glider、subdots、动态顶栏标题和 ARIA 状态始终同步。
-- [ ] 姓名字号实时变化并在刷新后恢复；浮层不持久化，且只在网格视图可打开。
-- [ ] reduced motion 下功能完整。
+- [ ] 姓名字号、业务数据和主题按各自契约刷新恢复；导航、浮层、编辑模式和画布 transform 不持久化。
+- [ ] 网格与座位的完成、分数和活动作业始终同步；领域和存储测试覆盖非法输入、关联清理和回退。
+- [ ] 320px、390px、430px、短横屏、软键盘与 reduced motion 下功能完整。
 - [ ] 任务之外的页面、文案、视觉和行为没有改变。
 
 ## 8. 完成定义
