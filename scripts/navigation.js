@@ -9,6 +9,10 @@ function gliderTransform(offsetPx = 0) {
   return `translate3d(calc(${state.currentPage * 100}% + ${-offsetPx / 3}px), 0, 0)`;
 }
 
+function directGliderTransform(offsetPx = 0) {
+  return `translate3d(calc(${state.currentPage * 100}% + ${offsetPx}px), 0, 0)`;
+}
+
 export function renderNavigation({ animate = true } = {}) {
   elements.pages.classList.toggle('dragging', !animate);
   elements.glider.classList.toggle('dragging', !animate);
@@ -42,6 +46,11 @@ export function renderDrag(offsetPx) {
   elements.glider.classList.add('dragging');
   elements.pages.style.transform = pageTransform(offsetPx);
   elements.glider.style.transform = gliderTransform(offsetPx);
+}
+
+export function renderNavDrag(offsetPx) {
+  elements.glider.classList.add('dragging');
+  elements.glider.style.transform = directGliderTransform(offsetPx);
 }
 
 export function setPage(index) {

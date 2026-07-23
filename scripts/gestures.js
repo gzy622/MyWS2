@@ -1,6 +1,6 @@
 import { elements } from './dom.js';
 import { PAGE_COUNT, state, clampPage, setCurrentPage } from './state.js';
-import { renderDrag, renderNavigation } from './navigation.js';
+import { renderDrag, renderNavigation, renderNavDrag } from './navigation.js';
 
 const AXIS_LOCK_DISTANCE = 6;
 const NAV_DRAWER_HINT_DISTANCE = 24;
@@ -25,10 +25,13 @@ export function initHorizontalGestures({ openDrawer }) {
     let startScrollTop = 0;
     let blockGestureClick = false;
 
+    const clearClickSuppression = () => {
+      blockGestureClick = false;
+    };
 
     element.addEventListener('pointerdown', (event) => {
       if (state.drawerOpen || event.button > 0 || event.target.closest?.('.seat-viewport')) return;
-      blockGestureClick = false;
+      clearClickSuppression();
       active = true;
       pointerId = event.pointerId;
       startX = event.clientX;
@@ -71,10 +74,13 @@ export function initHorizontalGestures({ openDrawer }) {
 
       event.preventDefault();
       let resistedOffset = deltaX;
-      if ((state.currentPage === 0 && deltaX > 0) || (state.currentPage === PAGE_COUNT - 1 && deltaX < 0)) {
+      const isPastStart = state.currentPage === 0 && (isNav ? deltaX < 0 : deltaX > 0);
+      const isPastEnd = state.currentPage === PAGE_COUNT - 1 && (isNav ? deltaX > 0 : deltaX < 0);
+      if (isPastStart || isPastEnd) {
         resistedOffset *= EDGE_RESISTANCE;
       }
-      renderDrag(resistedOffset);
+      if (isNav) renderNavDrag(resistedOffset);
+      else renderDrag(resistedOffset);
     }, { passive: false });
 
     const endGesture = (event, cancelled = false) => {
@@ -94,26 +100,34 @@ export function initHorizontalGestures({ openDrawer }) {
 
         if (passedDistance || passedFlick) {
           const directionDelta = passedDistance ? deltaX : projectedDelta;
-          setCurrentPage(clampPage(state.currentPage + (directionDelta < 0 ? 1 : -1)));
+          const pageDelta = isNav
+            ? (directionDelta < 0 ? -1 : 1)
+            : (directionDelta < 0 ? 1 : -1);
+          setCurrentPage(clampPage(state.currentPage + pageDelta));
         }
         renderNavigation();
       } else {
         renderNavigation();
       }
 
-      blockGestureClick = wasGesture;
-      if (wasGesture) event.preventDefault();
+      if (wasGesture) {
+        blockGestureClick = true;
+        queueMicrotask(clearClickSuppression);
+        event.preventDefault();
+      }
 
       if (element.hasPointerCapture?.(pointerId)) element.releasePointerCapture(pointerId);
     };
 
     element.addEventListener('pointerup', (event) => endGesture(event));
     element.addEventListener('pointercancel', (event) => endGesture(event, true));
-    element.addEventListener('lostpointercapture', (event) => endGesture(event, true));
-    element.addEventListener('keydown', () => { blockGestureClick = false; }, true);
+    element.addEventListener('lostpointercapture', (event) => {
+      if (event.target === element) endGesture(event, true);
+    });
+    element.addEventListener('keydown', clearClickSuppression, true);
     element.addEventListener('click', (event) => {
       if (!blockGestureClick) return;
-      blockGestureClick = false;
+      clearClickSuppression();
       event.preventDefault();
       event.stopPropagation();
     }, true);

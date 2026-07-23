@@ -1,1 +1,79 @@
-.assignment-overlay { position:absolute; z-index:31; inset:0; display:grid; place-items:start center; padding:calc(var(--topbar-h) + 12px) 12px 12px; background:rgba(13,25,29,.32); opacity:0; pointer-events:none; transition:opacity .2s; }.assignment-overlay.show{opacity:1;pointer-events:auto}.assignment-panel{width:100%;max-height:75%;overflow:auto;padding:16px;border:1px solid var(--line);border-radius:18px;background:var(--card);box-shadow:0 12px 30px rgba(23,37,42,.16)}.assignment-panel header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.assignment-panel button{border:1px solid var(--line);border-radius:10px;background:var(--card);padding:8px;cursor:pointer}.assignment-item{display:grid;grid-template-columns:1fr auto auto;gap:6px;margin:7px 0}.assignment-select{text-align:left}.assignment-select[aria-pressed="true"]{color:var(--teal);background:color-mix(in srgb,var(--teal) 8%,transparent)}.assignment-item small{display:block;color:var(--muted);margin-top:3px}.assignment-add{width:100%;margin-top:8px;color:var(--teal)}
+.assignment-overlay {
+  position: absolute;
+  z-index: 31;
+  inset: 0;
+  display: grid;
+  place-items: end center;
+  padding: 12px 12px max(12px, env(safe-area-inset-bottom));
+  background: rgba(0, 0, 0, .28);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-fade) linear;
+}
+
+.assignment-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.assignment-panel {
+  width: 100%;
+  max-height: 75%;
+  overflow: auto;
+  padding: 18px;
+  border: 0;
+  border-radius: 28px;
+  background: var(--card);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, .16);
+  transform: translateY(calc(100% + 24px));
+  transition: transform var(--duration-sheet) var(--ease);
+}
+
+.assignment-overlay.show .assignment-panel { transform: translateY(0); }
+
+.assignment-panel header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.assignment-panel h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.assignment-panel button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--control);
+  padding: 9px 11px;
+  cursor: pointer;
+}
+
+.assignment-panel header > button {
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+  font-size: 0;
+}
+
+.assignment-panel header > button::before {
+  content: "×";
+  font-size: 25px;
+  font-weight: 350;
+  line-height: 1;
+}
+
+.assignment-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.assignment-select { text-align: left; }
+.assignment-select[aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); }
+.assignment-item small { display: block; color: var(--muted); margin-top: 3px; }
+.assignment-add { width: 100%; margin-top: 10px; color: white; background: var(--accent) !important; }
