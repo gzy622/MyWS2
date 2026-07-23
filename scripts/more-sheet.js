@@ -7,7 +7,7 @@ const REGISTER_PAGE_INDEX = 1;
 const GRID_SUBVIEW_INDEX = 0;
 const SEAT_SUBVIEW_INDEX = 1;
 
-export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOthers }) {
+export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, closeOthers }) {
   let trigger = null;
   let confirmAction = null;
   let confirmReturnFocus = null;
@@ -60,6 +60,9 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
         button.setAttribute('aria-pressed', String(state.seatEditing));
         button.querySelector('b').textContent = state.seatEditing ? '退出编辑模式' : '编辑座位表';
         button.querySelector('small').textContent = state.seatEditing ? '返回查看和登记模式' : '拖动学生可调整座位';
+      }
+      if (action === 'theme') {
+        button.querySelector('small').textContent = `当前使用${theme.get() === 'dark' ? '深色' : '浅色'}外观`;
       }
     }
   }
@@ -144,7 +147,9 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
     event.stopPropagation();
     const action = button.dataset.moreAction;
     if (action === 'theme') {
-      showToast('主题设置将在下一阶段启用');
+      const nextTheme = theme.toggle();
+      render();
+      showToast(nextTheme === 'dark' ? '已切换到深色模式' : '已切换到浅色模式');
       return;
     }
     if (action === 'clear-assignment') {

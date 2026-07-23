@@ -11,3 +11,14 @@
   --nav-h: 66px;
   --ease: cubic-bezier(.22, .8, .25, 1);
 }
+
+:root[data-theme="dark"] {
+  --ink: #edf4f2;
+  --muted: #a8b4b1;
+  --paper: #172022;
+  --card: #202a2c;
+  --line: #344140;
+  --accent: #ff926d;
+  --accent-soft: #4b2b22;
+  --teal: #78c6c8;
+}

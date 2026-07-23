@@ -19,11 +19,13 @@ function recordKey(assignmentId, studentId) {
 export class RosterStore {
   #state;
   #listeners = new Set();
+  #persist;
 
-  constructor(initialState = createDefaultRosterState()) {
+  constructor(initialState = createDefaultRosterState(), persist) {
     this.#state = isValidRosterState(initialState)
       ? cloneRosterState(initialState)
       : createDefaultRosterState();
+    this.#persist = typeof persist === 'function' ? persist : null;
   }
 
   getSnapshot() {
@@ -229,10 +231,17 @@ export class RosterStore {
   }
 
   #notify() {
+    if (this.#persist) {
+      try {
+        this.#persist(this.getSnapshot());
+      } catch {
+        // A storage failure must not roll back a valid in-memory change.
+      }
+    }
     for (const listener of this.#listeners) listener(this.getSnapshot());
   }
 }
 
-export function createRosterStore(initialState) {
-  return new RosterStore(initialState);
+export function createRosterStore(initialState, persist) {
+  return new RosterStore(initialState, persist);
 }

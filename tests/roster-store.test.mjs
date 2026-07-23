@@ -116,3 +116,17 @@ test('非法初始状态整体回退默认领域状态', () => {
   const store = createRosterStore(invalid);
   assert.equal(store.getSnapshot().seats.find(({ studentId }) => studentId === 1).seatIndex, 17);
 });
+
+test('有效变更触发持久化且写入异常不破坏内存会话', () => {
+  const snapshots = [];
+  const store = createRosterStore(createDefaultRosterState(), (state) => snapshots.push(state));
+  assert.equal(store.toggleCompletion(1), true);
+  assert.equal(snapshots.length, 1);
+  assert.equal(snapshots[0].submissions.length, 1);
+  snapshots[0].submissions.length = 0;
+  assert.equal(store.getSnapshot().submissions.length, 1);
+
+  const failingStore = createRosterStore(createDefaultRosterState(), () => { throw new Error('full'); });
+  assert.doesNotThrow(() => failingStore.toggleCompletion(1));
+  assert.equal(failingStore.getCompletedStudentIds().has(1), true);
+});

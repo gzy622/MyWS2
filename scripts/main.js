@@ -11,8 +11,11 @@ import { initStudentInteractions } from './student-interactions.js';
 import { initStudentRecord } from './student-record.js';
 import { initAssignments } from './assignments.js';
 import { initMoreSheet } from './more-sheet.js';
+import { loadRosterState, saveRosterState } from './roster-storage.js';
+import { initTheme } from './theme.js';
 
-const rosterStore = createRosterStore();
+export const rosterStore = createRosterStore(loadRosterState(), saveRosterState);
+const theme = initTheme();
 
 initNavigation();
 const fontSize = initStudentFontSize();
@@ -32,7 +35,7 @@ studentRecord = initStudentRecord({ store: rosterStore, showToast, closeOthers: 
 assignments = initAssignments({ store: rosterStore, showToast, closeOthers: closeOverlays });
 initStudentInteractions({ store: rosterStore, showToast, openStudentRecord: studentRecord.open });
 export const seatCanvas = initSeatCanvas({ store: rosterStore, showToast, openStudentRecord: studentRecord.open });
-moreSheet = initMoreSheet({ store: rosterStore, showToast, seatCanvas, fontSize, closeOthers: closeOverlays });
+moreSheet = initMoreSheet({ store: rosterStore, showToast, seatCanvas, fontSize, theme, closeOthers: closeOverlays });
 initDrawer({ closeOverlays });
 initHorizontalGestures({ openDrawer });
 renderNavigation({ animate: false });
