@@ -7,7 +7,7 @@
 | 阶段 | 状态 | 开始时间 | 完成时间 | 提交 | 验证摘要 |
 | --- | --- | --- | --- | --- | --- |
 | 阶段 0 | 完成 | 2026-04-13 00:00 UTC | 2026-04-13 00:00 UTC | d9d7ae3 | 文档冲突均已决策；语法、静态 DOM、资源/存储扫描、启动与差异检查通过。 |
-| 阶段 1 | 待开始 | — | — | — | — |
+| 阶段 1 | 完成 | 2026-04-13 00:00 UTC | 2026-07-23 00:40 UTC | — | 9 项领域测试、全量语法、DOM/资源/存储扫描、启动与差异检查通过；本阶段未改 UI。 |
 | 阶段 2 | 待开始 | — | — | — | — |
 | 阶段 3 | 待开始 | — | — | — | — |
 | 阶段 4 | 待开始 | — | — | — | — |
@@ -28,6 +28,12 @@
 | 2026-04-13 00:00 UTC | 阶段 0 | 验证失败 | Node 内联静态 DOM 检查 | 检查脚本的动态正则转义错误，误报 `data-page` 与 `data-index` 为空；未修改应用代码 | 修正检查脚本后重跑静态、启动与差异检查 |
 | 2026-04-13 00:00 UTC | 阶段 0 | 完成验证 | `node --check scripts/*.js lan-server.js`；Node 静态 DOM 检查；资源/存储扫描；`node lan-server.js`；`git diff --check` | 语法通过；ID 唯一、页面/导航索引均为 0–2 连续、46 个学生格；无远程资源，现有存储仅为姓名字号模块；本地服务器可访问；差异无空白错误 | 暂存、复核阶段差异并创建文档提交 |
 | 2026-04-13 00:00 UTC | 阶段 0 | 创建 Git 提交并完成阶段 | `git commit -m "docs: 明确网格与座位表完整迁移契约"` | 已创建提交 `d9d7ae3`；阶段仅修改文档，满足所有阶段 0 完成门槛 | 提交阶段完成记录并复查工作区 |
+| 2026-04-13 00:00 UTC | 阶段 1 | 阶段开始 | 前置阶段提交 `d9d7ae3`、`42e158b`；`git status --short` | 阶段 0 已完成且提交后工作区干净；阶段 1 只影响领域模型、内存 Store、领域测试与 `main.js` 的依赖注入，不接入 DOM、座位或持久化 | 读取当前学生名单、座位静态结构与初始化链，建立默认映射和测试 |
+| 2026-07-23 00:40 UTC | 阶段 1 | 完成主要工作项 | `scripts/roster-model.js`、`scripts/roster-store.js`、`tests/roster-store.test.mjs`、`scripts/main.js` | 已从现有 46 名静态学生格和座位视觉排布建立稳定默认数据；Store 提供查询、登记、计分、作业、座位和恢复默认操作，并以快照/订阅维持唯一可写业务状态 | 执行领域、静态、启动和差异验证 |
+| 2026-07-23 00:40 UTC | 阶段 1 | 验证失败 | `rg -n "https?://|&lt;script(?!...)|localStorage"` | ripgrep 默认正则不支持 look-around，资源/存储扫描在启动服务器前退出；领域测试、语法检查和 DOM 契约已通过，未修改应用代码 | 拆分扫描条件后重跑剩余验证 |
+| 2026-07-23 00:40 UTC | 阶段 1 | 验证失败 | `rg -n 'https?://' index.html scripts styles lan-server.js` | 扫描命中 `lan-server.js` 自身输出的本地 `http://localhost`/局域网地址，不是远程资源；命令在后续检查前退出，未修改应用代码 | 排除服务器本地输出后重跑扫描和运行验证 |
+| 2026-07-23 00:40 UTC | 阶段 1 | 完成验证 | `node --test tests/roster-store.test.mjs`；`node --check scripts/*.js lan-server.js`；Node DOM/脚本/存储扫描；`git diff --check`；`node lan-server.js` + `curl` | 9 项领域测试、全部语法、ID/连续索引/46 静态学生格、无远程资源/未授权存储和差异检查均通过；本地页面可访问。Node 对无 package type 的 ES Module 给出重解析性能警告，非测试失败。Chrome/Edge 的 `--dump-dom` 均零字节且无 stderr，无法在当前自动化通道采集控制台；本阶段未修改 DOM、CSS 或交互，320/390/430px、reduced-motion 与真实输入回归沿用阶段 0 基线，待阶段 2 的 UI 接入进行实际回归 | 暂存并复核阶段文件，创建提交 |
+| 2026-07-23 00:40 UTC | 阶段 1 | 阶段完成 | `scripts/roster-model.js`、`scripts/roster-store.js`、`tests/roster-store.test.mjs`、`scripts/main.js` | 领域模型和内存 Store 已独立于 DOM；页面仍使用原有静态结构，未提前接入后续 UI 或持久化 | 创建阶段提交并复查工作区 |
 
 ### 阶段 0 · MyWS1 行为迁移检查表
 

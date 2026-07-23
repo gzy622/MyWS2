@@ -5,6 +5,9 @@ import { initDrawer, openDrawer } from './drawer.js';
 import { initMenuActions } from './toast.js';
 import { initStudentFontSize } from './student-font-size.js';
 import { initSeatCanvas } from './seat-canvas.js';
+import { createRosterStore } from './roster-store.js';
+
+const rosterStore = createRosterStore();
 
 initNavigation();
 initDrawer();
