@@ -49,7 +49,13 @@ export function renderDrag(offsetPx) {
 }
 
 export function renderNavDrag(offsetPx) {
+  const segmentWidth = elements.glider.offsetWidth || elements.nav.clientWidth / elements.navButtons.length;
+  const pageOffset = segmentWidth > 0
+    ? -offsetPx * elements.viewport.clientWidth / segmentWidth
+    : 0;
+  elements.pages.classList.add('dragging');
   elements.glider.classList.add('dragging');
+  elements.pages.style.transform = pageTransform(pageOffset);
   elements.glider.style.transform = directGliderTransform(offsetPx);
 }
 

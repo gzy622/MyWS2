@@ -38,7 +38,7 @@ button.topbar-title { cursor: pointer; }
   overscroll-behavior-y: contain; scrollbar-width: none; touch-action: none;
 }
 .page::-webkit-scrollbar { display: none; }
-.page-inner { min-height: 100%; padding: calc(var(--topbar-h) + env(safe-area-inset-top) + 20px) var(--page-inset) 40px; }
+.page-inner { min-height: 100%; padding: calc(var(--topbar-h) + env(safe-area-inset-top) + 10px) var(--page-inset) 40px; }
 
 @media (min-width: 600px) { .app { height: min(900px, 96vh); border-radius: 30px; } }
 

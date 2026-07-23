@@ -100,9 +100,11 @@ export function initHorizontalGestures({ openDrawer }) {
 
         if (passedDistance || passedFlick) {
           const directionDelta = passedDistance ? deltaX : projectedDelta;
-          const pageDelta = isNav
-            ? (directionDelta < 0 ? -1 : 1)
-            : (directionDelta < 0 ? 1 : -1);
+          const navSegmentWidth = elements.glider.offsetWidth || elements.nav.clientWidth / PAGE_COUNT;
+          const navPageDelta = passedDistance
+            ? Math.round(deltaX / navSegmentWidth) || Math.sign(directionDelta)
+            : Math.sign(directionDelta);
+          const pageDelta = isNav ? navPageDelta : (directionDelta < 0 ? 1 : -1);
           setCurrentPage(clampPage(state.currentPage + pageDelta));
         }
         renderNavigation();
