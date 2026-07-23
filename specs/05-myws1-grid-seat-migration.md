@@ -8,7 +8,7 @@
 | --- | --- | --- | --- | --- | --- |
 | 阶段 0 | 完成 | 2026-04-13 00:00 UTC | 2026-04-13 00:00 UTC | d9d7ae3 | 文档冲突均已决策；语法、静态 DOM、资源/存储扫描、启动与差异检查通过。 |
 | 阶段 1 | 完成 | 2026-04-13 00:00 UTC | 2026-07-23 00:40 UTC | a0f41e7 | 9 项领域测试、全量语法、DOM/资源/存储扫描、启动与差异检查通过；本阶段未改 UI。 |
-| 阶段 2 | 待开始 | — | — | — | — |
+| 阶段 2 | 完成 | 2026-07-23 00:40 UTC | 2026-07-23 00:40 UTC | — | 网格 46 按钮、轻点完成、ARIA/Toast、脚本/领域/浏览器回归通过。 |
 | 阶段 3 | 待开始 | — | — | — | — |
 | 阶段 4 | 待开始 | — | — | — | — |
 | 阶段 5 | 待开始 | — | — | — | — |
@@ -35,6 +35,10 @@
 | 2026-07-23 00:40 UTC | 阶段 1 | 完成验证 | `node --test tests/roster-store.test.mjs`；`node --check scripts/*.js lan-server.js`；Node DOM/脚本/存储扫描；`git diff --check`；`node lan-server.js` + `curl` | 9 项领域测试、全部语法、ID/连续索引/46 静态学生格、无远程资源/未授权存储和差异检查均通过；本地页面可访问。Node 对无 package type 的 ES Module 给出重解析性能警告，非测试失败。Chrome/Edge 的 `--dump-dom` 均零字节且无 stderr，无法在当前自动化通道采集控制台；本阶段未修改 DOM、CSS 或交互，320/390/430px、reduced-motion 与真实输入回归沿用阶段 0 基线，待阶段 2 的 UI 接入进行实际回归 | 暂存并复核阶段文件，创建提交 |
 | 2026-07-23 00:40 UTC | 阶段 1 | 阶段完成 | `scripts/roster-model.js`、`scripts/roster-store.js`、`tests/roster-store.test.mjs`、`scripts/main.js` | 领域模型和内存 Store 已独立于 DOM；页面仍使用原有静态结构，未提前接入后续 UI 或持久化 | 创建阶段提交并复查工作区 |
 | 2026-07-23 00:40 UTC | 阶段 1 | 创建 Git 提交 | `git commit -m "feat: 建立登记业务模型与内存状态仓库"` | 已创建 `a0f41e7`；提交后 `git status --short` 为空 | 提交进度记录并确认工作区干净 |
+| 2026-07-23 00:40 UTC | 阶段 2 | 阶段开始 | 前置提交 `a0f41e7`、`aeff377`；`git status --short` | 阶段 1 的领域测试和提交已完成、工作区干净；阶段 2 只接入网格按钮、轻点登记与渲染，不改座位表或持久化 | 核对当前网格 DOM/CSS 和手势链，接入 Store 单向渲染 |
+| 2026-07-23 00:40 UTC | 阶段 2 | 完成主要工作项 | `index.html`、`styles/content.css`、`scripts/roster-renderer.js`、`scripts/student-interactions.js`、`scripts/main.js` | 静态网格名单已删除，Renderer 从 Store 建立 46 个原生按钮及 `data-student-id`、`aria-pressed`、动态名称和完成态；委托点击仅调用 Store，并预留移动取消与 click 抑制路径。座位表未改动 | 执行运行和交互验证，复核网格首屏与回归 |
+| 2026-07-23 00:40 UTC | 阶段 2 | 验证失败 | Node 静态页面/导航索引检查 | 内联脚本模板字符串中的 `\d` 被转义为字面 `d`，误报 `data-page`；浏览器交互、320/390/430px 与 reduced-motion 检查已通过，未修改应用代码 | 修正静态检查后重跑资源、存储与差异检查 |
+| 2026-07-23 00:40 UTC | 阶段 2 | 完成验证并完成阶段 | Chrome DevTools Protocol 真实 DOM click；320/390/430px；reduced-motion；`node --check scripts/*.js lan-server.js`；`node --test tests/roster-store.test.mjs`；DOM/资源/存储扫描；`git diff --check` | 浏览器渲染 46 个原生按钮；真实 click 仅切换一次完成状态、同步 `aria-pressed`、完成样式与 Toast，且无运行时异常；三个宽度无水平溢出；reduced-motion 生效；9 项领域测试、全部语法和静态契约通过。座位表保持原状，未伪造同步状态 | 创建阶段提交并复查工作区 |
 
 ### 阶段 0 · MyWS1 行为迁移检查表
 

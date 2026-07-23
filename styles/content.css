@@ -27,6 +27,11 @@ h1 { margin: 0; font-size: clamp(31px, 8vw, 38px); line-height: 1.08; letter-spa
   position: relative; display: grid; min-height: 0; place-items: center; padding: 4px 3px; overflow: hidden; color: var(--ink);
   font-size: var(--student-name-size, 16px); font-weight: 800; line-height: 1.15; text-align: center; white-space: nowrap;
 }
+.student-card.is-completed { color: var(--teal); background: var(--accent-soft); }
+.student-card.is-completed::before {
+  content: "✓"; position: absolute; top: 4px; right: 5px; color: var(--accent);
+  font-size: clamp(11px, 2.8vw, 12px); font-weight: 800; line-height: 1;
+}
 .student-card[data-score]::after {
   content: attr(data-score); position: absolute; top: 4px; right: 5px; color: var(--accent);
   font-size: clamp(11px, 2.8vw, 12px); font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1;
