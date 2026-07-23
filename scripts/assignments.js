@@ -1,7 +1,7 @@
 import { elements } from './dom.js';
 import { state, setActiveOverlay } from './state.js';
 
-export function initAssignments({ store, showToast, closeOthers }) {
+export function initAssignments({ store, showToast, viewport, closeOthers }) {
   const layer = document.createElement('div');
   layer.className = 'assignment-overlay';
   layer.inert = true;
@@ -12,7 +12,15 @@ export function initAssignments({ store, showToast, closeOthers }) {
   function active() { return store.getCurrentAssignment(); }
   function title() { elements.topbarTitle.textContent = active().name; elements.topbarTitle.setAttribute('aria-label', `当前作业：${active().name}，点击管理作业`); }
   function close() { if (!layer.classList.contains('show')) return; layer.classList.remove('show'); layer.inert = true; setActiveOverlay(null); returnFocus?.focus({ preventScroll: true }); returnFocus = null; }
-  function promptName(label, value = '') { const next = window.prompt(label, value); return next === null ? null : next.trim(); }
+  function promptName(label, value = '') {
+    viewport.lockStudentGrid();
+    try {
+      const next = window.prompt(label, value);
+      return next === null ? null : next.trim();
+    } finally {
+      viewport.unlockStudentGrid();
+    }
+  }
   function render() { const snapshot = store.getSnapshot(); const total = snapshot.students.length; list.replaceChildren(...snapshot.assignments.map((assignment) => { const item = document.createElement('div'); item.className = 'assignment-item'; item.innerHTML = `<button type="button" class="assignment-select" aria-pressed="${assignment.id === snapshot.activeAssignmentId}">${assignment.name}<small>${store.getCompletedCount(assignment.id)}/${total} 已交</small></button><button type="button" data-action="rename">改名</button><button type="button" data-action="delete" ${snapshot.assignments.length <= 1 ? 'disabled' : ''}>删除</button>`; item.querySelector('.assignment-select').addEventListener('click', () => { store.selectAssignment(assignment.id); close(); }); item.querySelector('[data-action="rename"]').addEventListener('click', () => { const value = promptName('修改作业标题', assignment.name); if (value === null) return; if (!store.renameAssignment(assignment.id, value)) showToast('请输入有效且不同的作业名称'); }); item.querySelector('[data-action="delete"]').addEventListener('click', () => { if (window.confirm(`删除「${assignment.name}」及其记录？`)) { if (!store.deleteAssignment(assignment.id)) showToast('至少保留一个作业'); } }); return item; })); title(); }
   layer.querySelector('[data-action="close"]').addEventListener('click', close);
   layer.addEventListener('click', (event) => { if (event.target === layer) close(); });

@@ -3,7 +3,7 @@ import { setActiveOverlay } from './state.js';
 
 const QUICK_SCORES = [20, 50, 80, 100];
 
-export function initStudentRecord({ store, showToast, closeOthers }) {
+export function initStudentRecord({ store, showToast, viewport, closeOthers }) {
   let studentId = null;
   let trigger = null;
   let mode = 'completed';
@@ -14,6 +14,7 @@ export function initStudentRecord({ store, showToast, closeOthers }) {
     elements.studentRecordOverlay.setAttribute('aria-hidden', 'true');
     elements.studentRecordOverlay.inert = true;
     setActiveOverlay(null);
+    viewport.unlockStudentGrid();
     trigger?.focus({ preventScroll: true });
     trigger = null;
   }
@@ -28,6 +29,7 @@ export function initStudentRecord({ store, showToast, closeOthers }) {
     const student = state.students.find(({ id }) => id === nextStudentId);
     if (!student) return;
     closeOthers?.('student-record');
+    viewport.lockStudentGrid();
     studentId = nextStudentId; trigger = source; mode = store.getScore(studentId) === undefined ? 'completed' : 'score';
     elements.studentRecordTitle.textContent = student.name;
     const score = store.getScore(studentId);

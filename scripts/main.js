@@ -13,9 +13,11 @@ import { initAssignments } from './assignments.js';
 import { initMoreSheet } from './more-sheet.js';
 import { loadRosterState, saveRosterState } from './roster-storage.js';
 import { initTheme } from './theme.js';
+import { initViewport } from './viewport.js';
 
 export const rosterStore = createRosterStore(loadRosterState(), saveRosterState);
 const theme = initTheme();
+const appViewport = initViewport({ app: elements.app, studentGrid: elements.studentGrid });
 
 initNavigation();
 const fontSize = initStudentFontSize();
@@ -31,8 +33,8 @@ function closeOverlays(except) {
   if (except !== 'font-size') fontSize.close();
   if (except !== 'drawer') closeDrawer({ restoreFocus: false });
 }
-studentRecord = initStudentRecord({ store: rosterStore, showToast, closeOthers: closeOverlays });
-assignments = initAssignments({ store: rosterStore, showToast, closeOthers: closeOverlays });
+studentRecord = initStudentRecord({ store: rosterStore, showToast, viewport: appViewport, closeOthers: closeOverlays });
+assignments = initAssignments({ store: rosterStore, showToast, viewport: appViewport, closeOthers: closeOverlays });
 initStudentInteractions({ store: rosterStore, showToast, openStudentRecord: studentRecord.open });
 export const seatCanvas = initSeatCanvas({ store: rosterStore, showToast, openStudentRecord: studentRecord.open });
 moreSheet = initMoreSheet({ store: rosterStore, showToast, seatCanvas, fontSize, theme, closeOthers: closeOverlays });

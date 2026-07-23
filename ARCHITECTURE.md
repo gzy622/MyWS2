@@ -45,6 +45,8 @@ node lan-server.js
 
 状态分为两个边界：`scripts/state.js` 是 UI 瞬时状态来源，`scripts/roster-store.js` 是学生、座位、作业、提交和分数的唯一业务状态来源。刷新后仍从中间的“登记”页和各页第一子视图开始；导航、子视图、抽屉、浮层、座位编辑模式和画布 transform 均不持久化。持久化仅限学生姓名字号键 `teacher-workbench.student-name-font-size`、业务数据键 `teacher-workbench.roster.v1` 与主题键 `teacher-workbench.theme`，其读取和失败回退必须遵守工程 Spec。
 
+`scripts/viewport.js` 将 Visual Viewport 的可见高度和顶部偏移同步到应用外壳；不支持时回退到 `window.innerHeight`。学生记录或作业输入期间只锁定背景网格的实际高度，不改变业务状态；短横屏仅在视口宽至少 500px 且高不超过 500px 时使用 10×5 网格，其他场景保持 5×10。
+
 实现或评审改动前，还应阅读 `specs/` 下的产品、视觉、交互与工程约束；根目录 `AGENTS.md` 定义了强制执行顺序。
 
 导航和内容依赖以下属性，修改结构时必须保留其含义：`data-page`、`data-index`、`data-sub`、`data-view`、`data-action`。
