@@ -9,7 +9,8 @@ export const state = {
   suppressNavClick: false,
   drawerOpen: false,
   studentFontSize: STUDENT_FONT_SIZE_DEFAULT,
-  fontSizePopoverOpen: false
+  fontSizePopoverOpen: false,
+  activeOverlay: null
 };
 
 export function clampPage(index) {
@@ -45,4 +46,8 @@ export function setStudentFontSize(value) {
 
 export function setFontSizePopoverOpen(value) {
   state.fontSizePopoverOpen = Boolean(value);
+}
+
+export function setActiveOverlay(value) {
+  state.activeOverlay = value;
 }

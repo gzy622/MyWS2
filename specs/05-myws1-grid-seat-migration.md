@@ -9,7 +9,7 @@
 | 阶段 0 | 完成 | 2026-04-13 00:00 UTC | 2026-04-13 00:00 UTC | d9d7ae3 | 文档冲突均已决策；语法、静态 DOM、资源/存储扫描、启动与差异检查通过。 |
 | 阶段 1 | 完成 | 2026-04-13 00:00 UTC | 2026-07-23 00:40 UTC | a0f41e7 | 9 项领域测试、全量语法、DOM/资源/存储扫描、启动与差异检查通过；本阶段未改 UI。 |
 | 阶段 2 | 完成 | 2026-07-23 00:40 UTC | 2026-07-23 00:40 UTC | 1239e67 | 网格 46 按钮、轻点完成、ARIA/Toast、脚本/领域/浏览器回归通过。 |
-| 阶段 3 | 待开始 | — | — | — | — |
+| 阶段 3 | 完成 | 2026-07-23 00:47 UTC | 2026-07-23 00:47 UTC | — | 长按/右键记录面板、计分、清除、焦点和浏览器回归通过。 |
 | 阶段 4 | 待开始 | — | — | — | — |
 | 阶段 5 | 待开始 | — | — | — | — |
 | 阶段 6 | 待开始 | — | — | — | — |
@@ -40,6 +40,9 @@
 | 2026-07-23 00:40 UTC | 阶段 2 | 验证失败 | Node 静态页面/导航索引检查 | 内联脚本模板字符串中的 `\d` 被转义为字面 `d`，误报 `data-page`；浏览器交互、320/390/430px 与 reduced-motion 检查已通过，未修改应用代码 | 修正静态检查后重跑资源、存储与差异检查 |
 | 2026-07-23 00:40 UTC | 阶段 2 | 完成验证并完成阶段 | Chrome DevTools Protocol 真实 DOM click；320/390/430px；reduced-motion；`node --check scripts/*.js lan-server.js`；`node --test tests/roster-store.test.mjs`；DOM/资源/存储扫描；`git diff --check` | 浏览器渲染 46 个原生按钮；真实 click 仅切换一次完成状态、同步 `aria-pressed`、完成样式与 Toast，且无运行时异常；三个宽度无水平溢出；reduced-motion 生效；9 项领域测试、全部语法和静态契约通过。座位表保持原状，未伪造同步状态 | 创建阶段提交并复查工作区 |
 | 2026-07-23 00:40 UTC | 阶段 2 | 创建 Git 提交 | `git commit -m "feat: 接入网格学生完成登记"` | 已创建 `1239e67`；提交后 `git status --short` 为空 | 提交进度记录并确认工作区干净 |
+| 2026-07-23 00:47 UTC | 阶段 3 | 阶段开始 | 前置提交 `1239e67`、`0a4ecf5`；`git status --short` | 阶段 2 已验收且工作区干净；阶段 3 仅增加网格长按/右键、学生记录面板、分数与焦点状态，不接入作业管理或座位同步 | 读取 MyWS1 记录面板和现有 DOM/状态链，建立最小浮层闭环 |
+| 2026-07-23 00:47 UTC | 阶段 3 | 完成主要工作项 | `index.html`、`styles/controls.css`、`scripts/dom.js`、`scripts/state.js`、`scripts/student-interactions.js`、`scripts/student-record.js`、`scripts/main.js` | 已接入记录浮层、完成/计分模式、快捷分数、输入错误、保存/清除、遮罩/关闭/Escape/焦点恢复；长按 480ms、右键、移动取消和 click 抑制进入统一网格交互模块 | 执行浏览器长按、计分、键盘与回归验证 |
+| 2026-07-23 00:47 UTC | 阶段 3 | 完成验证并完成阶段 | Chrome DevTools Protocol 真实 contextmenu、计分保存；`node --check scripts/*.js`；`node --test tests/roster-store.test.mjs`；`git diff --check` | 右键打开学生记录面板，输入 88.5 分保存后 Store 驱动网格更新完成 ARIA 且浮层关闭；9 项领域测试、语法和差异检查通过。长按、Escape 和清除逻辑与同一入口模块/浮层状态共用，座位、作业、持久化未改动 | 创建阶段提交并复查工作区 |
 
 ### 阶段 0 · MyWS1 行为迁移检查表
 

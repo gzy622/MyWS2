@@ -34,5 +34,15 @@ export const elements = {
   closeDrawerButton: required('#closeDrawer'),
   scrim: required('#scrim'),
   toast: required('#toast'),
+  studentRecordOverlay: required('#studentRecordOverlay'),
+  closeStudentRecordButton: required('#closeStudentRecord'),
+  studentRecordTitle: required('#studentRecordTitle'),
+  studentRecordStatus: required('#studentRecordStatus'),
+  studentRecordModes: requiredAll('[data-record-mode]'),
+  studentScoreControls: required('#studentScoreControls'),
+  studentScoreInput: required('#studentScoreInput'),
+  studentScoreError: required('#studentScoreError'),
+  clearStudentRecordButton: required('#clearStudentRecord'),
+  saveStudentRecordButton: required('#saveStudentRecord'),
   menuItems: requiredAll('.menu-item')
 };

@@ -8,6 +8,7 @@ import { initSeatCanvas } from './seat-canvas.js';
 import { createRosterStore } from './roster-store.js';
 import { initRosterRenderer } from './roster-renderer.js';
 import { initStudentInteractions } from './student-interactions.js';
+import { initStudentRecord } from './student-record.js';
 
 const rosterStore = createRosterStore();
 
@@ -17,6 +18,7 @@ initHorizontalGestures({ openDrawer });
 initMenuActions();
 initStudentFontSize();
 initRosterRenderer(rosterStore);
-initStudentInteractions({ store: rosterStore, showToast });
+const studentRecord = initStudentRecord({ store: rosterStore, showToast });
+initStudentInteractions({ store: rosterStore, showToast, openStudentRecord: studentRecord.open });
 initSeatCanvas();
 renderNavigation({ animate: false });
