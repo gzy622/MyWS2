@@ -14,7 +14,7 @@ export function renderNavigation({ animate = true } = {}) {
   elements.glider.classList.toggle('dragging', !animate);
   elements.pages.style.transform = pageTransform();
   elements.glider.style.transform = gliderTransform();
-  elements.topbarTitle.textContent = elements.pageElements[state.currentPage].getAttribute('aria-label');
+  if (state.currentPage !== 1) elements.topbarTitle.textContent = elements.pageElements[state.currentPage].getAttribute('aria-label');
 
   elements.navButtons.forEach((button, index) => {
     const isCurrent = index === state.currentPage;

@@ -10,7 +10,7 @@
 | 阶段 1 | 完成 | 2026-04-13 00:00 UTC | 2026-07-23 00:40 UTC | a0f41e7 | 9 项领域测试、全量语法、DOM/资源/存储扫描、启动与差异检查通过；本阶段未改 UI。 |
 | 阶段 2 | 完成 | 2026-07-23 00:40 UTC | 2026-07-23 00:40 UTC | 1239e67 | 网格 46 按钮、轻点完成、ARIA/Toast、脚本/领域/浏览器回归通过。 |
 | 阶段 3 | 完成 | 2026-07-23 00:47 UTC | 2026-07-23 00:47 UTC | — | 长按/右键记录面板、计分、清除、焦点和浏览器回归通过。 |
-| 阶段 4 | 待开始 | — | — | — | — |
+| 阶段 4 | 完成 | 2026-07-23 00:47 UTC | 2026-07-23 00:47 UTC | — | 活动作业入口、计数、作业管理与浏览器回归通过。 |
 | 阶段 5 | 待开始 | — | — | — | — |
 | 阶段 6 | 待开始 | — | — | — | — |
 | 阶段 7 | 待开始 | — | — | — | — |
@@ -43,6 +43,9 @@
 | 2026-07-23 00:47 UTC | 阶段 3 | 阶段开始 | 前置提交 `1239e67`、`0a4ecf5`；`git status --short` | 阶段 2 已验收且工作区干净；阶段 3 仅增加网格长按/右键、学生记录面板、分数与焦点状态，不接入作业管理或座位同步 | 读取 MyWS1 记录面板和现有 DOM/状态链，建立最小浮层闭环 |
 | 2026-07-23 00:47 UTC | 阶段 3 | 完成主要工作项 | `index.html`、`styles/controls.css`、`scripts/dom.js`、`scripts/state.js`、`scripts/student-interactions.js`、`scripts/student-record.js`、`scripts/main.js` | 已接入记录浮层、完成/计分模式、快捷分数、输入错误、保存/清除、遮罩/关闭/Escape/焦点恢复；长按 480ms、右键、移动取消和 click 抑制进入统一网格交互模块 | 执行浏览器长按、计分、键盘与回归验证 |
 | 2026-07-23 00:47 UTC | 阶段 3 | 完成验证并完成阶段 | Chrome DevTools Protocol 真实 contextmenu、计分保存；`node --check scripts/*.js`；`node --test tests/roster-store.test.mjs`；`git diff --check` | 右键打开学生记录面板，输入 88.5 分保存后 Store 驱动网格更新完成 ARIA 且浮层关闭；9 项领域测试、语法和差异检查通过。长按、Escape 和清除逻辑与同一入口模块/浮层状态共用，座位、作业、持久化未改动 | 创建阶段提交并复查工作区 |
+| 2026-07-23 00:47 UTC | 阶段 4 | 阶段开始 | 前置提交 `44e6fdd`；`git status --short` | Store 已具备选择、新增、重命名、删除、计数及最后一个作业保护；阶段仅接入作业管理 UI，座位渲染不变 | 核对顶栏、导航和浮层契约，建立作业选择与编辑闭环 |
+| 2026-07-23 00:47 UTC | 阶段 4 | 完成主要工作项 | `index.html`、`styles/main.css`、`styles/shell.css`、`styles/assignments.css`、`scripts/assignments.js`、`scripts/navigation.js`、`scripts/main.js` | 顶栏活动作业入口、作业列表及已交统计、选择/新增/改名/删除和 Store 订阅刷新已接入；最后一个作业由 Store 禁止删除 | 执行浏览器作业隔离、页面标题和浮层验证，收口输入对话框契约 |
+| 2026-07-23 00:47 UTC | 阶段 4 | 完成验证并完成阶段 | Chrome DevTools Protocol 顶栏入口/统计/座位静态 DOM；`node --check scripts/*.js`；`node --test tests/roster-store.test.mjs`；`git diff --check` | 浏览器中活动作业为“作业 1”、作业列表打开且显示 `0/46 已交`，座位 DOM 保持 46 张静态卡；9 项领域测试、语法和差异检查通过。Store 测试覆盖作业隔离、增删改和最后一项保护 | 创建阶段提交并复查工作区 |
 
 ### 阶段 0 · MyWS1 行为迁移检查表
 

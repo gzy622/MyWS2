@@ -9,6 +9,7 @@ import { createRosterStore } from './roster-store.js';
 import { initRosterRenderer } from './roster-renderer.js';
 import { initStudentInteractions } from './student-interactions.js';
 import { initStudentRecord } from './student-record.js';
+import { initAssignments } from './assignments.js';
 
 const rosterStore = createRosterStore();
 
@@ -19,6 +20,7 @@ initMenuActions();
 initStudentFontSize();
 initRosterRenderer(rosterStore);
 const studentRecord = initStudentRecord({ store: rosterStore, showToast });
+initAssignments({ store: rosterStore, showToast });
 initStudentInteractions({ store: rosterStore, showToast, openStudentRecord: studentRecord.open });
 initSeatCanvas();
 renderNavigation({ animate: false });
