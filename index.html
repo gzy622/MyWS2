@@ -189,10 +189,22 @@
 
       <section class="student-record-overlay" id="studentRecordOverlay" role="dialog" aria-modal="true" aria-labelledby="studentRecordTitle" aria-hidden="true" inert>
         <div class="student-record-panel">
-          <button class="student-record-close" id="closeStudentRecord" aria-label="关闭学生记录">×</button>
-          <h2 id="studentRecordTitle">学生记录</h2><p id="studentRecordStatus"></p>
-          <div class="student-record-modes" role="group" aria-label="记录方式"><button type="button" data-record-mode="completed">完成</button><button type="button" data-record-mode="score">计分</button></div>
-          <div id="studentScoreControls" hidden><div class="quick-scores"><button type="button" data-score="20">20</button><button type="button" data-score="50">50</button><button type="button" data-score="80">80</button><button type="button" data-score="100">100</button></div><label>分数 <input id="studentScoreInput" inputmode="decimal" aria-describedby="studentScoreError" /></label><p id="studentScoreError" role="alert"></p></div>
+          <div class="student-record-head">
+            <div><span>学生记录</span><h2 id="studentRecordTitle">学生记录</h2></div>
+            <button class="student-record-close" id="closeStudentRecord" aria-label="关闭学生记录">×</button>
+          </div>
+          <p class="student-record-status" id="studentRecordStatus"></p>
+          <div class="student-score-display">
+            <label for="studentScoreInput">本次得分</label>
+            <div><input id="studentScoreInput" inputmode="none" autocomplete="off" placeholder="—" readonly aria-describedby="studentScoreError" /><span>/ 100</span></div>
+          </div>
+          <div class="student-score-keypad" id="studentScoreControls" role="group" aria-label="数字键盘">
+            <button type="button" data-score-key="1">1</button><button type="button" data-score-key="2">2</button><button type="button" data-score-key="3">3</button>
+            <button type="button" data-score-key="4">4</button><button type="button" data-score-key="5">5</button><button type="button" data-score-key="6">6</button>
+            <button type="button" data-score-key="7">7</button><button type="button" data-score-key="8">8</button><button type="button" data-score-key="9">9</button>
+            <button type="button" data-score-key=".">.</button><button type="button" data-score-key="0">0</button><button type="button" data-score-key="backspace" aria-label="退格"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 6H9l-6 6 6 6h12zM11 9l6 6m0-6-6 6" /></svg></button>
+          </div>
+          <p id="studentScoreError" role="alert"></p>
           <div class="student-record-actions"><button type="button" id="clearStudentRecord">清除记录</button><button type="button" id="saveStudentRecord">保存</button></div>
         </div>
       </section>

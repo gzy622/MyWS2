@@ -32,15 +32,18 @@ h1 { margin: 0; font-size: clamp(32px, 8.5vw, 36px); font-weight: 720; line-heig
   position: relative; display: grid; min-height: 0; place-items: center; padding: 4px 3px; overflow: hidden; color: var(--ink);
   font-size: var(--student-name-size, 16px); font-weight: 600; line-height: 1.15; text-align: center; white-space: nowrap;
 }
-.student-card.is-completed { color: var(--ink); background: var(--accent-soft); }
-.student-card.is-completed::before {
-  content: "✓"; position: absolute; top: 4px; right: 5px; color: var(--accent);
-  font-size: clamp(11px, 2.8vw, 12px); font-weight: 700; line-height: 1;
+.student-card.is-completed {
+  color: var(--ink); background: color-mix(in srgb, var(--accent) 8%, var(--card));
+  box-shadow: inset -1px 0 var(--line), inset 0 -1px var(--line);
+}
+.student-card.is-completed:not([data-score])::before {
+  content: "✓"; position: absolute; top: 4px; right: 5px;
+  color: var(--accent); font-size: 10px; font-weight: 750; line-height: 1;
 }
 .student-card:focus-visible { z-index: 1; outline: 2px solid var(--accent); outline-offset: -2px; }
 .student-card[data-score]::after {
   content: attr(data-score); position: absolute; top: 4px; right: 5px; color: var(--accent);
-  font-size: clamp(11px, 2.8vw, 12px); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1;
+  font-size: 10px; font-weight: 750; font-variant-numeric: tabular-nums; line-height: 1;
 }
 .page[data-page="1"] { position: relative; }
 .page[data-page="1"] .seat-subview.active {

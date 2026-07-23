@@ -39,7 +39,6 @@ export const elements = {
   closeStudentRecordButton: required('#closeStudentRecord'),
   studentRecordTitle: required('#studentRecordTitle'),
   studentRecordStatus: required('#studentRecordStatus'),
-  studentRecordModes: requiredAll('[data-record-mode]'),
   studentScoreControls: required('#studentScoreControls'),
   studentScoreInput: required('#studentScoreInput'),
   studentScoreError: required('#studentScoreError'),
