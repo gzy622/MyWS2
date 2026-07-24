@@ -196,5 +196,5 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
   });
   elements.confirmSheet.addEventListener('click', (event) => { if (event.target === elements.confirmSheet) closeConfirm(); });
 
-  return { open, close, closeConfirm, render };
+  return { open, close, closeConfirm, confirm, render };
 }

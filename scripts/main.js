@@ -35,7 +35,13 @@ function closeOverlays(except) {
   if (except !== 'drawer') closeDrawer({ restoreFocus: false });
 }
 studentRecord = initStudentRecord({ store: rosterStore, showToast, viewport: appViewport, closeOthers: closeOverlays });
-assignments = initAssignments({ store: rosterStore, showToast, viewport: appViewport, closeOthers: closeOverlays });
+assignments = initAssignments({
+  store: rosterStore,
+  showToast,
+  viewport: appViewport,
+  closeOthers: closeOverlays,
+  confirm: (...args) => moreSheet.confirm(...args),
+});
 initStudentInteractions({ store: rosterStore, showToast, openStudentRecord: studentRecord.open });
 export const seatCanvas = initSeatCanvas({ store: rosterStore, showToast, openStudentRecord: studentRecord.open });
 moreSheet = initMoreSheet({ store: rosterStore, showToast, seatCanvas, fontSize, theme, closeOthers: closeOverlays });

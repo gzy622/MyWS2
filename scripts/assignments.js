@@ -1,7 +1,7 @@
 import { elements } from './dom.js';
 import { state, setActiveOverlay } from './state.js';
 
-export function initAssignments({ store, showToast, viewport, closeOthers }) {
+export function initAssignments({ store, showToast, viewport, closeOthers, confirm }) {
   const layer = document.createElement('div');
   layer.className = 'assignment-sheet';
   layer.inert = true;
@@ -108,11 +108,17 @@ export function initAssignments({ store, showToast, viewport, closeOthers }) {
       item.querySelector('[data-action="rename"]').addEventListener('click', (event) => {
         openNameEditor({ mode: 'rename', assignment, trigger: event.currentTarget });
       });
-      item.querySelector('[data-action="delete"]').addEventListener('click', () => {
-        if (window.confirm(`删除「${assignment.name}」及其记录？`)) {
-          if (!store.deleteAssignment(assignment.id)) showToast('至少保留一个作业');
-          else showToast(`已删除作业「${assignment.name}」`);
-        }
+      item.querySelector('[data-action="delete"]').addEventListener('click', (event) => {
+        const target = assignment;
+        confirm?.({
+          title: '删除作业',
+          message: `将删除「${target.name}」及其提交与分数记录。`,
+          returnFocus: event.currentTarget,
+          action: () => {
+            if (!store.deleteAssignment(target.id)) showToast('至少保留一个作业');
+            else showToast(`已删除作业「${target.name}」`);
+          },
+        });
       });
       return item;
     }));
