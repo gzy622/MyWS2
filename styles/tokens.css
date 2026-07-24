@@ -18,8 +18,14 @@
   --page-inset: 20px;
   --radius-card: 16px;
   --radius-control: 12px;
+  --radius-sheet: 26px;
+  --radius-popover: 18px;
+  --radius-menu: 22px;
   --shadow-card: 0 1px 4px rgba(0, 0, 0, .04);
   --shadow-float: 0 10px 24px -4px rgba(248, 88, 84, .38);
+  --shadow-sheet-up: 0 -6px 20px rgba(0, 0, 0, .1);
+  --shadow-sheet-down: 0 16px 40px rgba(0, 0, 0, .18);
+  --scrim: rgba(0, 0, 0, .32);
   --duration-sheet: 300ms;
   --duration-fade: 240ms;
   --ease: cubic-bezier(.2, 0, 0, 1);

@@ -12,7 +12,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, .32);
+  background: var(--scrim);
   opacity: 0;
   transition: opacity var(--duration-fade) linear;
 }
@@ -30,9 +30,9 @@
   overflow: hidden;
   padding: 20px;
   border: 0;
-  border-radius: 24px;
+  border-radius: var(--radius-sheet);
   background: var(--card);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, .18);
+  box-shadow: var(--shadow-sheet-down);
   visibility: hidden;
   transform: translateY(calc(-100% - 72px));
   transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet);
@@ -54,7 +54,7 @@
 
 .assignment-panel h2 {
   margin: 0;
-  font-size: 22px;
+  font-size: 24px;
 }
 
 .assignment-panel button {
@@ -192,7 +192,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, .32);
+  background: var(--scrim);
   opacity: 0;
   transition: opacity var(--duration-fade) linear;
 }
@@ -207,9 +207,9 @@
   max-width: 360px;
   padding: 20px;
   border: 0;
-  border-radius: 24px;
+  border-radius: var(--radius-sheet);
   background: var(--card);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, .18);
+  box-shadow: var(--shadow-sheet-down);
   visibility: hidden;
   transform: translateY(calc(-100% - 72px));
   transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet);
@@ -221,7 +221,7 @@
   transition-delay: 0s;
 }
 
-.assignment-rename-panel h2 { margin: 0; font-size: 22px; }
+.assignment-rename-panel h2 { margin: 0; font-size: 24px; }
 .assignment-rename-panel p { margin: 6px 0 16px; color: var(--muted); font-size: 13px; }
 .assignment-rename-field { display: block; }
 .assignment-rename-field span { display: block; margin: 0 2px 7px; color: var(--muted); font-size: 12px; font-weight: 600; }
