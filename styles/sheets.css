@@ -26,26 +26,33 @@
   border: 0;
   border-radius: var(--radius-sheet);
   background: var(--card);
-  visibility: hidden;
-  transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet);
-}
-
-.sheet-overlay.show .sheet-panel {
-  visibility: visible;
-  transform: translateY(0);
-  transition-delay: 0s;
 }
 
 .sheet-panel--bottom {
   box-shadow: var(--shadow-sheet-up);
-  transform: translateY(calc(100% + 72px));
 }
 
 .sheet-panel--top {
   box-shadow: var(--shadow-sheet-down);
-  transform: translateY(calc(-100% - 72px));
 }
 
+.sheet-head {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sheet-title span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.sheet-title h2,
 .sheet-panel h2 {
   margin: 0;
   font-size: 24px;
@@ -62,6 +69,8 @@
   color: var(--ink);
   cursor: pointer;
   font-size: 21px;
+  line-height: 1;
+  padding: 0;
 }
 
 .sheet-handle {
@@ -69,6 +78,23 @@
   height: 4px;
   border-radius: 4px;
   background: var(--disabled);
+}
+
+.sheet-handle-zone {
+  height: 32px;
+  display: flex;
+  justify-content: center;
+  flex: none;
+}
+
+.sheet-handle-zone--top {
+  align-items: flex-start;
+  padding-top: 8px;
+}
+
+.sheet-handle-zone--bottom {
+  align-items: flex-end;
+  padding-bottom: 8px;
 }
 
 .sheet-scroll {

@@ -75,6 +75,7 @@
 | 菜单遮罩 | `#scrim.scrim` | 通用菜单打开时覆盖主界面；其它 Sheet 使用各自遮罩层，颜色均为 `--scrim`。 |
 | 通用菜单把手区 | `#menuDrawerHandle.menu-drawer-handle-zone` | 下拉关闭通用菜单的手势区域。 |
 | 通用菜单关闭按钮 | `#closeMenuDrawer.sheet-close` | 通用菜单头部右侧关闭触发器。 |
+| 学生记录关闭按钮 | `#closeStudentRecord.sheet-close` | 学生记录头部右侧关闭触发器。 |
 | 菜单项 | `.menu-item[data-action]` | 视图切换、批量标记、清除、复制未交或恢复默认的入口。 |
 | 字号标题 | `.font-size-popover-head label` | 控件名称「姓名字号」。 |
 | 字号滑杆 | `#studentFontSize` | `14～18px`、步长 `1px`。 |

@@ -196,11 +196,11 @@
       </div>
 
       <section class="student-record-sheet" id="studentRecordSheet" role="dialog" aria-modal="true" aria-labelledby="studentRecordTitle" aria-hidden="true" inert>
-        <div class="student-record-panel" id="studentRecordPanel">
-          <div class="student-record-handle-zone" id="studentRecordHandle" aria-hidden="true"><div class="handle"></div></div>
-          <div class="student-record-head">
-            <div><span>学生记录</span><h2 id="studentRecordTitle">学生记录</h2></div>
-            <button class="student-record-close" id="closeStudentRecord" aria-label="关闭学生记录">×</button>
+        <div class="student-record-panel sheet-panel sheet-panel--bottom" id="studentRecordPanel">
+          <div class="student-record-handle-zone" id="studentRecordHandle" aria-hidden="true"><div class="sheet-handle"></div></div>
+          <div class="student-record-head sheet-head">
+            <div class="sheet-title"><span>学生记录</span><h2 id="studentRecordTitle">学生记录</h2></div>
+            <button class="sheet-close" id="closeStudentRecord" aria-label="关闭学生记录">×</button>
           </div>
           <p class="student-record-status" id="studentRecordStatus"></p>
           <div class="student-score-display">
@@ -229,8 +229,8 @@
         </div>
       </section>
       <section class="confirm-sheet" id="confirmSheet" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage" aria-hidden="true" inert>
-        <div class="confirm-panel">
-          <h2 id="confirmTitle">确认操作</h2>
+        <div class="confirm-panel sheet-panel sheet-panel--bottom">
+          <div class="sheet-title"><span>请确认</span><h2 id="confirmTitle">确认操作</h2></div>
           <p id="confirmMessage"></p>
           <div class="confirm-actions">
             <button type="button" id="cancelConfirm">取消</button>
@@ -241,10 +241,10 @@
       <div class="scrim" id="scrim"></div>
       <aside class="menu-drawer" id="menuDrawer" aria-hidden="true" inert>
         <div class="menu-drawer-handle-zone" id="menuDrawerHandle">
-          <div class="handle"></div>
+          <div class="sheet-handle"></div>
         </div>
-        <div class="menu-drawer-head">
-          <div class="menu-drawer-title"><span>通用菜单</span><h2>登记工具</h2></div>
+        <div class="menu-drawer-head sheet-head">
+          <div class="menu-drawer-title sheet-title"><span>通用菜单</span><h2>登记工具</h2></div>
           <button class="sheet-close" id="closeMenuDrawer" aria-label="关闭菜单">×</button>
         </div>
         <section class="menu-drawer-section" aria-labelledby="drawerViewTitle">

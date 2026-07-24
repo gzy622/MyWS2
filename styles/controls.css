@@ -43,10 +43,7 @@
 .menu-drawer[aria-hidden="true"] { pointer-events: none; }
 .menu-drawer.dragging { transition: none; }
 .menu-drawer-handle-zone,.student-record-handle-zone { height: 32px; display: flex; justify-content: center; align-items: flex-start; padding-top: 8px; touch-action: none; cursor: grab; }
-.handle { width: 36px; height: 4px; border-radius: 4px; background: var(--disabled); }
-.menu-drawer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
-.menu-drawer-title span { display: block; margin-bottom: 4px; color: var(--muted); font-size: 11px; font-weight: 600; }
-.menu-drawer-title h2 { margin: 0; font-size: 24px; line-height: 1.15; }
+.menu-drawer-head { margin-bottom: 14px; }
 .menu-drawer-section + .menu-drawer-section { margin-top: 14px; }
 .menu-drawer-section h3 { margin: 0 2px 7px; color: var(--muted); font-size: 12px; font-weight: 600; }
 .menu-drawer-action-list { overflow: hidden; border-radius: 16px; background: var(--paper); }
@@ -69,15 +66,11 @@
 .student-record-sheet::before { content: ""; position: absolute; inset: 0; background: var(--scrim); opacity: 0; transition: opacity var(--duration-fade) linear; }
 .student-record-sheet.show { pointer-events: auto; }
 .student-record-sheet.show::before { opacity: 1; }
-.student-record-panel { position: relative; z-index: 1; width: 100%; max-height: 100%; overflow-y: auto; padding: 0 18px 18px; border: 0; border-radius: var(--radius-sheet); background: var(--card); box-shadow: var(--shadow-sheet-up); visibility: hidden; transform: translateY(calc(100% + 72px)); transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet); }
+.student-record-panel { max-height: 100%; overflow-y: auto; padding: 0 18px 18px; visibility: hidden; transform: translateY(calc(100% + 72px)); transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet); }
 .student-record-sheet.show .student-record-panel { visibility: visible; transform: translateY(0); transition-delay: 0s; }
 .student-record-panel.dragging { transition: none; }
-.student-record-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.student-record-head span { display: block; margin-bottom: 4px; color: var(--muted); font-size: 11px; font-weight: 600; }
-.student-record-close { width: 38px; height: 38px; flex: none; border: 0; border-radius: 50%; background: var(--control); color: var(--ink); font-size: 21px; cursor: pointer; }
-.student-record-panel h2 { margin: 0; font-size: 24px; line-height: 1.15; }
 .student-record-panel .student-record-status { margin: 7px 0 14px; color: var(--muted); font-size: 13px; }
-.student-record-panel button { min-height: 44px; border: 0; border-radius: 12px; background: var(--control); color: var(--ink); cursor: pointer; }
+.student-record-panel button:not(.sheet-close) { min-height: 44px; border: 0; border-radius: 12px; background: var(--control); color: var(--ink); cursor: pointer; }
 .student-score-display { padding: 14px 18px 12px; border-radius: 18px; background: var(--paper); }
 .student-score-display > label { display: block; color: var(--muted); font-size: 11px; font-weight: 600; }
 .student-score-display > div { display: flex; align-items: baseline; justify-content: center; gap: 8px; margin-top: 4px; }
@@ -171,27 +164,32 @@
   display: grid;
   place-items: end center;
   padding: 16px 12px max(16px, env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+.confirm-sheet::before {
+  content: "";
+  position: absolute;
+  inset: 0;
   background: var(--scrim);
   opacity: 0;
-  pointer-events: none;
   transition: opacity var(--duration-fade) linear;
 }
-.confirm-sheet.show { opacity: 1; pointer-events: auto; }
+.confirm-sheet.show { pointer-events: auto; }
+.confirm-sheet.show::before { opacity: 1; }
 .confirm-panel {
-  width: 100%;
-  max-width: 360px;
   max-height: 100%;
   overflow-y: auto;
   padding: 20px;
-  border: 0;
-  border-radius: var(--radius-sheet);
-  background: var(--card);
-  box-shadow: var(--shadow-sheet-up);
-  transform: translateY(calc(100% + 24px));
-  transition: transform var(--duration-sheet) var(--ease);
+  visibility: hidden;
+  transform: translateY(calc(100% + 72px));
+  transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet);
 }
-.confirm-sheet.show .confirm-panel { transform: translateY(0); }
-.confirm-panel h2 { margin: 0; font-size: 24px; }
+.confirm-sheet.show .confirm-panel {
+  visibility: visible;
+  transform: translateY(0);
+  transition-delay: 0s;
+}
+.confirm-panel .sheet-title { margin-bottom: 2px; }
 .confirm-panel p { margin: 6px 0 16px; color: var(--muted); font-size: 13px; }
 .confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .confirm-actions button { min-height: 44px; border: 0; border-radius: 12px; background: var(--control); color: var(--ink); cursor: pointer; }
