@@ -22,7 +22,8 @@ export function initAssignments({ store, showToast, viewport, closeOthers }) {
 
   function active() { return store.getCurrentAssignment(); }
   function title() {
-    elements.topbarTitle.textContent = active().name;
+    elements.topbarTitleLabel.textContent = active().name;
+    elements.topbarTitle.classList.toggle('is-assignment', state.currentPage === 1);
     elements.topbarTitle.setAttribute('aria-label', `当前作业：${active().name}，点击管理作业`);
   }
 
@@ -113,10 +114,6 @@ export function initAssignments({ store, showToast, viewport, closeOthers }) {
       event.preventDefault();
       saveRename();
     }
-    if (event.key === 'Escape') {
-      event.stopPropagation();
-      closeRename();
-    }
   });
 
   layer.querySelector('[data-action="close"]').addEventListener('click', close);
@@ -136,15 +133,20 @@ export function initAssignments({ store, showToast, viewport, closeOthers }) {
     setActiveOverlay('assignments');
     layer.querySelector('.assignment-select')?.focus({ preventScroll: true });
   });
-  window.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && renameLayer.classList.contains('show')) {
-      event.stopPropagation();
-      closeRename();
-      return;
-    }
-    if (event.key === 'Escape' && layer.classList.contains('show')) close();
-  });
   store.subscribe(render);
   title();
-  return { close, render };
+
+  function dismissBack() {
+    if (renameLayer.classList.contains('show')) {
+      closeRename();
+      return true;
+    }
+    if (layer.classList.contains('show')) {
+      close();
+      return true;
+    }
+    return false;
+  }
+
+  return { close, render, dismissBack };
 }

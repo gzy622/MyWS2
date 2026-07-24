@@ -1,5 +1,6 @@
 import { elements } from './dom.js';
 import { state, setCurrentPage, setSubview, toggleSubview } from './state.js';
+import { haptic, Haptic } from './haptics.js';
 
 let getRegistrationTitle = () => '登记';
 
@@ -20,13 +21,15 @@ export function renderNavigation({ animate = true } = {}) {
   elements.glider.classList.toggle('dragging', !animate);
   elements.pages.style.transform = pageTransform();
   elements.glider.style.transform = gliderTransform();
-  const pageTitle = state.currentPage === 1
+  const isAssignmentTitle = state.currentPage === 1;
+  const pageTitle = isAssignmentTitle
     ? getRegistrationTitle()
     : elements.pageElements[state.currentPage].getAttribute('aria-label');
-  elements.topbarTitle.textContent = pageTitle;
+  elements.topbarTitleLabel.textContent = pageTitle;
+  elements.topbarTitle.classList.toggle('is-assignment', isAssignmentTitle);
   elements.topbarTitle.setAttribute(
     'aria-label',
-    state.currentPage === 1 ? `当前作业：${pageTitle}，点击管理作业` : pageTitle
+    isAssignmentTitle ? `当前作业：${pageTitle}，点击管理作业` : pageTitle
   );
 
   elements.navButtons.forEach((button, index) => {
@@ -96,6 +99,7 @@ export function initNavigation({ getActiveAssignmentTitle } = {}) {
       } else {
         setPage(target);
       }
+      haptic(Haptic.light);
     });
   });
 }

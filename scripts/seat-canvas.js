@@ -2,6 +2,7 @@ import { elements } from './dom.js';
 import { state, setSeatEditing } from './state.js';
 import { SEAT_COLUMNS, SEAT_ROWS } from './roster-model.js';
 import { SEAT_STAGE_HEIGHT, SEAT_STAGE_WIDTH } from './seat-geometry.js';
+import { haptic, Haptic } from './haptics.js';
 
 const MIN_SCALE = 0.18;
 const MAX_SCALE = 2.5;
@@ -207,7 +208,8 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
   function pointerDown(event) {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     const target = event.target instanceof Element ? event.target : null;
-    if (!target || !stage.contains(target)) return;
+    // 命中整个座位视口（含舞台外留白），避免缩放后可操作区域只剩中间一小块舞台
+    if (!target || !viewport.contains(target)) return;
     event.preventDefault();
     stopInertia();
     viewport.setPointerCapture?.(event.pointerId);
@@ -218,7 +220,7 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
       return;
     }
     if (pointers.size !== 1) return;
-    const card = target.closest('.seat-card');
+    const card = stage.contains(target) ? target.closest('.seat-card') : null;
     if (card) {
       const cardGesture = {
         type: 'card', pointerId: event.pointerId, card, editable: state.seatEditing,
@@ -232,7 +234,7 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
         if (gesture !== cardGesture || cardGesture.moved) return;
         cardGesture.longPressed = true;
         card.classList.remove('is-pressing');
-        navigator.vibrate?.(18);
+        haptic(Haptic.medium);
         openStudentRecord(cardGesture.studentId, card);
       }, LONG_PRESS_MS);
       gesture = cardGesture;
@@ -320,6 +322,7 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
       } else {
         const wasCompleted = cardGesture.card.getAttribute('aria-pressed') === 'true';
         if (store.toggleCompletion(cardGesture.studentId)) {
+          haptic(Haptic.light);
           showToast(wasCompleted ? '已取消完成' : '已标记完成');
         }
       }

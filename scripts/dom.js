@@ -17,6 +17,7 @@ export const elements = {
   nav: required('#nav'),
   glider: required('#glider'),
   topbarTitle: required('#topbarTitle'),
+  topbarTitleLabel: required('#topbarTitleLabel'),
   fontSizePopover: required('#fontSizePopover'),
   studentGrid: required('#studentGrid'),
   studentFontSizeInput: required('#studentFontSize'),

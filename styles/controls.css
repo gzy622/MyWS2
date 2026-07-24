@@ -100,7 +100,7 @@
   background: transparent;
   visibility: hidden;
   pointer-events: none;
-  transition: visibility 0s linear .22s;
+  transition: visibility 0s linear .34s;
 }
 .more-overlay.show {
   visibility: visible;
@@ -121,13 +121,17 @@
   -webkit-backdrop-filter: blur(28px) saturate(1.2);
   box-shadow: 0 10px 32px rgba(0, 0, 0, .14), 0 2px 8px rgba(0, 0, 0, .06);
   opacity: 0;
-  transform: scale(.78);
-  transform-origin: top right;
-  transition: opacity .18s linear, transform .22s var(--ease);
+  /* 仅缩放：原点在上边缘，过程中顶边高度不变 */
+  transform: scale(.18);
+  transform-origin: 82% 0;
+  /* 收回：快速收束，无过冲 */
+  transition: opacity .14s linear, transform .22s cubic-bezier(.4, 0, 1, 1);
 }
 .more-overlay.show .more-panel {
   opacity: 1;
   transform: scale(1);
+  /* 展开：从小放大，末段轻微过冲后再回落到 1 */
+  transition: opacity .16s linear, transform .38s cubic-bezier(.2, 1.18, .32, 1);
 }
 :root[data-theme="dark"] .more-panel {
   background: color-mix(in srgb, var(--card) 82%, transparent);

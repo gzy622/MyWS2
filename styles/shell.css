@@ -10,20 +10,64 @@
   background: color-mix(in srgb, var(--paper) 94%, transparent);
   backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
 }
-.topbar-title { margin: 0; padding: 0 10px; border: 0; background: transparent; color: var(--ink); font-size: 21px; font-weight: 700; letter-spacing: -.02em; line-height: 1; }
-button.topbar-title { cursor: pointer; }
+.topbar-title {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: visible;
+  background: transparent;
+  color: var(--ink);
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+button.topbar-title { cursor: default; }
+.topbar-title.is-assignment { cursor: pointer; }
+.topbar-title-core {
+  display: inline-flex;
+  align-items: center;
+  /* 中文粗体墨色中心偏下，上移与两侧 24px 图标光学对齐 */
+  transform: translateY(-2px);
+}
+/* 左侧占位与右侧箭头同宽，标题文字几何居中不受箭头影响 */
+.topbar-title.is-assignment .topbar-title-core::before {
+  content: '';
+  width: 16px;
+  flex: none;
+}
+.topbar-title-label { display: block; line-height: 1; }
+.topbar-title-caret {
+  display: none;
+  width: 14px;
+  height: 14px;
+  margin-left: 2px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+  color: var(--ink);
+  opacity: .72;
+}
+.topbar-title.is-assignment .topbar-title-caret { display: block; }
 .topbar-action {
   min-width: 44px; height: 44px; display: inline-flex; align-items: center; gap: 6px; width: max-content;
   padding: 0; border: 0; background: transparent; color: var(--ink); cursor: pointer;
   font-size: 12px; font-weight: 600;
 }
-.topbar-action svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.topbar-action svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
 .topbar-menu { justify-content: flex-start; }
 .topbar-menu span { display: none; }
 .topbar-more { justify-self: end; justify-content: flex-end; }
 .topbar-more span { display: none; }
-.topbar-more svg { width: 24px; height: 24px; }
-.topbar-more circle { fill: none; stroke: currentColor; stroke-width: 2.15; }
+.topbar-more circle { fill: none; stroke: currentColor; stroke-width: 2.2; }
 .viewport {
   position: absolute; inset: 0 0 var(--nav-h); overflow: hidden;
   /* Pointer gestures own both axes so the browser cannot cancel a horizontal drag mid-swipe. */
