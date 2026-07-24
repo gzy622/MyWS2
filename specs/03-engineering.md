@@ -2,9 +2,10 @@
 
 ## 1. 技术约束
 
-- 只使用原生 HTML、CSS、JavaScript ES Modules。
-- 不新增 npm 依赖、框架、打包器、CSS-in-JS、图标库或远程 CDN。
-- 不增加构建步骤；运行入口始终是 `node lan-server.js`。
+- Demo 运行时只使用原生 HTML、CSS、JavaScript ES Modules。
+- Demo 运行时不新增 npm 依赖、框架、打包器、CSS-in-JS、图标库或远程 CDN。
+- 不增加 Demo 构建步骤；运行入口始终是 `node lan-server.js`。
+- Capacitor / npm / `android/` 仅为**可选** APK 打包通道，不得成为日常 Demo 验收前置；零依赖 Web 路径必须保持可用。Capacitor 相关依赖仅用于原生壳打包，不得进入 LAN Demo 的模块图（`haptics.js` 通过 `globalThis.Capacitor` 桥接，禁止静态 import npm 包）。
 - 代码应能在当前主流移动浏览器中工作；手势使用 Pointer Events。
 - 不使用 cookie 或 IndexedDB 保存界面状态。`localStorage` 仅允许以下键：`teacher-workbench.student-name-font-size`（姓名字号）、`teacher-workbench.roster.v1`（业务数据）和 `teacher-workbench.theme`（`light` 或 `dark`）。禁止保存导航、子视图、抽屉、浮层、座位编辑模式或画布 transform。
 
@@ -43,7 +44,7 @@
 
 以下 selector/属性被脚本依赖，修改结构时必须保留语义和唯一性：
 
-- ID：`#app`、`#viewport`、`#pages`、`#nav`、`#glider`、`#topbarTitle`、`#fontSizePopover`、`#studentGrid`、`#studentFontSize`、`#studentFontSizeValue`、`#drawer`、`#drawerHandle`、`#gestureTip`、`#menuButton`、`#moreButton`、`#closeDrawer`、`#scrim`、`#toast`。
+- ID：`#app`、`#viewport`、`#pages`、`#nav`、`#glider`、`#topbarTitle`、`#topbarTitleLabel`、`#fontSizePopover`、`#studentGrid`、`#studentFontSize`、`#studentFontSizeValue`、`#drawer`、`#drawerHandle`、`#gestureTip`、`#menuButton`、`#moreButton`、`#closeDrawer`、`#scrim`、`#toast`。
 - Class：`.page`、`.nav-btn`、`.segment`、`.subview`、`.student-grid`、`.student-card`、`.subdots i`、`.menu-item`。
 - Data：`data-page`、`data-index`、`data-sub`、`data-view`、`data-action`，以及学生格可选的 `data-score`。
 
@@ -113,8 +114,9 @@
 - [ ] `node --check` 检查所有 `scripts/*.js` 和 `lan-server.js` 无语法错误。
 - [ ] 页面中的 ID 唯一，`data-page` / `data-index` 连续且对应；登记网格恰有 46 个 `.student-card`，座位表恰有 104 个逻辑位置和 46 张座位卡。
 - [ ] 新增颜色、尺寸、动效符合视觉 Spec；深色仅覆盖 token。
-- [ ] 没有远程资源、第三方依赖或内联业务脚本样式；`localStorage` 仅使用三个规定键并由对应模块访问。
+- [ ] 没有远程资源、第三方运行时依赖或内联业务脚本样式；`localStorage` 仅使用三个规定键并由对应模块访问。可选 Capacitor 打包依赖不得被 Demo 模块静态导入。
 - [ ] `git diff --check` 无空白错误。
+- [ ] （可选 APK）`npm run build:apk` 可生成 debug APK；`npm run deploy:apk` 可一键同步、打包并用 adb 覆盖安装到已连接设备；安装后触觉只震一次、无系统二次震，底栏滑动不被原生 overscroll 抢占。
 
 ### 运行检查
 

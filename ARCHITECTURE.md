@@ -38,20 +38,43 @@ node lan-server.js
 | `scripts/gestures.js` | 横向拖动与底部导航上滑意图。 |
 | `scripts/drawer.js` | 抽屉开关与下拉关闭手势。 |
 | `scripts/toast.js` | 菜单反馈与 Toast 生命周期。 |
+| `scripts/haptics.js` | 统一触觉反馈入口；全部为 `10ms`。Web 使用 `navigator.vibrate`；Capacitor 原生壳使用 `@capacitor/haptics` 的 `vibrate({ duration })`，二者互斥，不双发。 |
 | `scripts/student-font-size.js` | 网格姓名字号控制及字号持久化。 |
 | `scripts/seat-geometry.js` | 13×8 座位逻辑几何的唯一常量来源。 |
 | `scripts/seat-canvas.js` | 座位画布的自适应定位、平移、缩放、惯性与编辑拖放手势。 |
 | `scripts/roster-model.js` | 默认学生、座位、作业及领域纯校验函数。 |
 | `scripts/roster-store.js` | 唯一业务状态、领域查询、变更与订阅通知。 |
 | `scripts/roster-storage.js` | 业务 Schema 的严格读取、迁移、回退与写入。 |
-| `scripts/theme.js` | 浅色/深色主题状态、根主题属性与受控主题持久化。 |
+| `scripts/theme.js` | 浅色/深色主题状态、根主题属性、`theme-color` meta 与 Capacitor StatusBar 外观同步，以及受控主题持久化。 |
 | `scripts/roster-renderer.js` | 基于 Store 同步渲染网格和座位卡。 |
 | `scripts/student-interactions.js` | 学生轻点、长按、右键和点击抑制。 |
 | `scripts/student-record.js` | 学生记录面板、分数草稿、校验和焦点管理。 |
 | `scripts/assignments.js` | 作业列表及新增、改名、删除流程。 |
 | `scripts/more-sheet.js` | 登记上下文更多面板与批量操作入口。 |
 | `scripts/viewport.js` | Visual Viewport 与输入法可见区域同步。 |
+| `scripts/system-back.js` | 统一处理 Escape 与 Android 系统返回键，按优先级关闭最上层浮层。 |
+| `package.json` / `capacitor.config.json` / `android/` | **可选** Android 打包通道（应用名「教师工作台」、包名 `com.teacherworkbench.app`）。不改变零依赖 LAN Demo 启动方式。 |
+| `scripts/sync-capacitor-www.ps1` | 将 `index.html` / `styles` / `scripts` 同步到 Capacitor `www/`。 |
+| `scripts/deploy-apk.ps1` | 一键同步、打 debug APK，并用 adb 安装到已连接设备。 |
 | `scripts/main.js` | 初始化编排。 |
+
+## 可选 Capacitor 打包
+
+日常开发与验收仍以 `node lan-server.js` 为准，无需 npm/Android SDK。需要 APK 时：
+
+1. 安装 JDK 21+ 与 Android SDK（Platform 35+、Build-Tools），并连接已开启调试的设备。
+2. `npm install`
+3. 一键打包并推送：`npm run deploy:apk`（`scripts/deploy-apk.ps1`：同步 www → `cap sync android` → `assembleDebug` → `adb install -r` → 启动应用）
+4. 仅打包不安装：`npm run build:apk`；产物：`android/app/build/outputs/apk/debug/app-debug.apk`
+
+`deploy:apk` 常用参数（经 npm 传递时写在 `--` 之后）：
+
+- `-Serial <序列号>`：多设备时指定目标
+- `-Fresh`：先卸载再安装
+- `-NoLaunch`：安装后不自动打开
+- `-SkipSync`：跳过 www / cap sync，仅重编并安装
+
+原生层关闭 WebView overscroll 与系统默认 haptic，手势仍只在 Web 层处理，避免与 JS 触觉双层冲突。
 
 ## 状态与 DOM 契约
 
