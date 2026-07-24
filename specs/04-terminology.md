@@ -73,7 +73,10 @@
 | 沟通名称 | 对应元素 / 标识 | 说明 |
 | --- | --- | --- |
 | 菜单遮罩 | `#scrim.scrim` | 通用菜单打开时覆盖主界面；其它 Sheet 使用各自遮罩层，颜色均为 `--scrim`。 |
-| 通用菜单把手区 | `#menuDrawerHandle.menu-drawer-handle-zone` | 下拉关闭通用菜单的手势区域。 |
+| 通用菜单把手区 | `#menuDrawerHandle.menu-drawer-handle-zone` | 下拉关闭通用菜单的手势区域；阈值 88px。 |
+| 学生记录把手区 | `#studentRecordHandle.student-record-handle-zone` | 下拉关闭学生记录的手势区域；阈值 88px。 |
+| 作业列表把手区 | `.assignment-panel .sheet-handle-zone` | 上拉关闭作业列表的手势区域；阈值 88px。 |
+| 作业名称把手区 | `.assignment-name-panel .sheet-handle-zone` | 上拉关闭作业名称的手势区域；阈值 88px。 |
 | 通用菜单关闭按钮 | `#closeMenuDrawer.sheet-close` | 通用菜单头部右侧关闭触发器。 |
 | 学生记录关闭按钮 | `#closeStudentRecord.sheet-close` | 学生记录头部右侧关闭触发器。 |
 | 菜单项 | `.menu-item[data-action]` | 视图切换、批量标记、清除、复制未交或恢复默认的入口。 |

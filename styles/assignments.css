@@ -37,6 +37,10 @@
   transition-delay: 0s;
 }
 
+.assignment-panel.dragging {
+  transition: none;
+}
+
 .assignment-panel .sheet-head {
   margin-bottom: 16px;
 }
@@ -207,6 +211,10 @@
   visibility: visible;
   transform: translateY(0);
   transition-delay: 0s;
+}
+
+.assignment-name-panel.dragging {
+  transition: none;
 }
 
 .assignment-name-panel .sheet-title {

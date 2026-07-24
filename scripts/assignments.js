@@ -1,5 +1,6 @@
 import { elements } from './dom.js';
 import { state, setActiveOverlay } from './state.js';
+import { bindSheetHandleDrag } from './sheet-drag.js';
 
 export function initAssignments({ store, showToast, viewport, closeOthers, confirm }) {
   const layer = document.createElement('div');
@@ -10,6 +11,8 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
 
   const list = layer.querySelector('.assignment-list');
   const addButton = layer.querySelector('.assignment-add');
+  const listPanel = layer.querySelector('.assignment-panel');
+  const listHandle = layer.querySelector('.sheet-handle-zone');
   const nameLayer = document.createElement('div');
   nameLayer.className = 'assignment-name-sheet';
   nameLayer.inert = true;
@@ -19,11 +22,15 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
   const nameHint = nameLayer.querySelector('.assignment-name-hint');
   const nameInput = nameLayer.querySelector('input');
   const nameSave = nameLayer.querySelector('[data-action="save"]');
+  const namePanel = nameLayer.querySelector('.assignment-name-panel');
+  const nameHandle = nameLayer.querySelector('.sheet-handle-zone');
 
   let returnFocus = null;
   let nameMode = null;
   let renameTarget = null;
   let nameReturnFocus = null;
+  let listDrag;
+  let nameDrag;
 
   function active() { return store.getCurrentAssignment(); }
   function title() {
@@ -34,6 +41,7 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
 
   function closeNameEditor({ restoreFocus = true } = {}) {
     if (!nameLayer.classList.contains('show')) return;
+    nameDrag?.reset();
     nameLayer.classList.remove('show');
     nameLayer.inert = true;
     viewport.unlockStudentGrid();
@@ -46,6 +54,7 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
   function close() {
     if (!layer.classList.contains('show')) return;
     closeNameEditor({ restoreFocus: false });
+    listDrag?.reset();
     layer.classList.remove('show');
     layer.inert = true;
     setActiveOverlay(null);
@@ -68,6 +77,7 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
       nameSave.textContent = '添加';
       nameInput.value = '';
     }
+    nameDrag?.reset();
     viewport.lockStudentGrid();
     nameLayer.inert = false;
     nameLayer.classList.add('show');
@@ -142,11 +152,24 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
   addButton.addEventListener('click', () => {
     openNameEditor({ mode: 'add', trigger: addButton });
   });
+  listDrag = bindSheetHandleDrag({
+    handle: listHandle,
+    panel: listPanel,
+    direction: 'up',
+    onClose: close,
+  });
+  nameDrag = bindSheetHandleDrag({
+    handle: nameHandle,
+    panel: namePanel,
+    direction: 'up',
+    onClose: () => closeNameEditor(),
+  });
   elements.topbarTitle.addEventListener('click', () => {
     if (state.currentPage !== 1) return;
     closeOthers?.('assignments');
     returnFocus = elements.topbarTitle;
     render();
+    listDrag?.reset();
     layer.inert = false;
     layer.classList.add('show');
     setActiveOverlay('assignments');

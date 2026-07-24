@@ -85,6 +85,12 @@
   display: flex;
   justify-content: center;
   flex: none;
+  touch-action: none;
+  cursor: grab;
+}
+
+.sheet-handle-zone:active {
+  cursor: grabbing;
 }
 
 .sheet-handle-zone--top {

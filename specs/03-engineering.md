@@ -28,6 +28,7 @@
 | 学生轻点、长按和右键 | `scripts/student-interactions.js` |
 | 学生记录 | `scripts/student-record.js` |
 | 作业列表与作业名称 | `scripts/assignments.js` |
+| Sheet 把手拖动关闭 | `scripts/sheet-drag.js` |
 | 座位逻辑几何 | `scripts/seat-geometry.js` |
 | 更多菜单与确认面板 | `scripts/more-sheet.js` |
 | Visual Viewport 同步 | `scripts/viewport.js` |
