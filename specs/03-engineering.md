@@ -18,7 +18,7 @@
 | reset、基础元素、全局动画、reduced motion | `styles/base.css` |
 | 应用容器、顶栏、页面视口 | `styles/shell.css` |
 | 页面内容、Hero、卡片、图表 | `styles/content.css` |
-| 底导航、字号浮层、抽屉、Toast | `styles/controls.css` |
+| 底导航、姓名字号、通用菜单、Toast、共享 Sheet | `styles/controls.css`、`styles/sheets.css` |
 | DOM 查询及必需元素校验 | `scripts/dom.js` |
 | UI 瞬时状态和状态边界 | `scripts/state.js` |
 | 默认数据、业务校验与领域常量 | `scripts/roster-model.js` |
@@ -26,15 +26,15 @@
 | 业务存储 Schema、迁移与回退 | `scripts/roster-storage.js` |
 | 网格与座位共享渲染 | `scripts/roster-renderer.js` |
 | 学生轻点、长按和右键 | `scripts/student-interactions.js` |
-| 学生记录面板 | `scripts/student-record.js` |
-| 作业管理面板 | `scripts/assignments.js` |
+| 学生记录 | `scripts/student-record.js` |
+| 作业列表与作业名称 | `scripts/assignments.js` |
 | 座位逻辑几何 | `scripts/seat-geometry.js` |
-| 登记上下文更多面板 | `scripts/more-sheet.js` |
+| 更多菜单与确认面板 | `scripts/more-sheet.js` |
 | Visual Viewport 同步 | `scripts/viewport.js` |
 | 主/子导航和渲染 | `scripts/navigation.js` |
-| 网格姓名字号、浮层和持久化 | `scripts/student-font-size.js` |
+| 姓名字号与持久化 | `scripts/student-font-size.js` |
 | 页面、导航手势 | `scripts/gestures.js` |
-| 抽屉行为 | `scripts/drawer.js` |
+| 通用菜单行为 | `scripts/drawer.js` |
 | Toast 生命周期与临时反馈 | `scripts/toast.js` |
 | 初始化和依赖注入 | `scripts/main.js` |
 
@@ -44,8 +44,8 @@
 
 以下 selector/属性被脚本依赖，修改结构时必须保留语义和唯一性：
 
-- ID：`#app`、`#viewport`、`#pages`、`#nav`、`#glider`、`#topbarTitle`、`#topbarTitleLabel`、`#fontSizePopover`、`#studentGrid`、`#studentFontSize`、`#studentFontSizeValue`、`#drawer`、`#drawerHandle`、`#gestureTip`、`#menuButton`、`#moreButton`、`#closeDrawer`、`#scrim`、`#toast`。
-- Class：`.page`、`.nav-btn`、`.segment`、`.subview`、`.student-grid`、`.student-card`、`.subdots i`、`.menu-item`。
+- ID：`#app`、`#viewport`、`#pages`、`#nav`、`#glider`、`#topbarTitle`、`#topbarTitleLabel`、`#fontSizePopover`、`#studentGrid`、`#studentFontSize`、`#studentFontSizeValue`、`#menuDrawer`、`#menuDrawerHandle`、`#gestureTip`、`#menuButton`、`#moreButton`、`#closeMenuDrawer`、`#scrim`、`#toast`。
+- Class：`.page`、`.nav-btn`、`.segment`、`.subview`、`.student-grid`、`.student-card`、`.subdots i`、`.menu-item`、`.menu-drawer`、`.student-record-sheet`、`.confirm-sheet`、`.assignment-sheet`、`.assignment-name-sheet`、`.more-menu`。
 - Data：`data-page`、`data-index`、`data-sub`、`data-view`、`data-action`，以及学生格可选的 `data-score`。
 
 索引必须是从 0 开始的连续整数，并保持“页面—导航—状态数组”一一对应。
@@ -58,7 +58,7 @@
 - `navigation.js` 负责状态到导航 DOM 和动态顶栏标题的统一渲染。
 - `gestures.js` 可以调用导航渲染，但不得直接形成新的导航状态源。
 - `student-font-size.js` 独立管理姓名字号控件、实时字号渲染和字号键；不得把该逻辑复制到导航或 Toast 模块。
-- `drawer.js` 独立管理抽屉；`main.js` 将 `openDrawer` 注入手势模块，以避免循环依赖。
+- `drawer.js` 独立管理通用菜单；`main.js` 将 `openDrawer` 注入手势模块，以避免循环依赖。
 - `main.js` 只负责创建 Store、初始化和依赖注入，不承载业务逻辑。
 
 禁止复制一份类似的状态、渲染或手势逻辑到其他文件。

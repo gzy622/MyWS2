@@ -10,7 +10,7 @@
 | 应用顶栏 | `.topbar` | 最上方的三列操作栏。 |
 | 菜单按钮 | `#menuButton` | 顶栏左侧的“菜单”触发器。 |
 | 顶栏标题 | `#topbarTitle.topbar-title` | 居中显示当前页面语义：人员页显示“人员”，登记页显示当前活动作业名称（右侧向下箭头，左侧等宽占位以保持文字居中），课程页显示“课程”。 |
-| 更多按钮 | `#moreButton` | 顶栏右侧触发器；登记页打开上下文更多面板，包含主题、清除当前作业及视图特定操作。 |
+| 更多按钮 | `#moreButton` | 顶栏右侧触发器；登记页打开更多菜单，包含主题、清除当前作业及视图特定操作。 |
 | 内容视口 | `#viewport.viewport` | 承载横向页面手势的可视区域。 |
 | 页面轨道 | `#pages.pages` | 三个主页面组成的横向移动容器。 |
 | 主页面 | `.page[data-page]` | 页面轨道中的一个纵向滚动容器。 |
@@ -52,21 +52,37 @@
 | 沟通名称 | 对应元素 / 标识 | 说明 |
 | --- | --- | --- |
 | 活动作业 | `roster-store` 的 `activeAssignmentId` | 当前登记、计分和计数归属的作业。 |
-| 作业面板 | 作业列表浮层 | 显示作业、已交人数/总人数，并管理选择、新增、改名和删除。 |
-| 学生记录面板 | 学生记录浮层 | 长按或右键学生后打开，完成、计分、保存与清除单人记录。 |
 | 完成记录 | `submissions` | `(assignmentId, studentId)` 唯一的已完成状态。 |
 | 分数记录 | `scores` | `(assignmentId, studentId)` 唯一的 `0～100`、最多一位小数分数；存在即表示完成。 |
 
-## 5. 姓名字号浮层
+## 5. 浮层与弹层（四型）
+
+沟通时使用本表「沟通名称」；类型决定视觉与动效基线（见视觉 Spec）。
+
+| 沟通名称 | 对应元素 / 标识 | 类型 | 说明 |
+| --- | --- | --- | --- |
+| 通用菜单 | `#menuDrawer.menu-drawer` | 底部 Sheet | 从底部弹出的登记工具菜单。 |
+| 学生记录 | `.student-record-sheet` | 底部 Sheet | 长按或右键学生后打开，计分与清除单人记录。 |
+| 确认面板 | `.confirm-sheet` | 底部 Sheet | 危险操作确认（含删除作业、恢复默认名单等）。 |
+| 作业列表 | `.assignment-sheet` | 顶部 Sheet | 显示作业、已交人数，管理选择、新增、改名和删除。 |
+| 作业名称 | `.assignment-name-sheet` | 顶部 Sheet（二级） | 新增或改名共用的名称输入层；不占 `activeOverlay`。 |
+| 更多菜单 | `.more-menu` | 角弹出 | 登记页右上角上下文菜单。 |
+| 姓名字号 | `#fontSizePopover.font-size-popover` | 轻量 Popover | 仅网格视图由更多菜单打开的字号控制。 |
+| Toast 提示 | `#toast.toast` | 反馈（非模态） | 顶部短暂提示，不纳入 Sheet 体系。 |
 
 | 沟通名称 | 对应元素 / 标识 | 说明 |
 | --- | --- | --- |
-| 字号浮层 | `#fontSizePopover.font-size-popover` | 仅在网格视图中由“更多”打开的悬浮控制面板。 |
-| 字号标题 | `.font-size-popover-head label` | 控件名称“姓名字号”。 |
-| 字号滑杆 | `#studentFontSize` | `14～18px`、步长为 `1px` 的实时调节控件。 |
-| 字号数值 | `#studentFontSizeValue` | 显示当前字号，例如“16px”。 |
-| 字号刻度 | `.font-size-popover-scale` | 滑杆两端的“小 / 大”辅助文字。 |
-| 字号持久化键 | `teacher-workbench.student-name-font-size` | 三个受控 `localStorage` 键之一，仅保存姓名字号。 |
+| 菜单遮罩 | `#scrim.scrim` | 通用菜单打开时覆盖主界面；其它 Sheet 使用各自遮罩层，颜色均为 `--scrim`。 |
+| 通用菜单把手区 | `#menuDrawerHandle.menu-drawer-handle-zone` | 下拉关闭通用菜单的手势区域。 |
+| 通用菜单关闭按钮 | `#closeMenuDrawer.sheet-close` | 通用菜单头部右侧关闭触发器。 |
+| 菜单项 | `.menu-item[data-action]` | 视图切换、批量标记、清除、复制未交或恢复默认的入口。 |
+| 字号标题 | `.font-size-popover-head label` | 控件名称「姓名字号」。 |
+| 字号滑杆 | `#studentFontSize` | `14～18px`、步长 `1px`。 |
+| 字号数值 | `#studentFontSizeValue` | 例如「16px」。 |
+| 字号刻度 | `.font-size-popover-scale` | 滑杆两端「小 / 大」。 |
+| 字号持久化键 | `teacher-workbench.student-name-font-size` | 三个受控键之一。 |
+
+关闭栈（高→低）：确认面板 → 作业名称 → 作业列表 → 学生记录 → 更多菜单 → 姓名字号 → 通用菜单。
 
 ## 6. 座位画布与编辑
 
@@ -76,7 +92,6 @@
 | 座位卡 | `.seat-card[data-student-id]` | 已安排学生的座位表呈现，与网格共享完成与分数状态。 |
 | 座位编辑模式 | `state.seatEditing` | 拖到空位移动，拖到占用位置交换。 |
 | 座位画布 transform | `seat-canvas.js` 内存态 | 当前会话的平移和缩放，不持久化。 |
-| 上下文更多面板 | 登记页右上角更多弹出菜单 | 主题、清除当前作业、姓名字号、座位编辑和复位等操作。 |
 
 ## 7. 占位子视图内容组件
 
@@ -102,7 +117,7 @@
 | 沟通名称 | 对应元素 / 标识 | 说明 |
 | --- | --- | --- |
 | 底部导航外壳 | `.bottom-shell` | 底部导航的背景与安全区容器，基础高度 66px。 |
-| 底部主导航 | `#nav.nav` | 三个主页面入口，也是上滑打开菜单的手势区域。 |
+| 底部主导航 | `#nav.nav` | 三个主页面入口，也是上滑打开通用菜单的手势区域。 |
 | 导航滑块 | `#glider.nav-glider` | 跟随当前主页面移动的深色选中背景。 |
 | 导航项 | `.nav-btn[data-index]` | 无可见文字的页面入口，通过图标和 `aria-label` 表达名称。 |
 | 人员导航项 | `.nav-btn[data-index="0"]` | 进入人员页；再次点击切换班干 / 值日。 |
@@ -113,21 +128,7 @@
 | 子视图指示点单元 | `.subdots i` | 对应该页面两个子视图的单个状态点。 |
 | 上滑提示 | `#gestureTip.gesture-tip` | 从底部导航上滑至提示阈值后显示的引导文字。 |
 
-## 9. 通用菜单与反馈
-
-| 沟通名称 | 对应元素 / 标识 | 说明 |
-| --- | --- | --- |
-| 菜单遮罩 | `#scrim.scrim` | 抽屉打开时覆盖主界面的背景层。 |
-| 通用菜单抽屉 | `#drawer.drawer` | 从底部弹出的通用菜单面板。 |
-| 抽屉拖动把手区 | `#drawerHandle.drawer-handle-zone` | 用于下拉关闭抽屉的手势区域。 |
-| 抽屉把手 | `.handle` | 把手区内的视觉把手。 |
-| 教师资料区 | `.profile` | 头像、教师姓名和学校 / 班级占位信息的组合。 |
-| 抽屉关闭按钮 | `#closeDrawer.close` | 抽屉头部右侧的关闭触发器。 |
-| 菜单功能区 | `.menu-grid` | 通用菜单的视图切换与批量操作区。 |
-| 菜单项 | `.menu-item[data-action]` | 视图切换、批量标记、清除、复制未交或恢复默认的入口。 |
-| Toast 提示 | `#toast.toast` | 顶部短暂显示的无破坏性反馈。 |
-
-## 10. 状态名称
+## 9. 状态名称
 
 | 状态名称 | 状态来源 / 表现 | 含义 |
 | --- | --- | --- |
@@ -138,15 +139,15 @@
 | 内容激活态 | `.subview.active` | 当前可见的子视图内容状态。 |
 | 指示点选中态 | `.subdots i.on` | 当前子视图对应的状态点。 |
 | 姓名字号 | `state.studentFontSize` | 取值 14～18，并持久化保存。 |
-| 字号浮层打开态 | `state.fontSizePopoverOpen`、`.font-size-popover.show` | 字号控件当前可见；不持久化。 |
+| 姓名字号打开态 | `state.fontSizePopoverOpen`、`.font-size-popover.show` | 姓名字号控件当前可见；不持久化。 |
 | 业务状态 | `roster-store.js` | 学生、座位、作业、提交和分数的唯一可写来源。 |
-| 活动浮层 | `state.activeOverlay` | 当前登记业务浮层；与抽屉互斥且不持久化。 |
+| 活动浮层 | `state.activeOverlay` | 当前登记业务浮层（`assignments` / `student-record` / `more` / `confirm`）；与通用菜单互斥且不持久化。 |
 | 座位编辑态 | `state.seatEditing` | 当前会话中座位卡可移动/交换的状态。 |
-| 拖动中 | `.pages.dragging`、`.nav-glider.dragging` 或 `.drawer.dragging` | 手势跟手阶段，临时取消过渡动画。 |
-| 菜单打开态 | `state.drawerOpen`、`.app.drawer-open` | 抽屉已打开。 |
+| 拖动中 | `.pages.dragging`、`.nav-glider.dragging` 或 `.menu-drawer.dragging` | 手势跟手阶段，临时取消过渡动画。 |
+| 通用菜单打开态 | `state.drawerOpen`、`.app.drawer-open` | 通用菜单已打开（状态字段名保留 `drawerOpen`）。 |
 | Toast 显示态 | `#toast.toast.show` | Toast 正在显示。 |
 | 导航点击抑制态 | `state.suppressNavClick` | 有效拖动结束后的短暂误触保护。 |
 
-## 11. 初始画面称呼
+## 10. 初始画面称呼
 
-刷新后的默认画面称为“**登记页 / 网格视图首屏**”：`currentPage` 为 `1`，三个页面均选中各自的第一个子视图，抽屉和字号浮层关闭，Toast 隐藏。学生姓名字号默认 16px；若本地存在有效持久化值，则恢复该值。
+刷新后的默认画面称为“**登记页 / 网格视图首屏**”：`currentPage` 为 `1`，三个页面均选中各自的第一个子视图，通用菜单和姓名字号关闭，Toast 隐藏。学生姓名字号默认 16px；若本地存在有效持久化值，则恢复该值。
