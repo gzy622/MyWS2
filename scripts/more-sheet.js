@@ -2,6 +2,7 @@ import { elements } from './dom.js';
 import { closeDrawer } from './drawer.js';
 import { setPage, setSub } from './navigation.js';
 import { state, setActiveOverlay } from './state.js';
+import { haptic, Haptic } from './haptics.js';
 
 const REGISTER_PAGE_INDEX = 1;
 const GRID_SUBVIEW_INDEX = 0;
@@ -189,15 +190,11 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
     const action = confirmAction;
     const returnFocus = confirmReturnFocus;
     closeConfirm({ restoreFocus: false });
+    haptic(Haptic.medium);
     action?.();
     returnFocus?.focus({ preventScroll: true });
   });
   elements.confirmOverlay.addEventListener('click', (event) => { if (event.target === elements.confirmOverlay) closeConfirm(); });
-  window.addEventListener('keydown', (event) => {
-    if (event.key !== 'Escape') return;
-    if (elements.confirmOverlay.classList.contains('show')) closeConfirm();
-    else if (elements.moreOverlay.classList.contains('show')) close();
-  });
 
   return { open, close, closeConfirm, render };
 }

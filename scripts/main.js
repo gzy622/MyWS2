@@ -14,6 +14,7 @@ import { initMoreSheet } from './more-sheet.js';
 import { loadRosterState, saveRosterState } from './roster-storage.js';
 import { initTheme } from './theme.js';
 import { initViewport } from './viewport.js';
+import { createSystemBackController } from './system-back.js';
 
 export const rosterStore = createRosterStore(loadRosterState(), saveRosterState);
 const theme = initTheme();
@@ -40,4 +41,12 @@ export const seatCanvas = initSeatCanvas({ store: rosterStore, showToast, openSt
 moreSheet = initMoreSheet({ store: rosterStore, showToast, seatCanvas, fontSize, theme, closeOthers: closeOverlays });
 initDrawer({ closeOverlays });
 initHorizontalGestures({ openDrawer });
+createSystemBackController({
+  closeConfirm: () => moreSheet.closeConfirm(),
+  dismissAssignments: () => assignments.dismissBack(),
+  closeStudentRecord: () => studentRecord.close(),
+  closeMore: () => moreSheet.close(),
+  closeFontSize: () => fontSize.close(),
+  closeDrawer: () => closeDrawer(),
+});
 renderNavigation({ animate: false });

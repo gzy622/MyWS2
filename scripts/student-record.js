@@ -1,5 +1,6 @@
 import { elements } from './dom.js';
 import { setActiveOverlay } from './state.js';
+import { haptic, Haptic } from './haptics.js';
 
 const SHEET_CLOSE_DISTANCE = 88;
 
@@ -101,7 +102,16 @@ export function initStudentRecord({ store, showToast, viewport, closeOthers }) {
   });
   elements.studentScoreControls.addEventListener('click', (event) => { const key = event.target.closest('[data-score-key]')?.dataset.scoreKey; if (key) updateScoreDraft(key); });
   elements.clearStudentRecordButton.addEventListener('click', () => { if (store.clearStudentRecord(studentId)) showToast('已清除记录'); close(); });
-  elements.saveStudentRecordButton.addEventListener('click', () => { const result = store.setScore(studentId, elements.studentScoreInput.value); if (result === 'invalid') { elements.studentScoreError.textContent = '请输入 0–100 的分数，最多一位小数'; elements.studentScoreInput.focus(); return; } showToast('分数已保存'); close(); });
-  window.addEventListener('keydown', (event) => { if (event.key === 'Escape' && studentId !== null && elements.studentRecordOverlay.classList.contains('show')) close(); });
+  elements.saveStudentRecordButton.addEventListener('click', () => {
+    const result = store.setScore(studentId, elements.studentScoreInput.value);
+    if (result === 'invalid') {
+      elements.studentScoreError.textContent = '请输入 0–100 的分数，最多一位小数';
+      elements.studentScoreInput.focus();
+      return;
+    }
+    haptic(Haptic.medium);
+    showToast('分数已保存');
+    close();
+  });
   return { open, close };
 }

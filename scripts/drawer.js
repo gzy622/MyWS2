@@ -33,9 +33,6 @@ export function initDrawer({ closeOverlays } = {}) {
   elements.menuButton.addEventListener('click', openDrawer);
   elements.closeDrawerButton.addEventListener('click', () => closeDrawer());
   elements.scrim.addEventListener('click', () => closeDrawer());
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') closeDrawer();
-  });
 
   let dragging = false;
   let pointerId;

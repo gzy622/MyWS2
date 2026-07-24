@@ -78,9 +78,5 @@ export function initStudentFontSize() {
   document.addEventListener('pointerdown', closePopoverFromOutside);
   document.addEventListener('click', closePopoverFromOutside);
 
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && state.fontSizePopoverOpen) closePopover();
-  });
-
   return { open: openPopover, close: closePopover };
 }
