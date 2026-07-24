@@ -29,7 +29,7 @@ h1 { margin: 0; font-size: clamp(32px, 8.5vw, 36px); font-weight: 720; line-heig
   background-image:
     repeating-linear-gradient(to right, transparent 0, transparent calc(20% - .5px), var(--student-grid-line) calc(20% - .5px), var(--student-grid-line) 20%),
     repeating-linear-gradient(to bottom, transparent 0, transparent calc(10% - .5px), var(--student-grid-line) calc(10% - .5px), var(--student-grid-line) 10%);
-  box-shadow: var(--shadow-card);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
   isolation: isolate;
 }
 .student-card {
@@ -39,7 +39,7 @@ h1 { margin: 0; font-size: clamp(32px, 8.5vw, 36px); font-weight: 720; line-heig
 }
 .student-card.is-completed {
   color: var(--ink);
-  background: color-mix(in srgb, var(--control) 42%, var(--card));
+  background: var(--paper);
   box-shadow: inset -.5px 0 var(--student-grid-line), inset 0 -.5px var(--student-grid-line);
 }
 .student-card.is-completed:not([data-score])::before {
@@ -47,6 +47,7 @@ h1 { margin: 0; font-size: clamp(32px, 8.5vw, 36px); font-weight: 720; line-heig
   color: var(--accent); font-size: 10px; font-weight: 750; line-height: 1;
 }
 .student-card:focus-visible { z-index: 1; outline: 2px solid var(--accent); outline-offset: -2px; }
+.student-card:active { background: var(--control); }
 .student-card[data-score]::after {
   content: attr(data-score); position: absolute; top: 4px; right: 5px; color: var(--accent);
   font-size: 10px; font-weight: 750; font-variant-numeric: tabular-nums; line-height: 1;
@@ -87,7 +88,11 @@ h1 { margin: 0; font-size: clamp(32px, 8.5vw, 36px); font-weight: 720; line-heig
 }
 .seat-stage.is-view-mode .seat-card { top: 6px; }
 .seat-stage.is-edit-mode .seat-card { cursor: grab; }
-.seat-card.is-completed { color: var(--ink); background: color-mix(in srgb, var(--control) 42%, var(--card)); border-color: var(--line); }
+.seat-card.is-completed { color: var(--ink); background: var(--paper); border-color: var(--line); }
+.seat-card.is-completed:not([data-score])::before {
+  content: "✓"; position: absolute; top: 5px; right: 6px;
+  color: var(--accent); font-size: 11px; font-weight: 800; line-height: 1;
+}
 .seat-card[data-score]::after { content: attr(data-score); position: absolute; top: 5px; right: 6px; color: var(--accent); font-size: 11px; font-weight: 800; }
 .seat-card.is-pressing { transform: scale(.96); box-shadow: 0 1px 3px rgba(0, 0, 0, .14); }
 .seat-card.is-dragging { z-index: 3; cursor: grabbing; box-shadow: 0 12px 24px rgba(0, 0, 0, .2); transition: none; }
