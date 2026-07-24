@@ -47,7 +47,6 @@ export const elements = {
   clearStudentRecordButton: required('#clearStudentRecord'),
   saveStudentRecordButton: required('#saveStudentRecord'),
   moreOverlay: required('#moreOverlay'),
-  closeMoreButton: required('#closeMore'),
   moreActions: requiredAll('[data-more-action]'),
   confirmOverlay: required('#confirmOverlay'),
   confirmTitle: required('#confirmTitle'),

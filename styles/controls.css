@@ -93,21 +93,103 @@
 #clearStudentRecord { color: var(--muted); }
 #saveStudentRecord { color: #fff; background: var(--accent); font-weight: 650; }
 
-.more-overlay,.confirm-overlay { position: absolute; z-index: 30; inset: 0; display: grid; place-items: end center; padding: 16px 12px max(16px, env(safe-area-inset-bottom)); background: rgba(0, 0, 0, .32); opacity: 0; pointer-events: none; transition: opacity var(--duration-fade) linear; }
-.more-overlay.show,.confirm-overlay.show { opacity: 1; pointer-events: auto; }
-.more-panel,.confirm-panel { width: 100%; max-height: 100%; overflow-y: auto; padding: 20px; border: 0; border-radius: 24px; background: var(--card); box-shadow: 0 -16px 40px rgba(0, 0, 0, .18); transform: translateY(calc(100% + 24px)); transition: transform var(--duration-sheet) var(--ease); }
-.more-overlay.show .more-panel,.confirm-overlay.show .confirm-panel { transform: translateY(0); }
-.more-close { float: right; width: 40px; height: 40px; border: 0; border-radius: 12px; background: var(--control); font-size: 20px; cursor: pointer; }
-.more-panel h2,.confirm-panel h2 { margin: 0; font-size: 22px; }
-.more-panel > p,.confirm-panel p { margin: 6px 0 16px; color: var(--muted); font-size: 13px; }
-.more-actions { display: grid; gap: 8px; }
-.more-actions button { min-height: 62px; padding: 10px 14px; border: 0; border-radius: 14px; background: var(--paper); color: var(--ink); text-align: left; cursor: pointer; }
-.more-actions b,.more-actions small { display: block; }
-.more-actions b { font-size: 13px; }
-.more-actions small { margin-top: 3px; color: var(--muted); font-size: 11px; }
-.more-actions button[aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); }
-.confirm-overlay { place-items: end center; z-index: 31; }
-.confirm-panel { max-width: 360px; }
+.more-overlay {
+  position: absolute;
+  z-index: 30;
+  inset: 0;
+  background: transparent;
+  visibility: hidden;
+  pointer-events: none;
+  transition: visibility 0s linear .22s;
+}
+.more-overlay.show {
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+.more-panel {
+  position: absolute;
+  top: calc(var(--topbar-h) + env(safe-area-inset-top) + 2px);
+  right: 10px;
+  min-width: 168px;
+  max-width: min(220px, calc(100% - 20px));
+  padding: 8px 0;
+  border: 0;
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--card) 88%, transparent);
+  backdrop-filter: blur(28px) saturate(1.2);
+  -webkit-backdrop-filter: blur(28px) saturate(1.2);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, .14), 0 2px 8px rgba(0, 0, 0, .06);
+  opacity: 0;
+  transform: scale(.78);
+  transform-origin: top right;
+  transition: opacity .18s linear, transform .22s var(--ease);
+}
+.more-overlay.show .more-panel {
+  opacity: 1;
+  transform: scale(1);
+}
+:root[data-theme="dark"] .more-panel {
+  background: color-mix(in srgb, var(--card) 82%, transparent);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, .42), 0 2px 8px rgba(0, 0, 0, .2);
+}
+.more-actions { display: flex; flex-direction: column; }
+.more-actions button {
+  position: relative;
+  width: 100%;
+  min-height: 48px;
+  padding: 13px 20px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  font-size: 15px;
+  font-weight: 450;
+  line-height: 1.25;
+  cursor: pointer;
+}
+.more-actions button + button::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 16px;
+  height: .5px;
+  background: var(--line);
+}
+.more-actions button:active { background: color-mix(in srgb, var(--control) 70%, transparent); }
+.more-actions button[aria-pressed="true"] { color: var(--accent); }
+
+.confirm-overlay {
+  position: absolute;
+  z-index: 31;
+  inset: 0;
+  display: grid;
+  place-items: end center;
+  padding: 16px 12px max(16px, env(safe-area-inset-bottom));
+  background: rgba(0, 0, 0, .32);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-fade) linear;
+}
+.confirm-overlay.show { opacity: 1; pointer-events: auto; }
+.confirm-panel {
+  width: 100%;
+  max-width: 360px;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 20px;
+  border: 0;
+  border-radius: 24px;
+  background: var(--card);
+  box-shadow: 0 -16px 40px rgba(0, 0, 0, .18);
+  transform: translateY(calc(100% + 24px));
+  transition: transform var(--duration-sheet) var(--ease);
+}
+.confirm-overlay.show .confirm-panel { transform: translateY(0); }
+.confirm-panel h2 { margin: 0; font-size: 22px; }
+.confirm-panel p { margin: 6px 0 16px; color: var(--muted); font-size: 13px; }
 .confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .confirm-actions button { min-height: 44px; border: 0; border-radius: 12px; background: var(--control); color: var(--ink); cursor: pointer; }
 #acceptConfirm { color: white; background: var(--accent); }

@@ -58,11 +58,10 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
         || ((action === 'seat-edit' || action === 'seat-reset') && !isSeats);
       if (action === 'seat-edit') {
         button.setAttribute('aria-pressed', String(state.seatEditing));
-        button.querySelector('b').textContent = state.seatEditing ? '退出编辑模式' : '编辑座位表';
-        button.querySelector('small').textContent = state.seatEditing ? '返回查看和登记模式' : '拖动学生可调整座位';
+        button.textContent = state.seatEditing ? '退出编辑模式' : '编辑座位表';
       }
       if (action === 'theme') {
-        button.querySelector('small').textContent = `当前使用${theme.get() === 'dark' ? '深色' : '浅色'}外观`;
+        button.textContent = theme.get() === 'dark' ? '切换到浅色' : '切换到深色';
       }
     }
   }
@@ -70,6 +69,10 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
   function open() {
     if (state.currentPage !== REGISTER_PAGE_INDEX) {
       showToast('更多功能即将推出');
+      return;
+    }
+    if (elements.moreOverlay.classList.contains('show')) {
+      close();
       return;
     }
     closeOthers?.('more');
@@ -82,7 +85,8 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
     elements.moreOverlay.setAttribute('aria-hidden', 'false');
     elements.moreOverlay.inert = false;
     elements.moreButton.setAttribute('aria-expanded', 'true');
-    elements.closeMoreButton.focus({ preventScroll: true });
+    const firstAction = [...elements.moreActions].find((button) => !button.hidden);
+    firstAction?.focus({ preventScroll: true });
   }
 
   async function copyMissingStudents() {
@@ -141,8 +145,9 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
   }
 
   elements.moreButton.addEventListener('click', open);
-  elements.closeMoreButton.addEventListener('click', () => close());
-  elements.moreOverlay.addEventListener('click', (event) => { if (event.target === elements.moreOverlay) close(); });
+  elements.moreOverlay.addEventListener('click', (event) => {
+    if (event.target === elements.moreOverlay) close();
+  });
   elements.moreActions.forEach((button) => button.addEventListener('click', (event) => {
     event.stopPropagation();
     const action = button.dataset.moreAction;

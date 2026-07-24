@@ -21,8 +21,10 @@ function renderPopover() {
   const isOpen = isGridActive && state.fontSizePopoverOpen;
   elements.fontSizePopover.classList.toggle('show', isOpen);
   elements.fontSizePopover.setAttribute('aria-hidden', String(!isOpen));
-  elements.moreButton.setAttribute('aria-expanded', String(isOpen));
-  elements.moreButton.setAttribute('aria-label', isGridActive ? '调整学生姓名字号' : '更多功能');
+  elements.moreButton.setAttribute('aria-label', '更多功能');
+  if (!elements.moreOverlay.classList.contains('show')) {
+    elements.moreButton.setAttribute('aria-expanded', String(isOpen));
+  }
 }
 
 function persistStudentFontSize() {
