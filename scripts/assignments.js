@@ -5,20 +5,25 @@ export function initAssignments({ store, showToast, viewport, closeOthers }) {
   const layer = document.createElement('div');
   layer.className = 'assignment-overlay';
   layer.inert = true;
-  layer.innerHTML = '<section class="assignment-panel" role="dialog" aria-modal="true" aria-labelledby="assignmentTitle"><header><h2 id="assignmentTitle">作业</h2><button type="button" data-action="close">关闭</button></header><div class="assignment-list"></div><button class="assignment-add" type="button">新增作业</button></section>';
+  layer.innerHTML = '<section class="assignment-panel" role="dialog" aria-modal="true" aria-labelledby="assignmentTitle"><header><h2 id="assignmentTitle">作业</h2><button type="button" data-action="close" aria-label="关闭">关闭</button></header><div class="assignment-list"></div><button class="assignment-add" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>新增作业</button></section>';
   elements.app.append(layer);
 
   const list = layer.querySelector('.assignment-list');
-  const renameLayer = document.createElement('div');
-  renameLayer.className = 'assignment-rename-overlay';
-  renameLayer.inert = true;
-  renameLayer.innerHTML = '<section class="assignment-rename-panel" role="dialog" aria-modal="true" aria-labelledby="assignmentRenameTitle"><h2 id="assignmentRenameTitle">修改作业名称</h2><p>新名称会同步显示在登记页顶栏。</p><label class="assignment-rename-field"><span>作业名称</span><input type="text" maxlength="40" autocomplete="off"></label><div class="assignment-rename-actions"><button type="button" data-action="cancel">取消</button><button type="button" class="primary" data-action="save">保存</button></div></section>';
-  elements.app.append(renameLayer);
-  const renameInput = renameLayer.querySelector('input');
+  const addButton = layer.querySelector('.assignment-add');
+  const nameLayer = document.createElement('div');
+  nameLayer.className = 'assignment-rename-overlay';
+  nameLayer.inert = true;
+  nameLayer.innerHTML = '<section class="assignment-rename-panel" role="dialog" aria-modal="true" aria-labelledby="assignmentRenameTitle"><h2 id="assignmentRenameTitle">修改作业名称</h2><p class="assignment-rename-hint">新名称会同步显示在登记页顶栏。</p><label class="assignment-rename-field"><span>作业名称</span><input type="text" maxlength="40" autocomplete="off"></label><div class="assignment-rename-actions"><button type="button" data-action="cancel">取消</button><button type="button" class="primary" data-action="save">保存</button></div></section>';
+  elements.app.append(nameLayer);
+  const nameTitle = nameLayer.querySelector('#assignmentRenameTitle');
+  const nameHint = nameLayer.querySelector('.assignment-rename-hint');
+  const nameInput = nameLayer.querySelector('input');
+  const nameSave = nameLayer.querySelector('[data-action="save"]');
 
   let returnFocus = null;
+  let nameMode = null;
   let renameTarget = null;
-  let renameReturnFocus = null;
+  let nameReturnFocus = null;
 
   function active() { return store.getCurrentAssignment(); }
   function title() {
@@ -27,19 +32,20 @@ export function initAssignments({ store, showToast, viewport, closeOthers }) {
     elements.topbarTitle.setAttribute('aria-label', `当前作业：${active().name}，点击管理作业`);
   }
 
-  function closeRename({ restoreFocus = true } = {}) {
-    if (!renameLayer.classList.contains('show')) return;
-    renameLayer.classList.remove('show');
-    renameLayer.inert = true;
+  function closeNameEditor({ restoreFocus = true } = {}) {
+    if (!nameLayer.classList.contains('show')) return;
+    nameLayer.classList.remove('show');
+    nameLayer.inert = true;
     viewport.unlockStudentGrid();
-    if (restoreFocus) renameReturnFocus?.focus({ preventScroll: true });
+    if (restoreFocus) nameReturnFocus?.focus({ preventScroll: true });
+    nameMode = null;
     renameTarget = null;
-    renameReturnFocus = null;
+    nameReturnFocus = null;
   }
 
   function close() {
     if (!layer.classList.contains('show')) return;
-    closeRename({ restoreFocus: false });
+    closeNameEditor({ restoreFocus: false });
     layer.classList.remove('show');
     layer.inert = true;
     setActiveOverlay(null);
@@ -47,36 +53,45 @@ export function initAssignments({ store, showToast, viewport, closeOthers }) {
     returnFocus = null;
   }
 
-  function openRename(assignment, trigger) {
+  function openNameEditor({ mode, assignment = null, trigger }) {
+    nameMode = mode;
     renameTarget = assignment;
-    renameReturnFocus = trigger;
-    renameInput.value = assignment.name;
+    nameReturnFocus = trigger;
+    if (mode === 'rename') {
+      nameTitle.textContent = '修改作业名称';
+      nameHint.textContent = '新名称会同步显示在登记页顶栏。';
+      nameSave.textContent = '保存';
+      nameInput.value = assignment.name;
+    } else {
+      nameTitle.textContent = '新增作业';
+      nameHint.textContent = '创建后可在登记页顶栏切换。';
+      nameSave.textContent = '添加';
+      nameInput.value = '';
+    }
     viewport.lockStudentGrid();
-    renameLayer.inert = false;
-    renameLayer.classList.add('show');
+    nameLayer.inert = false;
+    nameLayer.classList.add('show');
     requestAnimationFrame(() => {
-      renameInput.focus({ preventScroll: true });
-      renameInput.select();
+      nameInput.focus({ preventScroll: true });
+      if (mode === 'rename') nameInput.select();
     });
   }
 
-  function saveRename() {
-    const value = renameInput.value.trim();
-    if (!renameTarget || !store.renameAssignment(renameTarget.id, value)) {
-      showToast('请输入有效且不同的作业名称');
+  function saveNameEditor() {
+    const value = nameInput.value.trim();
+    if (nameMode === 'rename') {
+      if (!renameTarget || !store.renameAssignment(renameTarget.id, value)) {
+        showToast('请输入有效且不同的作业名称');
+        return;
+      }
+      closeNameEditor();
       return;
     }
-    closeRename();
-  }
-
-  function promptName(label, value = '') {
-    viewport.lockStudentGrid();
-    try {
-      const next = window.prompt(label, value);
-      return next === null ? null : next.trim();
-    } finally {
-      viewport.unlockStudentGrid();
+    if (!store.addAssignment(value)) {
+      showToast('请输入有效作业名称');
+      return;
     }
+    closeNameEditor();
   }
 
   function render() {
@@ -85,13 +100,13 @@ export function initAssignments({ store, showToast, viewport, closeOthers }) {
     list.replaceChildren(...snapshot.assignments.map((assignment) => {
       const item = document.createElement('div');
       item.className = 'assignment-item';
-      item.innerHTML = `<button type="button" class="assignment-select" aria-pressed="${assignment.id === snapshot.activeAssignmentId}">${assignment.name}<small>${store.getCompletedCount(assignment.id)}/${total} 已交</small></button><button type="button" data-action="rename">改名</button><button type="button" data-action="delete" ${snapshot.assignments.length <= 1 ? 'disabled' : ''}>删除</button>`;
+      item.innerHTML = `<button type="button" class="assignment-select" aria-pressed="${assignment.id === snapshot.activeAssignmentId}">${assignment.name}<small>${store.getCompletedCount(assignment.id)}/${total} 已交</small></button><button type="button" class="assignment-action" data-action="rename" aria-label="改名"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17v3zM13.5 6.5l3 3" /></svg></button><button type="button" class="assignment-action" data-action="delete" aria-label="删除" ${snapshot.assignments.length <= 1 ? 'disabled' : ''}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5" /></svg></button>`;
       item.querySelector('.assignment-select').addEventListener('click', () => {
         store.selectAssignment(assignment.id);
         close();
       });
       item.querySelector('[data-action="rename"]').addEventListener('click', (event) => {
-        openRename(assignment, event.currentTarget);
+        openNameEditor({ mode: 'rename', assignment, trigger: event.currentTarget });
       });
       item.querySelector('[data-action="delete"]').addEventListener('click', () => {
         if (window.confirm(`删除「${assignment.name}」及其记录？`)) {
@@ -104,24 +119,22 @@ export function initAssignments({ store, showToast, viewport, closeOthers }) {
     title();
   }
 
-  renameLayer.querySelector('[data-action="cancel"]').addEventListener('click', () => closeRename());
-  renameLayer.querySelector('[data-action="save"]').addEventListener('click', saveRename);
-  renameLayer.addEventListener('click', (event) => {
-    if (event.target === renameLayer) closeRename();
+  nameLayer.querySelector('[data-action="cancel"]').addEventListener('click', () => closeNameEditor());
+  nameSave.addEventListener('click', saveNameEditor);
+  nameLayer.addEventListener('click', (event) => {
+    if (event.target === nameLayer) closeNameEditor();
   });
-  renameInput.addEventListener('keydown', (event) => {
+  nameInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
       event.preventDefault();
-      saveRename();
+      saveNameEditor();
     }
   });
 
   layer.querySelector('[data-action="close"]').addEventListener('click', close);
   layer.addEventListener('click', (event) => { if (event.target === layer) close(); });
-  layer.querySelector('.assignment-add').addEventListener('click', () => {
-    const value = promptName('新增作业');
-    if (value === null) return;
-    if (!store.addAssignment(value)) showToast('请输入有效作业名称');
+  addButton.addEventListener('click', () => {
+    openNameEditor({ mode: 'add', trigger: addButton });
   });
   elements.topbarTitle.addEventListener('click', () => {
     if (state.currentPage !== 1) return;
@@ -137,8 +150,8 @@ export function initAssignments({ store, showToast, viewport, closeOthers }) {
   title();
 
   function dismissBack() {
-    if (renameLayer.classList.contains('show')) {
-      closeRename();
+    if (nameLayer.classList.contains('show')) {
+      closeNameEditor();
       return true;
     }
     if (layer.classList.contains('show')) {
