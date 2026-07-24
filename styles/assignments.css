@@ -4,38 +4,49 @@
   inset: 0;
   display: grid;
   place-items: end center;
-  padding: 12px 12px max(12px, env(safe-area-inset-bottom));
-  background: rgba(0, 0, 0, .28);
-  opacity: 0;
+  padding: 16px 12px max(16px, env(safe-area-inset-bottom));
   pointer-events: none;
+}
+
+.assignment-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, .32);
+  opacity: 0;
   transition: opacity var(--duration-fade) linear;
 }
 
-.assignment-overlay.show {
-  opacity: 1;
-  pointer-events: auto;
-}
+.assignment-overlay.show { pointer-events: auto; }
+.assignment-overlay.show::before { opacity: 1; }
 
 .assignment-panel {
+  position: relative;
+  z-index: 1;
   width: 100%;
-  max-height: 75%;
+  max-height: 100%;
   overflow: auto;
-  padding: 18px;
+  padding: 20px;
   border: 0;
-  border-radius: 28px;
+  border-radius: 24px;
   background: var(--card);
-  box-shadow: 0 14px 36px rgba(0, 0, 0, .16);
-  transform: translateY(calc(100% + 24px));
-  transition: transform var(--duration-sheet) var(--ease);
+  box-shadow: 0 -16px 40px rgba(0, 0, 0, .18);
+  visibility: hidden;
+  transform: translateY(calc(100% + 72px));
+  transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet);
 }
 
-.assignment-overlay.show .assignment-panel { transform: translateY(0); }
+.assignment-overlay.show .assignment-panel {
+  visibility: visible;
+  transform: translateY(0);
+  transition-delay: 0s;
+}
 
 .assignment-panel header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .assignment-panel h2 {
@@ -66,14 +77,85 @@
   line-height: 1;
 }
 
+.assignment-list {
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--paper);
+}
+
 .assignment-item {
   display: grid;
   grid-template-columns: 1fr auto auto;
   gap: 6px;
-  margin: 8px 0;
+  padding: 7px;
+}
+
+.assignment-item + .assignment-item {
+  border-top: .5px solid var(--line);
 }
 
 .assignment-select { text-align: left; }
 .assignment-select[aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); }
 .assignment-item small { display: block; color: var(--muted); margin-top: 3px; }
 .assignment-add { width: 100%; margin-top: 10px; color: white; background: var(--accent) !important; }
+
+.assignment-rename-overlay {
+  position: absolute;
+  z-index: 32;
+  inset: 0;
+  display: grid;
+  place-items: end center;
+  padding: 16px 12px max(16px, env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+
+.assignment-rename-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, .32);
+  opacity: 0;
+  transition: opacity var(--duration-fade) linear;
+}
+
+.assignment-rename-overlay.show { pointer-events: auto; }
+.assignment-rename-overlay.show::before { opacity: 1; }
+
+.assignment-rename-panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 360px;
+  padding: 20px;
+  border: 0;
+  border-radius: 24px;
+  background: var(--card);
+  box-shadow: 0 -16px 40px rgba(0, 0, 0, .18);
+  visibility: hidden;
+  transform: translateY(calc(100% + 72px));
+  transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet);
+}
+
+.assignment-rename-overlay.show .assignment-rename-panel {
+  visibility: visible;
+  transform: translateY(0);
+  transition-delay: 0s;
+}
+.assignment-rename-panel h2 { margin: 0; font-size: 22px; }
+.assignment-rename-panel p { margin: 6px 0 16px; color: var(--muted); font-size: 13px; }
+.assignment-rename-field { display: block; }
+.assignment-rename-field span { display: block; margin: 0 2px 7px; color: var(--muted); font-size: 12px; font-weight: 600; }
+.assignment-rename-field input {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  outline: 0;
+  background: var(--control);
+  color: var(--ink);
+}
+.assignment-rename-field input:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.assignment-rename-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+.assignment-rename-actions button { min-height: 44px; border: 0; border-radius: 12px; background: var(--control); color: var(--ink); cursor: pointer; }
+.assignment-rename-actions .primary { color: white; background: var(--accent); }
