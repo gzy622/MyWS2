@@ -1,1 +1,11 @@
 /dist/
+/www/
+/node_modules/
+.idea/
+*.iml
+.gradle/
+local.properties
+**/build/
+*.apk
+*.aab
+.DS_Store

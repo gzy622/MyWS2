@@ -1,0 +1,11 @@
+{
+  "appId": "com.teacherworkbench.app",
+  "appName": "教师工作台",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}
