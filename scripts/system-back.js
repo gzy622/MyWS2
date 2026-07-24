@@ -14,16 +14,16 @@ export function createSystemBackController({
   closeDrawer,
 }) {
   function dismissTopLayer() {
-    if (elements.confirmOverlay.classList.contains('show')) {
+    if (elements.confirmSheet.classList.contains('show')) {
       closeConfirm?.();
       return true;
     }
     if (dismissAssignments?.()) return true;
-    if (elements.studentRecordOverlay.classList.contains('show')) {
+    if (elements.studentRecordSheet.classList.contains('show')) {
       closeStudentRecord?.();
       return true;
     }
-    if (elements.moreOverlay.classList.contains('show')) {
+    if (elements.moreMenu.classList.contains('show')) {
       closeMore?.();
       return true;
     }

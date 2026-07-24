@@ -20,15 +20,15 @@ export function initStudentRecord({ store, showToast, viewport, closeOthers }) {
   }
 
   function close() {
-    if (!elements.studentRecordOverlay.classList.contains('show')) return;
+    if (!elements.studentRecordSheet.classList.contains('show')) return;
     const triggerSelector = trigger?.classList.contains('seat-card') ? '.seat-card' : '.student-card';
     const restoreTarget = trigger?.isConnected
       ? trigger
       : elements.app.querySelector(`${triggerSelector}[data-student-id="${studentId}"]`);
     resetPanelDrag();
-    elements.studentRecordOverlay.classList.remove('show');
-    elements.studentRecordOverlay.setAttribute('aria-hidden', 'true');
-    elements.studentRecordOverlay.inert = true;
+    elements.studentRecordSheet.classList.remove('show');
+    elements.studentRecordSheet.setAttribute('aria-hidden', 'true');
+    elements.studentRecordSheet.inert = true;
     setActiveOverlay(null);
     viewport.unlockStudentGrid();
     restoreTarget?.focus({ preventScroll: true });
@@ -64,13 +64,13 @@ export function initStudentRecord({ store, showToast, viewport, closeOthers }) {
     elements.studentScoreInput.value = score === undefined ? '' : String(score);
     elements.studentScoreError.textContent = '';
     setActiveOverlay('student-record');
-    elements.studentRecordOverlay.classList.add('show'); elements.studentRecordOverlay.setAttribute('aria-hidden', 'false');
-    elements.studentRecordOverlay.inert = false;
+    elements.studentRecordSheet.classList.add('show'); elements.studentRecordSheet.setAttribute('aria-hidden', 'false');
+    elements.studentRecordSheet.inert = false;
     elements.studentScoreInput.focus({ preventScroll: true });
   }
 
   elements.closeStudentRecordButton.addEventListener('click', close);
-  elements.studentRecordOverlay.addEventListener('click', (event) => { if (event.target === elements.studentRecordOverlay) close(); });
+  elements.studentRecordSheet.addEventListener('click', (event) => { if (event.target === elements.studentRecordSheet) close(); });
   elements.studentRecordHandle.addEventListener('pointerdown', (event) => {
     if (event.button > 0) return;
     dragging = true;

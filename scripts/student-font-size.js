@@ -22,7 +22,7 @@ function renderPopover() {
   elements.fontSizePopover.classList.toggle('show', isOpen);
   elements.fontSizePopover.setAttribute('aria-hidden', String(!isOpen));
   elements.moreButton.setAttribute('aria-label', '更多功能');
-  if (!elements.moreOverlay.classList.contains('show')) {
+  if (!elements.moreMenu.classList.contains('show')) {
     elements.moreButton.setAttribute('aria-expanded', String(isOpen));
   }
 }

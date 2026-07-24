@@ -3,7 +3,7 @@ import { state, setActiveOverlay } from './state.js';
 
 export function initAssignments({ store, showToast, viewport, closeOthers }) {
   const layer = document.createElement('div');
-  layer.className = 'assignment-overlay';
+  layer.className = 'assignment-sheet';
   layer.inert = true;
   layer.innerHTML = '<section class="assignment-panel" role="dialog" aria-modal="true" aria-labelledby="assignmentTitle"><header><h2 id="assignmentTitle">作业</h2><button type="button" data-action="close" aria-label="关闭">关闭</button></header><div class="assignment-list"></div><button class="assignment-add" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>新增作业</button></section>';
   elements.app.append(layer);
@@ -11,12 +11,12 @@ export function initAssignments({ store, showToast, viewport, closeOthers }) {
   const list = layer.querySelector('.assignment-list');
   const addButton = layer.querySelector('.assignment-add');
   const nameLayer = document.createElement('div');
-  nameLayer.className = 'assignment-rename-overlay';
+  nameLayer.className = 'assignment-name-sheet';
   nameLayer.inert = true;
-  nameLayer.innerHTML = '<section class="assignment-rename-panel" role="dialog" aria-modal="true" aria-labelledby="assignmentRenameTitle"><h2 id="assignmentRenameTitle">修改作业名称</h2><p class="assignment-rename-hint">新名称会同步显示在登记页顶栏。</p><label class="assignment-rename-field"><span>作业名称</span><input type="text" maxlength="40" autocomplete="off"></label><div class="assignment-rename-actions"><button type="button" data-action="cancel">取消</button><button type="button" class="primary" data-action="save">保存</button></div></section>';
+  nameLayer.innerHTML = '<section class="assignment-name-panel" role="dialog" aria-modal="true" aria-labelledby="assignmentRenameTitle"><h2 id="assignmentRenameTitle">修改作业名称</h2><p class="assignment-name-hint">新名称会同步显示在登记页顶栏。</p><label class="assignment-name-field"><span>作业名称</span><input type="text" maxlength="40" autocomplete="off"></label><div class="assignment-name-actions"><button type="button" data-action="cancel">取消</button><button type="button" class="primary" data-action="save">保存</button></div></section>';
   elements.app.append(nameLayer);
   const nameTitle = nameLayer.querySelector('#assignmentRenameTitle');
-  const nameHint = nameLayer.querySelector('.assignment-rename-hint');
+  const nameHint = nameLayer.querySelector('.assignment-name-hint');
   const nameInput = nameLayer.querySelector('input');
   const nameSave = nameLayer.querySelector('[data-action="save"]');
 

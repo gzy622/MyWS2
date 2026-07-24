@@ -14,10 +14,10 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
   let confirmReturnFocus = null;
 
   function close({ restoreFocus = true } = {}) {
-    if (!elements.moreOverlay.classList.contains('show')) return;
-    elements.moreOverlay.classList.remove('show');
-    elements.moreOverlay.setAttribute('aria-hidden', 'true');
-    elements.moreOverlay.inert = true;
+    if (!elements.moreMenu.classList.contains('show')) return;
+    elements.moreMenu.classList.remove('show');
+    elements.moreMenu.setAttribute('aria-hidden', 'true');
+    elements.moreMenu.inert = true;
     elements.moreButton.setAttribute('aria-expanded', 'false');
     setActiveOverlay(null);
     if (restoreFocus) trigger?.focus({ preventScroll: true });
@@ -25,10 +25,10 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
   }
 
   function closeConfirm({ restoreFocus = true } = {}) {
-    if (!elements.confirmOverlay.classList.contains('show')) return;
-    elements.confirmOverlay.classList.remove('show');
-    elements.confirmOverlay.setAttribute('aria-hidden', 'true');
-    elements.confirmOverlay.inert = true;
+    if (!elements.confirmSheet.classList.contains('show')) return;
+    elements.confirmSheet.classList.remove('show');
+    elements.confirmSheet.setAttribute('aria-hidden', 'true');
+    elements.confirmSheet.inert = true;
     setActiveOverlay(null);
     if (restoreFocus) confirmReturnFocus?.focus({ preventScroll: true });
     confirmAction = null;
@@ -44,9 +44,9 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
     confirmAction = action;
     confirmReturnFocus = returnFocus;
     setActiveOverlay('confirm');
-    elements.confirmOverlay.classList.add('show');
-    elements.confirmOverlay.setAttribute('aria-hidden', 'false');
-    elements.confirmOverlay.inert = false;
+    elements.confirmSheet.classList.add('show');
+    elements.confirmSheet.setAttribute('aria-hidden', 'false');
+    elements.confirmSheet.inert = false;
     elements.cancelConfirmButton.focus({ preventScroll: true });
   }
 
@@ -72,7 +72,7 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
       showToast('更多功能即将推出');
       return;
     }
-    if (elements.moreOverlay.classList.contains('show')) {
+    if (elements.moreMenu.classList.contains('show')) {
       close();
       return;
     }
@@ -82,9 +82,9 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
     trigger = elements.moreButton;
     render();
     setActiveOverlay('more');
-    elements.moreOverlay.classList.add('show');
-    elements.moreOverlay.setAttribute('aria-hidden', 'false');
-    elements.moreOverlay.inert = false;
+    elements.moreMenu.classList.add('show');
+    elements.moreMenu.setAttribute('aria-hidden', 'false');
+    elements.moreMenu.inert = false;
     elements.moreButton.setAttribute('aria-expanded', 'true');
     const firstAction = [...elements.moreActions].find((button) => !button.hidden);
     firstAction?.focus({ preventScroll: true });
@@ -146,8 +146,8 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
   }
 
   elements.moreButton.addEventListener('click', open);
-  elements.moreOverlay.addEventListener('click', (event) => {
-    if (event.target === elements.moreOverlay) close();
+  elements.moreMenu.addEventListener('click', (event) => {
+    if (event.target === elements.moreMenu) close();
   });
   elements.moreActions.forEach((button) => button.addEventListener('click', (event) => {
     event.stopPropagation();
@@ -194,7 +194,7 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
     action?.();
     returnFocus?.focus({ preventScroll: true });
   });
-  elements.confirmOverlay.addEventListener('click', (event) => { if (event.target === elements.confirmOverlay) closeConfirm(); });
+  elements.confirmSheet.addEventListener('click', (event) => { if (event.target === elements.confirmSheet) closeConfirm(); });
 
   return { open, close, closeConfirm, render };
 }
