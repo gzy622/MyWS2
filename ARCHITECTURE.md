@@ -10,6 +10,16 @@ node lan-server.js
 
 请通过 `http://localhost:8080` 访问；不要直接双击 `index.html`，因为浏览器会限制 ES Modules 的加载。
 
+## 可选单文件导出
+
+需要离线分发或直接双击运行时，可使用 PowerShell 7 执行：
+
+```powershell
+.\build-single-html.ps1
+```
+
+脚本以 UTF-8 读取源码并生成不带 BOM 的 `dist/teacher-workbench.single.html`。CSS `@import`、CSS 本地资源与 ES Module 依赖会被内联；该导出流程是可选项，不改变开发入口和零构建启动方式。可通过 `-InputPath` 与 `-OutputPath` 覆盖默认输入、输出位置。
+
 ## 文件职责
 
 | 位置 | 职责 |
@@ -21,6 +31,7 @@ node lan-server.js
 | `styles/content.css` | 页面内容组件、卡片、进度与趋势图。 |
 | `styles/controls.css` | 底部导航、菜单按钮、字号浮层、抽屉、遮罩和 Toast。 |
 | `styles/main.css` | 按顺序聚合所有样式模块。 |
+| `build-single-html.ps1` | 将当前源码以 UTF-8 打包为可直接打开的独立 HTML。 |
 | `scripts/dom.js` | 固定 DOM 引用与缺失元素检查。 |
 | `scripts/state.js` | UI 瞬时状态来源与状态边界。 |
 | `scripts/navigation.js` | 主页面、子视图和导航渲染及点击。 |

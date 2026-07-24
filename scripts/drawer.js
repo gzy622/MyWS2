@@ -1,6 +1,8 @@
 import { elements } from './dom.js';
 import { setDrawerOpen } from './state.js';
 
+const SHEET_CLOSE_DISTANCE = 88;
+
 let closeBusinessOverlays = () => {};
 let drawerTrigger = null;
 
@@ -41,6 +43,7 @@ export function initDrawer({ closeOverlays } = {}) {
   let offsetY = 0;
 
   elements.drawerHandle.addEventListener('pointerdown', (event) => {
+    if (event.button > 0) return;
     dragging = true;
     pointerId = event.pointerId;
     startY = event.clientY;
@@ -53,16 +56,21 @@ export function initDrawer({ closeOverlays } = {}) {
     if (!dragging || event.pointerId !== pointerId) return;
     offsetY = Math.max(0, event.clientY - startY);
     elements.drawer.style.transform = `translateY(${offsetY}px)`;
-  });
+    event.preventDefault();
+  }, { passive: false });
 
-  const endDrag = (event) => {
+  const endDrag = (event, cancelled = false) => {
     if (!dragging || (event.pointerId != null && event.pointerId !== pointerId)) return;
     dragging = false;
     elements.drawer.classList.remove('dragging');
-    if (offsetY > 90) closeDrawer();
+    if (!cancelled && offsetY > SHEET_CLOSE_DISTANCE) closeDrawer();
     else elements.drawer.style.transform = '';
+    if (elements.drawerHandle.hasPointerCapture?.(pointerId)) elements.drawerHandle.releasePointerCapture(pointerId);
   };
 
   elements.drawerHandle.addEventListener('pointerup', endDrag);
-  elements.drawerHandle.addEventListener('pointercancel', endDrag);
+  elements.drawerHandle.addEventListener('pointercancel', (event) => endDrag(event, true));
+  elements.drawerHandle.addEventListener('lostpointercapture', (event) => {
+    if (event.target === elements.drawerHandle) endDrag(event, true);
+  });
 }

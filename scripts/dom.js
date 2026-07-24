@@ -36,6 +36,8 @@ export const elements = {
   scrim: required('#scrim'),
   toast: required('#toast'),
   studentRecordOverlay: required('#studentRecordOverlay'),
+  studentRecordPanel: required('#studentRecordPanel'),
+  studentRecordHandle: required('#studentRecordHandle'),
   closeStudentRecordButton: required('#closeStudentRecord'),
   studentRecordTitle: required('#studentRecordTitle'),
   studentRecordStatus: required('#studentRecordStatus'),

@@ -20,7 +20,7 @@
         <button class="topbar-action topbar-more" id="moreButton" aria-label="更多功能" aria-controls="fontSizePopover" aria-expanded="false">
           <span>更多</span>
           <svg viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" />
+            <circle cx="12" cy="7.5" r="2.4" /><circle cx="12" cy="16.5" r="2.4" />
           </svg>
         </button>
       </header>
@@ -36,12 +36,12 @@
 
       <div class="viewport" id="viewport">
         <div class="pages" id="pages">
-          <section class="page" data-page="0" aria-label="安排">
+          <section class="page" data-page="0" aria-label="人员">
             <div class="page-inner">
-              <p class="eyebrow">ARRANGE · 安排</p>
-              <h1>安排</h1>
-              <p class="summary">班级事务与日常工作安排。</p>
-              <div class="segments" role="tablist" aria-label="安排分类">
+              <p class="eyebrow">PEOPLE · 人员</p>
+              <h1>人员</h1>
+              <p class="summary">班级人员与日常职责管理。</p>
+              <div class="segments" role="tablist" aria-label="人员分类">
                 <button class="segment active" data-sub="0">班干</button>
                 <button class="segment" data-sub="1">值日</button>
               </div>
@@ -157,11 +157,12 @@
       <div class="bottom-shell">
         <nav class="nav" id="nav" aria-label="主导航">
           <div class="nav-glider" id="glider"></div>
-          <button class="nav-btn" data-index="0" aria-label="安排">
+          <button class="nav-btn" data-index="0" aria-label="人员">
             <span class="nav-icon">
               <svg viewBox="0 0 24 24" aria-hidden="true">
-                <rect x="4" y="5" width="16" height="15" rx="2" />
-                <path d="M8 3v4M16 3v4M4 10h16" />
+                <circle cx="9" cy="8" r="3" />
+                <circle cx="17" cy="9" r="2.4" />
+                <path d="M3.5 20v-1.5A5.5 5.5 0 0 1 9 13h0a5.5 5.5 0 0 1 5.5 5.5V20M14.5 14.5a4.5 4.5 0 0 1 6 4.25V20" />
               </svg>
             </span>
             <span class="subdots"><i class="on"></i><i></i></span>
@@ -188,7 +189,8 @@
       </div>
 
       <section class="student-record-overlay" id="studentRecordOverlay" role="dialog" aria-modal="true" aria-labelledby="studentRecordTitle" aria-hidden="true" inert>
-        <div class="student-record-panel">
+        <div class="student-record-panel" id="studentRecordPanel">
+          <div class="student-record-handle-zone" id="studentRecordHandle" aria-hidden="true"><div class="handle"></div></div>
           <div class="student-record-head">
             <div><span>学生记录</span><h2 id="studentRecordTitle">学生记录</h2></div>
             <button class="student-record-close" id="closeStudentRecord" aria-label="关闭学生记录">×</button>
@@ -238,23 +240,25 @@
           <div class="handle"></div>
         </div>
         <div class="drawer-head">
-          <div class="profile">
-            <div class="avatar">师</div>
-            <div>
-              <strong>教师姓名</strong>
-              <small>学校 · 班级（占位）</small>
-            </div>
-          </div>
+          <div class="drawer-title"><span>通用菜单</span><h2>登记工具</h2></div>
           <button class="close" id="closeDrawer" aria-label="关闭菜单">×</button>
         </div>
-        <div class="menu-grid">
-          <button class="menu-item" data-action="view-grid"><span>网</span><b>查看网格</b></button>
-          <button class="menu-item" data-action="view-seats"><span>座</span><b>查看座位表</b></button>
-          <button class="menu-item" data-action="mark-all"><span>全</span><b>全部标记已交</b></button>
-          <button class="menu-item" data-action="clear-all"><span>清</span><b>清除全部标记</b></button>
-          <button class="menu-item" data-action="copy-missing"><span>复</span><b>复制未交名单</b></button>
-          <button class="menu-item" data-action="reset-roster"><span>恢</span><b>恢复默认名单</b></button>
-        </div>
+        <section class="drawer-section" aria-labelledby="drawerViewTitle">
+          <h3 id="drawerViewTitle">登记视图</h3>
+          <div class="drawer-action-list">
+            <button class="menu-item" data-action="view-grid"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1" /><rect x="14" y="4" width="6" height="6" rx="1" /><rect x="4" y="14" width="6" height="6" rx="1" /><rect x="14" y="14" width="6" height="6" rx="1" /></svg></span><span class="menu-copy"><b>学生网格</b><small>查看全班提交状态</small></span><span class="menu-chevron" aria-hidden="true">›</span></button>
+            <button class="menu-item" data-action="view-seats"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h5v5H5zM14 6h5v5h-5zM5 15h5v4H5zM14 15h5v4h-5z" /><path d="M3 12h18" /></svg></span><span class="menu-copy"><b>座位表</b><small>按座位查看与登记</small></span><span class="menu-chevron" aria-hidden="true">›</span></button>
+          </div>
+        </section>
+        <section class="drawer-section" aria-labelledby="drawerActionTitle">
+          <h3 id="drawerActionTitle">当前作业</h3>
+          <div class="drawer-action-list">
+            <button class="menu-item" data-action="mark-all"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="m8.5 12 2.2 2.2 4.8-5" /></svg></span><span class="menu-copy"><b>全部标记已交</b><small>为所有学生添加提交状态</small></span><span class="menu-chevron" aria-hidden="true">›</span></button>
+            <button class="menu-item" data-action="clear-all"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5" /></svg></span><span class="menu-copy"><b>清除全部标记</b><small>同时清除当前作业分数</small></span><span class="menu-chevron" aria-hidden="true">›</span></button>
+            <button class="menu-item" data-action="copy-missing"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="7" width="11" height="13" rx="2" /><path d="M16 7V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2" /></svg></span><span class="menu-copy"><b>复制未交名单</b><small>复制到系统剪贴板</small></span><span class="menu-chevron" aria-hidden="true">›</span></button>
+            <button class="menu-item" data-action="reset-roster"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.7L4 8.5M4 4v4.5h4.5" /></svg></span><span class="menu-copy"><b>恢复默认名单</b><small>重置名单、座位与登记记录</small></span><span class="menu-chevron" aria-hidden="true">›</span></button>
+          </div>
+        </section>
         <div class="drawer-foot">批量操作仅作用于当前作业</div>
       </aside>
       <div class="toast" id="toast" role="status"></div>

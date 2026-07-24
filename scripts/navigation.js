@@ -1,6 +1,8 @@
 import { elements } from './dom.js';
 import { state, setCurrentPage, setSubview, toggleSubview } from './state.js';
 
+let getRegistrationTitle = () => '登记';
+
 function pageTransform(offsetPx = 0) {
   return `translate3d(calc(${-state.currentPage * 100 / 3}% + ${offsetPx}px), 0, 0)`;
 }
@@ -18,7 +20,14 @@ export function renderNavigation({ animate = true } = {}) {
   elements.glider.classList.toggle('dragging', !animate);
   elements.pages.style.transform = pageTransform();
   elements.glider.style.transform = gliderTransform();
-  if (state.currentPage !== 1) elements.topbarTitle.textContent = elements.pageElements[state.currentPage].getAttribute('aria-label');
+  const pageTitle = state.currentPage === 1
+    ? getRegistrationTitle()
+    : elements.pageElements[state.currentPage].getAttribute('aria-label');
+  elements.topbarTitle.textContent = pageTitle;
+  elements.topbarTitle.setAttribute(
+    'aria-label',
+    state.currentPage === 1 ? `当前作业：${pageTitle}，点击管理作业` : pageTitle
+  );
 
   elements.navButtons.forEach((button, index) => {
     const isCurrent = index === state.currentPage;
@@ -69,7 +78,8 @@ export function setSub(pageIndex, subIndex) {
   renderNavigation();
 }
 
-export function initNavigation() {
+export function initNavigation({ getActiveAssignmentTitle } = {}) {
+  if (typeof getActiveAssignmentTitle === 'function') getRegistrationTitle = getActiveAssignmentTitle;
   elements.pageElements.forEach((page, pageIndex) => {
     page.querySelectorAll('.segment').forEach((button, subIndex) => {
       button.addEventListener('click', () => setSub(pageIndex, subIndex));

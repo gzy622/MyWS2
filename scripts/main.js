@@ -19,7 +19,7 @@ export const rosterStore = createRosterStore(loadRosterState(), saveRosterState)
 const theme = initTheme();
 const appViewport = initViewport({ app: elements.app, studentGrid: elements.studentGrid });
 
-initNavigation();
+initNavigation({ getActiveAssignmentTitle: () => rosterStore.getCurrentAssignment().name });
 const fontSize = initStudentFontSize();
 initRosterRenderer(rosterStore);
 let studentRecord;
