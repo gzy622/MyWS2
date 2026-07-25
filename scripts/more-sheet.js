@@ -183,9 +183,10 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
       return;
     }
     if (action === 'clear-all') {
+      const assignmentName = store.getCurrentAssignment()?.name ?? '当前作业';
       confirm({
-        title: '清除全部标记？',
-        message: '将清除当前作业的全部完成状态和分数。',
+        title: '清除全部标记',
+        message: `将清除「${assignmentName}」的全部完成状态和分数。`,
         action: () => showToast(store.clearCurrentAssignment() ? '已清除当前作业记录' : '当前作业没有记录'),
         returnFocus: elements.menuButton
       });
@@ -197,7 +198,7 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
     }
     if (action === 'reset-roster') {
       confirm({
-        title: '恢复默认名单和座位？',
+        title: '恢复默认数据',
         message: '将恢复默认名单、座位、班干与值日，并清除所有作业的登记和分数。',
         action: () => { store.resetRoster(); seatCanvas.reset(); showToast('已恢复默认名单和座位'); },
         returnFocus: elements.menuButton
@@ -219,9 +220,10 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
       return;
     }
     if (action === 'clear-assignment') {
+      const assignmentName = store.getCurrentAssignment()?.name ?? '当前作业';
       confirm({
-        title: '清除当前作业？',
-        message: '将清除当前作业的全部完成状态和分数。',
+        title: '清除当前作业',
+        message: `将清除「${assignmentName}」的全部完成状态和分数。`,
         action: () => showToast(store.clearCurrentAssignment() ? '已清除当前作业记录' : '当前作业没有记录'),
         returnFocus: elements.moreButton
       });
@@ -258,8 +260,8 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
     }
     if (action === 'clear-roles') {
       confirm({
-        title: '清空班干指派？',
-        message: '将清除所有班干职位上的学生指派，职位本身保留。',
+        title: '清空班干指派',
+        message: '将清除所有职位上的学生，职位本身保留。',
         action: () => showToast(store.clearAllRoleAssignments() ? '已清空班干指派' : '当前没有班干指派'),
         returnFocus: elements.moreButton
       });
@@ -267,8 +269,8 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
     }
     if (action === 'clear-duties') {
       confirm({
-        title: '清空值日安排？',
-        message: '将清除所有值日项上的学生安排，值日项本身保留。',
+        title: '清空值日安排',
+        message: '将清除所有值日上的学生，值日项本身保留。',
         action: () => showToast(store.clearAllDutyAssignments() ? '已清空值日安排' : '当前没有值日安排'),
         returnFocus: elements.moreButton
       });

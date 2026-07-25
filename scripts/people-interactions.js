@@ -16,7 +16,7 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
   pickLayer.innerHTML = [
     '<section class="people-pick-panel sheet-panel sheet-panel--bottom" role="dialog" aria-modal="true" aria-labelledby="peoplePickTitle">',
     '<div class="sheet-handle-zone sheet-handle-zone--top" aria-hidden="true"><div class="sheet-handle"></div></div>',
-    '<header class="sheet-head"><div class="sheet-title"><span>选择学生</span><h2 id="peoplePickTitle">指派</h2></div>',
+    '<header class="sheet-head"><div class="sheet-title"><span data-field="eyebrow">班干</span><h2 id="peoplePickTitle">指派</h2></div>',
     '<button type="button" class="sheet-close" data-action="close" aria-label="关闭">×</button></header>',
     '<div class="people-pick-list" role="listbox"></div>',
     '<button type="button" class="people-pick-clear" data-action="clear">清除指派</button>',
@@ -30,7 +30,7 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
   editLayer.innerHTML = [
     '<section class="people-edit-panel sheet-panel sheet-panel--bottom" role="dialog" aria-modal="true" aria-labelledby="peopleEditTitle">',
     '<div class="sheet-handle-zone sheet-handle-zone--top" aria-hidden="true"><div class="sheet-handle"></div></div>',
-    '<div class="sheet-title"><span>编辑</span><h2 id="peopleEditTitle">编辑</h2></div>',
+    '<div class="sheet-title"><span data-field="eyebrow">班干</span><h2 id="peopleEditTitle">编辑</h2></div>',
     '<p class="people-edit-hint"></p>',
     '<label class="people-edit-field"><span data-field="title-label">名称</span>',
     `<input type="text" data-field="title" maxlength="${PEOPLE_TEXT_MAX_LENGTH}" autocomplete="off"></label>`,
@@ -47,9 +47,11 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
 
   const pickPanel = pickLayer.querySelector('.people-pick-panel');
   const pickList = pickLayer.querySelector('.people-pick-list');
+  const pickEyebrow = pickLayer.querySelector('[data-field="eyebrow"]');
   const pickTitle = pickLayer.querySelector('#peoplePickTitle');
   const pickClear = pickLayer.querySelector('[data-action="clear"]');
   const editPanel = editLayer.querySelector('.people-edit-panel');
+  const editEyebrow = editLayer.querySelector('[data-field="eyebrow"]');
   const editTitle = editLayer.querySelector('#peopleEditTitle');
   const editHint = editLayer.querySelector('.people-edit-hint');
   const editTitleLabel = editLayer.querySelector('[data-field="title-label"]');
@@ -141,6 +143,7 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
     closeOthers?.('people-pick');
     pickTarget = { kind, id };
     pickReturnFocus = trigger;
+    pickEyebrow.textContent = kind === 'role' ? '班干' : '值日';
     pickTitle.textContent = item.title;
     renderPickList();
     pickSheet.openInstant();
@@ -157,16 +160,15 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
     editReturnFocus = trigger;
     const canDelete = kind === 'role' ? snapshot.roles.length > 1 : snapshot.duties.length > 1;
     deleteButton.disabled = !canDelete;
+    editEyebrow.textContent = kind === 'role' ? '班干' : '值日';
+    editTitle.textContent = item.title;
+    editHint.textContent = '删除后不可恢复。';
     if (kind === 'role') {
-      editTitle.textContent = '编辑班干';
-      editHint.textContent = '修改职位名称；删除后不可恢复。';
       editTitleLabel.textContent = '职位名称';
       noteField.hidden = true;
       titleInput.value = item.title;
       noteInput.value = '';
     } else {
-      editTitle.textContent = '编辑值日';
-      editHint.textContent = '修改星期标题与任务说明；删除后不可恢复。';
       editTitleLabel.textContent = '星期标题';
       noteField.hidden = false;
       titleInput.value = item.title;
@@ -211,8 +213,8 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
     const kind = editTarget.kind;
     const id = editTarget.id;
     confirm?.({
-      title: kind === 'role' ? '删除班干？' : '删除值日？',
-      message: `将删除「${label}」。`,
+      title: kind === 'role' ? '删除班干' : '删除值日',
+      message: kind === 'role' ? `将删除职位「${label}」。` : `将删除值日「${label}」。`,
       returnFocus: editReturnFocus,
       action: () => {
         const ok = kind === 'role' ? store.deleteRole(id) : store.deleteDuty(id);

@@ -7,7 +7,7 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
   const layer = document.createElement('div');
   layer.className = 'assignment-sheet';
   layer.inert = true;
-  layer.innerHTML = '<section class="assignment-panel sheet-panel sheet-panel--top" role="dialog" aria-modal="true" aria-labelledby="assignmentTitle"><header class="sheet-head"><div class="sheet-title"><span>作业管理</span><h2 id="assignmentTitle">作业</h2></div><button type="button" class="sheet-close" data-action="close" aria-label="关闭">×</button></header><div class="assignment-list"></div><button class="assignment-add" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>新增作业</button><div class="sheet-handle-zone sheet-handle-zone--bottom" aria-hidden="true"><div class="sheet-handle"></div></div></section>';
+  layer.innerHTML = '<section class="assignment-panel sheet-panel sheet-panel--top" role="dialog" aria-modal="true" aria-labelledby="assignmentTitle"><header class="sheet-head"><div class="sheet-title"><span>登记</span><h2 id="assignmentTitle">作业</h2></div><button type="button" class="sheet-close" data-action="close" aria-label="关闭">×</button></header><div class="assignment-list"></div><button class="assignment-add" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>新增作业</button><div class="sheet-handle-zone sheet-handle-zone--bottom" aria-hidden="true"><div class="sheet-handle"></div></div></section>';
   elements.app.append(layer);
 
   const list = layer.querySelector('.assignment-list');
@@ -16,7 +16,7 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
   const nameLayer = document.createElement('div');
   nameLayer.className = 'assignment-name-sheet';
   nameLayer.inert = true;
-  nameLayer.innerHTML = '<section class="assignment-name-panel sheet-panel sheet-panel--top" role="dialog" aria-modal="true" aria-labelledby="assignmentRenameTitle"><div class="sheet-title"><span>作业名称</span><h2 id="assignmentRenameTitle">修改作业名称</h2></div><p class="assignment-name-hint">新名称会同步显示在登记页顶栏。</p><label class="assignment-name-field"><span>作业名称</span><input type="text" maxlength="40" autocomplete="off"></label><div class="assignment-name-actions"><button type="button" data-action="cancel">取消</button><button type="button" class="primary" data-action="save">保存</button></div><div class="sheet-handle-zone sheet-handle-zone--bottom" aria-hidden="true"><div class="sheet-handle"></div></div></section>';
+  nameLayer.innerHTML = '<section class="assignment-name-panel sheet-panel sheet-panel--top" role="dialog" aria-modal="true" aria-labelledby="assignmentRenameTitle"><div class="sheet-title"><span>作业</span><h2 id="assignmentRenameTitle">修改名称</h2></div><p class="assignment-name-hint">新名称会同步显示在登记页顶栏。</p><label class="assignment-name-field"><span>名称</span><input type="text" maxlength="40" autocomplete="off"></label><div class="assignment-name-actions"><button type="button" data-action="cancel">取消</button><button type="button" class="primary" data-action="save">保存</button></div><div class="sheet-handle-zone sheet-handle-zone--bottom" aria-hidden="true"><div class="sheet-handle"></div></div></section>';
   elements.app.append(nameLayer);
   const nameTitle = nameLayer.querySelector('#assignmentRenameTitle');
   const nameHint = nameLayer.querySelector('.assignment-name-hint');
@@ -100,12 +100,12 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
     renameTarget = assignment;
     nameReturnFocus = trigger;
     if (mode === 'rename') {
-      nameTitle.textContent = '修改作业名称';
+      nameTitle.textContent = '修改名称';
       nameHint.textContent = '新名称会同步显示在登记页顶栏。';
       nameSave.textContent = '保存';
       nameInput.value = assignment.name;
     } else {
-      nameTitle.textContent = '新增作业';
+      nameTitle.textContent = '新增';
       nameHint.textContent = '创建后可在登记页顶栏切换。';
       nameSave.textContent = '添加';
       nameInput.value = '';
