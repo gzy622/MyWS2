@@ -2,14 +2,32 @@
 /**
  * Zero-dependency LAN static server for this demo.
  * Run through start-lan-server.bat on Windows.
+ * Optional live reload: enabled by default (DISABLE_LIVE_RELOAD=1 to turn off).
  */
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { computeContentId } = require('./scripts/content-id.cjs');
 
 const root = __dirname;
 const port = Number(process.env.PORT || process.argv[2] || 8080);
+const liveReload = process.env.DISABLE_LIVE_RELOAD !== '1';
+let cachedContentId = null;
+
+function getContentId() {
+  if (!cachedContentId) cachedContentId = computeContentId(root);
+  return cachedContentId;
+}
+
+function buildIdPayload() {
+  return {
+    ok: true,
+    id: getContentId(),
+    at: new Date().toISOString(),
+    source: 'lan'
+  };
+}
 const mimeTypes = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -28,6 +46,20 @@ const noCacheHeaders = {
   'Expires': '0',
 };
 
+const LIVE_RELOAD_CLIENT = `(() => {
+  const source = new EventSource('/__livereload');
+  source.onmessage = () => {
+    source.close();
+    location.reload();
+  };
+  source.onerror = () => {
+    // Keep the EventSource; browser retries. Useful when the PC server restarts.
+  };
+})();`;
+
+const reloadClients = new Set();
+const watchIgnore = new Set(['android', 'node_modules', 'www', '.git', 'dist', '.cursor']);
+
 function sendHeaders(response, statusCode, headers = {}) {
   response.writeHead(statusCode, { ...noCacheHeaders, ...headers });
 }
@@ -39,8 +71,91 @@ function lanAddresses() {
     .map(item => item.address);
 }
 
+function broadcastReload() {
+  for (const client of reloadClients) {
+    try {
+      client.write('data: reload\n\n');
+    } catch {
+      reloadClients.delete(client);
+    }
+  }
+}
+
+function injectLiveReload(htmlBuffer) {
+  const html = htmlBuffer.toString('utf8');
+  if (html.includes('/__livereload.js')) return Buffer.from(html, 'utf8');
+  if (/<\/body>/i.test(html)) {
+    return Buffer.from(html.replace(/<\/body>/i, '<script src="/__livereload.js"></script></body>'), 'utf8');
+  }
+  return Buffer.from(`${html}\n<script src="/__livereload.js"></script>\n`, 'utf8');
+}
+
+function startWatchers() {
+  const targets = ['index.html', 'styles', 'scripts', 'tests']
+    .map((name) => path.join(root, name))
+    .filter((target) => fs.existsSync(target));
+
+  let timer = null;
+  const schedule = (filePath) => {
+    const rel = path.relative(root, filePath).split(path.sep)[0];
+    if (watchIgnore.has(rel)) return;
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      timer = null;
+      cachedContentId = null;
+      console.log(`[live-reload] change detected → ${reloadClients.size} client(s) id=${getContentId()}`);
+      broadcastReload();
+    }, 120);
+  };
+
+  for (const target of targets) {
+    try {
+      fs.watch(target, { recursive: true }, (_event, filename) => {
+        schedule(filename ? path.join(target, filename) : target);
+      });
+    } catch (error) {
+      console.warn(`[live-reload] watch failed for ${target}: ${error.message}`);
+    }
+  }
+}
+
 const server = http.createServer((request, response) => {
   const urlPath = decodeURIComponent((request.url || '/').split('?')[0]);
+
+  if (liveReload && urlPath === '/__livereload') {
+    sendHeaders(response, 200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Connection': 'keep-alive',
+    });
+    response.write(': connected\n\n');
+    reloadClients.add(response);
+    request.on('close', () => reloadClients.delete(response));
+    return;
+  }
+
+  if (liveReload && urlPath === '/__livereload.js') {
+    sendHeaders(response, 200, { 'Content-Type': 'application/javascript; charset=utf-8' });
+    response.end(LIVE_RELOAD_CLIENT);
+    return;
+  }
+
+  if (urlPath === '/__health') {
+    sendHeaders(response, 200, { 'Content-Type': 'application/json; charset=utf-8' });
+    response.end(JSON.stringify({
+      ok: true,
+      liveReload,
+      clients: reloadClients.size,
+      id: getContentId()
+    }));
+    return;
+  }
+
+  if (urlPath === '/__build-id') {
+    sendHeaders(response, 200, { 'Content-Type': 'application/json; charset=utf-8' });
+    response.end(JSON.stringify(buildIdPayload()));
+    return;
+  }
+
   const requestedPath = urlPath === '/' ? '/index.html' : urlPath;
   const filePath = path.resolve(root, `.${requestedPath}`);
 
@@ -58,8 +173,11 @@ const server = http.createServer((request, response) => {
         response.end(readError.code === 'ENOENT' ? 'Not found' : 'Server error');
         return;
       }
-      sendHeaders(response, 200, { 'Content-Type': mimeTypes[path.extname(target).toLowerCase()] || 'application/octet-stream' });
-      response.end(content);
+      const ext = path.extname(target).toLowerCase();
+      let body = content;
+      if (liveReload && ext === '.html') body = injectLiveReload(content);
+      sendHeaders(response, 200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });
+      response.end(body);
     });
   });
 });
@@ -73,6 +191,13 @@ server.listen(port, '0.0.0.0', () => {
   } else {
     console.log('未找到局域网 IPv4 地址。');
   }
+  if (liveReload) {
+    console.log('Live reload: ON (file changes reload connected WebViews)');
+    startWatchers();
+  } else {
+    console.log('Live reload: OFF');
+  }
+  console.log(`Content id: ${getContentId()}`);
   console.log('\n按 Ctrl+C 停止服务器。\n');
 });
 

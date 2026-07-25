@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param(
   [string]$Serial = '',
   [switch]$Fresh,
@@ -8,6 +8,15 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+# Avoid mojibake when npm hosts Windows PowerShell 5.1 on Chinese locales.
+try {
+  $utf8 = [System.Text.UTF8Encoding]::new($false)
+  [Console]::OutputEncoding = $utf8
+  $OutputEncoding = $utf8
+} catch {
+  # Host may not expose a console; keep going.
+}
 
 $root = Split-Path -Parent $PSScriptRoot
 $packageId = 'com.teacherworkbench.app'
