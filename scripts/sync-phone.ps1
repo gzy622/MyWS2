@@ -3,16 +3,21 @@ param(
   [string]$Serial = '',
   [int]$Port = 8080,
   [switch]$SkipInitialDeploy,
-  [switch]$ForceInitialDeploy
+  [switch]$ForceInitialDeploy,
+  # Default UI is for non-experts; -Details shows fingerprints / URL / device / logs.
+  [switch]$Details
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 try {
-  $utf8 = [System.Text.UTF8Encoding]::new($false)
-  [Console]::OutputEncoding = $utf8
-  $OutputEncoding = $utf8
+  # $OutputEncoding: how PowerShell encodes pipeline text TO native tools.
+  # Do NOT set [Console]::OutputEncoding to UTF-8 here: with legacy conhost that
+  # path uses WriteFile+65001, which returns char counts as byte counts and
+  # reprints every CJK character (叠词). Write-Host uses WriteConsoleW when the
+  # console encoding stays on the system OEM/ANSI page.
+  $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 } catch {
   # Host may not expose a console.
 }
@@ -35,6 +40,8 @@ $script:pendingDeploy = $false
 $script:lanUrl = ''
 $script:serverReachable = $false
 $script:phoneLanId = ''
+$script:phoneRunId = ''
+$script:phonePackagedId = ''
 $script:appInstalled = $false
 $script:liveReloadLaunched = $false
 $script:liveReloadProcess = $null
@@ -42,9 +49,10 @@ $script:liveReloadClients = 0
 $script:startedServerPid = 0
 $script:logLines = New-Object System.Collections.Generic.List[string]
 $script:logMax = 3
+$script:showDetails = [bool]$Details
 $script:dashboardShown = $false
 $script:feedbackInput = [pscustomobject]@{ Key = ''; Label = ''; At = $null }
-$script:feedbackAction = [pscustomobject]@{ Text = '控制台已就绪'; Phase = 'idle'; At = $null }
+$script:feedbackAction = [pscustomobject]@{ Text = '已就绪'; Phase = 'idle'; At = $null }
 $script:watchers = @()
 $script:watchState = [hashtable]::Synchronized(@{
   Dirty = $false
@@ -93,6 +101,100 @@ function Get-ContentIdSafe {
     return ([string]$id).Trim()
   } catch {
     return ''
+  }
+}
+
+function Get-PhonePackagedBuildId {
+  # Read build-id.json stamped into the installed APK (Capacitor assets/public).
+  if (-not $script:deviceSerial) { return '' }
+  $pathResult = Invoke-Adb -AdbArgs @('-s', $script:deviceSerial, 'shell', 'pm', 'path', $packageId)
+  $apkPath = ''
+  foreach ($line in @($pathResult.StdOut)) {
+    $text = ([string]$line).Trim()
+    if ($text -match '^package:(.+\.apk)$') {
+      $apkPath = $Matches[1]
+      break
+    }
+  }
+  if (-not $apkPath) { return '' }
+  foreach ($assetPath in @('assets/public/build-id.json', 'assets/build-id.json')) {
+    $result = Invoke-Adb -AdbArgs @(
+      '-s', $script:deviceSerial, 'shell', "unzip -p `"$apkPath`" $assetPath"
+    )
+    if ($result.Text -match '"id"\s*:\s*"([^"]+)"') {
+      return $Matches[1]
+    }
+  }
+  return ''
+}
+
+function Update-PhoneRunId([switch]$RefreshPackaged) {
+  # hot: WebView loads from LAN → running stamp follows local contentId.
+  # otherwise: APK-packaged build-id.json (or last deploy in this session).
+  $mode = Get-PreviewMode
+  if ($mode -eq 'hot') {
+    if (-not $script:contentId) { $script:contentId = Get-ContentIdSafe }
+    $script:phoneRunId = $script:contentId
+    return
+  }
+  if ($RefreshPackaged -or -not $script:phonePackagedId) {
+    $packaged = Get-PhonePackagedBuildId
+    if ($packaged) { $script:phonePackagedId = $packaged }
+  }
+  if ($script:phonePackagedId) {
+    $script:phoneRunId = $script:phonePackagedId
+    return
+  }
+  if ($script:lastDeployId) {
+    $script:phoneRunId = $script:lastDeployId
+  }
+}
+
+function Write-FingerprintPair {
+  $local = if ($script:contentId) { $script:contentId } else { '未知' }
+  $phone = if ($script:phoneRunId) { $script:phoneRunId } else { '未知' }
+  $match = ($script:contentId -and $script:phoneRunId -and $script:contentId -eq $script:phoneRunId)
+
+  Write-Host '  本地最新  ' -NoNewline -ForegroundColor DarkGray
+  Write-Host $local -ForegroundColor $(if ($script:contentId) { 'White' } else { 'DarkGray' })
+  Write-Host '  手机运行  ' -NoNewline -ForegroundColor DarkGray
+  if ($match) {
+    Write-Host $phone -NoNewline -ForegroundColor Green
+    Write-Host '  · 一致' -ForegroundColor Green
+  } elseif ($script:phoneRunId) {
+    Write-Host $phone -NoNewline -ForegroundColor Yellow
+    Write-Host '  · 不一致' -ForegroundColor Yellow
+  } else {
+    Write-Host '未知（按 3 检测，或先按 2 安装）' -ForegroundColor DarkGray
+  }
+}
+
+function Get-MenuDigit([System.ConsoleKeyInfo]$KeyInfo) {
+  # Instant digit menu: main row or numpad, no Enter required.
+  $ch = [string]$KeyInfo.KeyChar
+  if ($ch -match '^[0-9]$') { return $ch }
+  switch ($KeyInfo.Key) {
+    'D0' { return '0' }
+    'D1' { return '1' }
+    'D2' { return '2' }
+    'D3' { return '3' }
+    'D4' { return '4' }
+    'D5' { return '5' }
+    'D6' { return '6' }
+    'D7' { return '7' }
+    'D8' { return '8' }
+    'D9' { return '9' }
+    'NumPad0' { return '0' }
+    'NumPad1' { return '1' }
+    'NumPad2' { return '2' }
+    'NumPad3' { return '3' }
+    'NumPad4' { return '4' }
+    'NumPad5' { return '5' }
+    'NumPad6' { return '6' }
+    'NumPad7' { return '7' }
+    'NumPad8' { return '8' }
+    'NumPad9' { return '9' }
+    default { return '' }
   }
 }
 
@@ -402,6 +504,7 @@ function Stop-LiveReloadSession([string]$Reason = '') {
   if ($Reason) {
     Write-Log $Reason 'DarkYellow'
   }
+  Update-PhoneRunId -RefreshPackaged
 }
 
 function Get-LocalLiveReloadClients {
@@ -445,6 +548,7 @@ function Update-LiveReloadState {
     $script:liveReloadClients = 0
     Write-Log '热更新窗口已关闭，模式回到 LAN 已通' 'DarkYellow'
     Set-FeedbackAction '热更新窗口已关闭' 'warn'
+    Update-PhoneRunId -RefreshPackaged
   }
 }
 
@@ -463,35 +567,59 @@ function Get-PreviewMode {
 function Get-NextStep {
   $mode = Get-PreviewMode
   if ($mode -eq 'hot') {
-    return @{ Text = '保存代码即可在手机看到，一般不必按 D'; Color = 'Green' }
+    return @{ Text = '可以了：保存文件后，手机一般会自动更新'; Color = 'Green' }
   }
   if ($mode -eq 'hot-wait') {
-    return @{ Text = '热更新未接通：勿只按 D。请再按 L，等待「已连接」；仍失败看热更新窗口报错'; Color = 'Yellow' }
+    return @{ Text = '还没连上预览，请再按 1；不要只按 2'; Color = 'Yellow' }
   }
   if ($mode -eq 'ready') {
     if (-not $script:appInstalled) {
-      return @{ Text = '请先按 D 安装 App，再按 L 开启热更新'; Color = 'Yellow' }
+      return @{ Text = '请先按 2，把 App 安装到手机'; Color = 'Yellow' }
     }
-    return @{ Text = '推荐按 L 开启热更新（保存即刷新）。仅按 S 不会更新手机'; Color = 'Cyan' }
+    return @{ Text = '请按 1，开启「保存后自动更新」'; Color = 'Cyan' }
   }
   if (-not $script:appInstalled) {
-    return @{ Text = '手机访问不到 LAN；先按 D 安装/推送'; Color = 'Yellow' }
+    return @{ Text = '手机连不上电脑网络，请先按 2 安装'; Color = 'Yellow' }
   }
-  return @{ Text = '手机访问不到 LAN，改动需按 D 推送；修好网络后可按 L'; Color = 'Yellow' }
+  return @{ Text = '手机连不上电脑网络，改动请按 2 更新到手机'; Color = 'Yellow' }
 }
 
 function Get-ModeShortLabel([string]$Mode) {
-  switch ($Mode) {
-    'hot' { return @{ Text = ("热更新 · clients={0}" -f $script:liveReloadClients); Color = 'Green' } }
-    'hot-wait' { return @{ Text = '等待WebView'; Color = 'Yellow' } }
-    'ready' { return @{ Text = 'LAN就绪'; Color = 'Cyan' } }
-    default { return @{ Text = '包内资源'; Color = 'Yellow' } }
+  if ($script:showDetails) {
+    switch ($Mode) {
+      'hot' { return @{ Text = ("热更新 · clients={0}" -f $script:liveReloadClients); Color = 'Green' } }
+      'hot-wait' { return @{ Text = '等待WebView'; Color = 'Yellow' } }
+      'ready' { return @{ Text = 'LAN就绪'; Color = 'Cyan' } }
+      default { return @{ Text = '包内资源'; Color = 'Yellow' } }
+    }
   }
+  switch ($Mode) {
+    'hot' { return @{ Text = '已就绪'; Color = 'Green' } }
+    'hot-wait' { return @{ Text = '连接中'; Color = 'Yellow' } }
+    'ready' { return @{ Text = '待开启'; Color = 'Cyan' } }
+    default { return @{ Text = '需更新'; Color = 'Yellow' } }
+  }
+}
+
+function Get-SimpleStatusLine([string]$Mode) {
+  if (-not $script:appInstalled) {
+    return @{ Text = '手机上还没有这个 App'; Color = 'Yellow' }
+  }
+  if ($Mode -eq 'hot') {
+    return @{ Text = '手机已连接，保存即可更新'; Color = 'Green' }
+  }
+  if ($Mode -eq 'hot-wait') {
+    return @{ Text = '正在连接手机预览…'; Color = 'Yellow' }
+  }
+  if ($script:serverReachable) {
+    return @{ Text = '手机已连上电脑，还差一步开启预览'; Color = 'Cyan' }
+  }
+  return @{ Text = '手机与电脑未连上同一网络'; Color = 'Yellow' }
 }
 
 function Show-Dashboard {
   # Hallmark · macrostructure: Index-First · tone: utilitarian · genre: modern-minimal
-  # medium: console-tui · theme: Terminal-like · designed-as: sync-phone dashboard
+  # medium: console-tui · audience: non-expert default · -Details for diagnostics
   Clear-Host
   $script:dashboardShown = $true
   $changeText = if ($script:lastChangeAt) { $script:lastChangeAt.ToString('HH:mm:ss') } else { '-' }
@@ -499,89 +627,75 @@ function Show-Dashboard {
   $mode = Get-PreviewMode
   $modeLabel = Get-ModeShortLabel $mode
   $next = Get-NextStep
-  $idMatch = ($script:phoneLanId -and $script:contentId -and $script:phoneLanId -eq $script:contentId)
-  $idMismatch = ($script:serverReachable -and $script:phoneLanId -and $script:contentId -and -not $idMatch)
+  $simpleStatus = Get-SimpleStatusLine $mode
   $phaseMeta = Get-FeedbackPhaseMeta $script:feedbackAction.Phase
-  $showDetail = (
-    $script:feedbackAction.Phase -eq 'busy' -or
-    $script:feedbackAction.Phase -eq 'fail' -or
-    $idMismatch -or
-    (-not $script:appInstalled)
-  )
+  $phaseIsProblem = ($script:feedbackAction.Phase -eq 'fail' -or $script:feedbackAction.Phase -eq 'warn')
 
   Write-Host ''
-  Write-Host '  Phone Sync · ' -NoNewline -ForegroundColor DarkGray
+  Write-Host '  手机同步 · ' -NoNewline -ForegroundColor DarkGray
   Write-Host $modeLabel.Text -ForegroundColor $modeLabel.Color
-  Write-Host '  ─────────────────────────────────────' -ForegroundColor DarkGray
+  Write-Host ''
 
   Write-Host '  →  ' -NoNewline -ForegroundColor White
   Write-Host $next.Text -ForegroundColor $next.Color
-  Write-Host '  ─────────────────────────────────────' -ForegroundColor DarkGray
+  Write-Host ''
 
-  # Status strip (one line)
+  Write-Host ('  {0}' -f $simpleStatus.Text) -ForegroundColor $simpleStatus.Color
+  Write-FingerprintPair
+
+  if ($script:showDetails) {
+    Write-Host '  ' -NoNewline -ForegroundColor DarkGray
+    if ($script:serverReachable) {
+      Write-Host 'LAN可达' -NoNewline -ForegroundColor Green
+    } else {
+      Write-Host 'LAN不可达' -NoNewline -ForegroundColor Yellow
+    }
+    Write-Host ' · ' -NoNewline -ForegroundColor DarkGray
+    Write-Host ($(if ($script:appInstalled) { '已安装' } else { '未安装' })) -NoNewline -ForegroundColor $(if ($script:appInstalled) { 'Green' } else { 'Yellow' })
+    Write-Host ' · ' -NoNewline -ForegroundColor DarkGray
+    Write-Host (Get-ShortDevice $script:deviceSerial) -NoNewline -ForegroundColor DarkGray
+    if ($script:phoneLanId) {
+      Write-Host ' · ' -NoNewline -ForegroundColor DarkGray
+      Write-Host ("健康检查 {0}" -f $script:phoneLanId) -NoNewline -ForegroundColor DarkGray
+    }
+    if ($script:pendingDeploy) {
+      Write-Host ' · ' -NoNewline -ForegroundColor DarkGray
+      Write-Host ($(if ($mode -eq 'apk') { '有未推送改动' } else { '本地已更新' })) -NoNewline -ForegroundColor $(if ($mode -eq 'apk') { 'Yellow' } else { 'DarkGray' })
+    }
+    if ($script:autoDeploy) {
+      Write-Host (" · 自动推送 {0}" -f $autoText) -NoNewline -ForegroundColor DarkGray
+    }
+    if ($script:lanUrl) {
+      Write-Host ''
+      Write-Host ("  {0} · 更新 {1}" -f $script:lanUrl, $changeText) -ForegroundColor DarkGray
+    } else {
+      Write-Host ''
+    }
+  }
+
   Write-Host '  ' -NoNewline
-  if ($script:serverReachable) {
-    if ($idMatch) {
-      Write-Host '手机可达' -NoNewline -ForegroundColor Green
-    } elseif ($script:phoneLanId) {
-      Write-Host ("手机可达 · 指纹 {0}" -f $script:phoneLanId) -NoNewline -ForegroundColor Yellow
-    } else {
-      Write-Host '手机可达' -NoNewline -ForegroundColor Green
-    }
-  } else {
-    Write-Host '手机不可达' -NoNewline -ForegroundColor Yellow
-  }
-  Write-Host ' · ' -NoNewline -ForegroundColor DarkGray
-  Write-Host ($(if ($script:appInstalled) { '已安装' } else { '未安装' })) -NoNewline -ForegroundColor $(if ($script:appInstalled) { 'Green' } else { 'Yellow' })
-  Write-Host ' · ' -NoNewline -ForegroundColor DarkGray
-  Write-Host (Get-ShortDevice $script:deviceSerial) -NoNewline -ForegroundColor DarkGray
-  Write-Host ' · ' -NoNewline -ForegroundColor DarkGray
-  if ($script:pendingDeploy) {
-    if ($mode -eq 'apk') {
-      Write-Host '有未推送改动' -NoNewline -ForegroundColor Yellow
-    } else {
-      Write-Host '本地已更新' -NoNewline -ForegroundColor DarkGray
-    }
-  } else {
-    Write-Host '无待推送' -NoNewline -ForegroundColor DarkGray
-  }
-  if ($script:autoDeploy) {
-    Write-Host (" · 自动推送 {0}" -f $autoText) -ForegroundColor DarkGray
-  } else {
-    Write-Host ''
-  }
-
-  if ($showDetail) {
-    $detailParts = New-Object System.Collections.Generic.List[string]
-    if ($script:lanUrl) { [void]$detailParts.Add($script:lanUrl) }
-    if ($script:contentId) { [void]$detailParts.Add(('内容 {0}' -f $script:contentId)) }
-    else { [void]$detailParts.Add('内容 计算失败') }
-    [void]$detailParts.Add(('更新 {0}' -f $changeText))
-    if ($script:lastDeployId) {
-      [void]$detailParts.Add(('上次 APK {0} @ {1}' -f $script:lastDeployId, $script:lastDeployAt.ToString('HH:mm:ss')))
-    }
-    Write-Host ('  {0}' -f ($detailParts.ToArray() -join ' · ')) -ForegroundColor DarkGray
-  }
-
-  # Feedback (single line)
-  Write-Host '  [' -NoNewline -ForegroundColor DarkGray
   Write-Host $phaseMeta.Mark -NoNewline -ForegroundColor $phaseMeta.Color
-  Write-Host '] ' -NoNewline -ForegroundColor DarkGray
-  if ($script:feedbackInput.At -and $script:feedbackInput.Key) {
-    Write-Host ('[{0}] ' -f $script:feedbackInput.Key) -NoNewline -ForegroundColor Cyan
-  }
-  $actionAt = if ($script:feedbackAction.At) { ' · ' + $script:feedbackAction.At.ToString('HH:mm:ss') } else { '' }
-  Write-Host ('{0}{1}' -f $script:feedbackAction.Text, $actionAt) -ForegroundColor $phaseMeta.Color
-  Write-Host '  ─────────────────────────────────────' -ForegroundColor DarkGray
+  Write-Host ' · ' -NoNewline -ForegroundColor DarkGray
+  Write-Host $script:feedbackAction.Text -ForegroundColor $phaseMeta.Color
+  Write-Host ''
 
-  Write-Host '  L 热更新   D 推送   H 检测   Q 退出' -ForegroundColor Gray
-  Write-Host '  A 自动  R 重启  I 指纹  C 清缓存  X 清数据  S 仅www' -ForegroundColor DarkGray
-  Write-Host '  ─────────────────────────────────────' -ForegroundColor DarkGray
-
-  if ($script:logLines.Count -eq 0) {
-    Write-Host '  （暂无近期日志）' -ForegroundColor DarkGray
+  Write-Host '  1  开启保存即更新' -ForegroundColor Gray
+  Write-Host '  2  安装/更新到手机' -ForegroundColor Gray
+  Write-Host '  3  刷新连接与版本' -ForegroundColor Gray
+  Write-Host '  0  退出' -ForegroundColor Gray
+  if ($script:showDetails) {
+    Write-Host '  4 重启  5 指纹  6 自动  7 清缓存  8 清数据  9 仅www' -ForegroundColor DarkGray
   } else {
-    foreach ($line in $script:logLines) {
+    Write-Host '  （更多诊断：sync-phone.bat -Details）' -ForegroundColor DarkGray
+  }
+
+  if ($script:showDetails -or ($phaseIsProblem -and $script:logLines.Count -gt 0)) {
+    Write-Host ''
+    $lines = @($script:logLines)
+    if (-not $script:showDetails -and $lines.Count -gt 1) {
+      $lines = @($lines[$lines.Count - 1])
+    }
+    foreach ($line in $lines) {
       Write-Host ('  {0}' -f $line) -ForegroundColor DarkGray
     }
   }
@@ -594,7 +708,7 @@ function Invoke-Deploy {
   Show-Dashboard
   # Packaged APK has no server.url; an old Live Reload window would lie about "hot".
   if ($script:liveReloadLaunched -or $script:liveReloadProcess) {
-    Stop-LiveReloadSession '打包推送会写入包内资源，已断开旧热更新会话（需要热更新请稍后按 L）'
+    Stop-LiveReloadSession '打包推送会写入包内资源，已断开旧热更新会话（需要热更新请稍后按 1）'
   }
   $deployArgs = @(
     '-NoProfile', '-ExecutionPolicy', 'Bypass',
@@ -612,8 +726,11 @@ function Invoke-Deploy {
   $script:lastDeployAt = Get-Date
   $script:pendingDeploy = $false
   $script:appInstalled = $true
-  Write-Log ("推送完成 id={0}（当前为包内资源；要热更新请按 L）" -f $script:lastDeployId) 'Green'
-  Set-FeedbackAction ("打包推送完成 · {0} · 按 L 可开热更新" -f $script:lastDeployId) 'ok'
+  $script:phonePackagedId = $script:lastDeployId
+  $script:phoneRunId = $script:lastDeployId
+  $script:contentId = $script:lastDeployId
+  Write-Log ("推送完成 id={0}（当前为包内资源；要热更新请按 1）" -f $script:lastDeployId) 'Green'
+  Set-FeedbackAction ("打包推送完成 · {0} · 按 1 可开热更新" -f $script:lastDeployId) 'ok'
   return $true
 }
 
@@ -676,14 +793,14 @@ function Invoke-SyncWwwOnly {
     Write-Log '当前已在热更新：改 styles/scripts 保存即可，不必靠 S' 'Cyan'
     Set-FeedbackAction 'www 已同步 · 热更新中请直接保存源码' 'ok'
   } elseif ($mode -eq 'hot-wait') {
-    Write-Log '热更新窗口在，但 WebView 未连上；可按 H 或 D' 'Yellow'
+    Write-Log '热更新窗口在，但 WebView 未连上；可按 3 或 2' 'Yellow'
     Set-FeedbackAction 'www 已同步 · 手机未变（WebView 未连上）' 'warn'
   } elseif ($script:serverReachable -and $script:appInstalled) {
-    Write-Log '手机要看到改动：按 L 开热更新，或按 D 重装 APK' 'Yellow'
-    Set-FeedbackAction 'www 已同步 · 手机未变，请按 L 或 D' 'warn'
+    Write-Log '手机要看到改动：按 1 开热更新，或按 2 重装 APK' 'Yellow'
+    Set-FeedbackAction 'www 已同步 · 手机未变，请按 1 或 2' 'warn'
   } else {
-    Write-Log '手机要看到改动：请按 D 打包推送' 'Yellow'
-    Set-FeedbackAction 'www 已同步 · 手机未变，请按 D' 'warn'
+    Write-Log '手机要看到改动：请按 2 打包推送' 'Yellow'
+    Set-FeedbackAction 'www 已同步 · 手机未变，请按 2' 'warn'
   }
   Update-ContentStatus
 }
@@ -703,37 +820,39 @@ function Test-PhoneHealth {
   $script:phoneLanId = if ($phoneId) { $phoneId } else { '' }
   $script:liveReloadClients = $clients
   $pcId = Get-ContentIdSafe
+  $script:contentId = $pcId
   $script:appInstalled = Test-AppInstalled
+  Update-PhoneRunId -RefreshPackaged
 
-  if ($ok -and $phoneId -and $pcId -and $phoneId -eq $pcId) {
-    Write-Log ("连接 OK：手机可达 LAN，指纹一致 {0} · clients={1}" -f $phoneId, $clients) 'Green'
-    Set-FeedbackAction ("连接 OK · 指纹一致 {0} · clients={1}" -f $phoneId, $clients) 'ok'
-  } elseif ($ok -and $phoneId) {
-    Write-Log ("LAN 可达；服务指纹 {0}，本地 {1} · clients={2}" -f $phoneId, $pcId, $clients) 'Yellow'
-    Set-FeedbackAction ("LAN 可达 · 指纹不一致（手机 {0}）" -f $phoneId) 'warn'
+  if ($ok -and $script:phoneRunId -and $pcId -and $script:phoneRunId -eq $pcId) {
+    Write-Log ("连接 OK · 本地与手机运行一致 {0}" -f $pcId) 'Green'
+    Set-FeedbackAction ("连接 OK · 版本一致 {0}" -f $pcId) 'ok'
+  } elseif ($ok -and $script:phoneRunId) {
+    Write-Log ("连接 OK · 本地 {0}，手机运行 {1}" -f $pcId, $script:phoneRunId) 'Yellow'
+    Set-FeedbackAction ("已连接 · 版本不一致（手机 {0}）" -f $script:phoneRunId) 'warn'
   } elseif ($ok) {
-    Write-Log ("LAN 可达，但未返回指纹 · clients={0}" -f $clients) 'Yellow'
-    Set-FeedbackAction 'LAN 可达，但未返回指纹' 'warn'
+    Write-Log '手机可访问电脑网络，但尚未读到手机版本指纹' 'Yellow'
+    Set-FeedbackAction '已连接，但手机版本未知' 'warn'
   } else {
-    Write-Log '手机访问不到 LAN。请确认同一 Wi-Fi / 防火墙放行 Node。' 'Yellow'
-    Set-FeedbackAction '手机访问不到 LAN' 'warn'
+    Write-Log '手机访问不到电脑网络。请确认同一 Wi-Fi / 防火墙放行。' 'Yellow'
+    Set-FeedbackAction '手机连不上电脑网络' 'warn'
   }
 
   if ($script:liveReloadLaunched -and $clients -gt 0) {
     Write-Log '热更新已接通：保存代码后手机应自动刷新' 'Green'
   } elseif ($script:liveReloadLaunched -and $ok) {
-    Write-Log '热更新窗口已开，但 clients=0（WebView 未订阅，仍可能吃 APK）' 'Yellow'
+    Write-Log '热更新窗口已开，但还未连上，手机可能仍是安装包版本' 'Yellow'
   } elseif ($ok -and $script:appInstalled) {
-    Write-Log '可按 L 开启热更新，之后一般不必再按 D；仅按 S 不会更新手机' 'Cyan'
+    Write-Log '可按 1 开启保存即更新' 'Cyan'
   } elseif (-not $script:appInstalled) {
-    Write-Log '未检测到 App，请按 D 安装' 'Yellow'
+    Write-Log '未检测到 App，请按 2 安装' 'Yellow'
   }
 }
 
 function Start-LiveReloadPreview {
   if (-not $script:appInstalled) {
-    Write-Log '尚未安装 App，先按 D 打包安装' 'Yellow'
-    Set-FeedbackAction '尚未安装 App，请先按 D' 'warn'
+    Write-Log '尚未安装 App，先按 2 打包安装' 'Yellow'
+    Set-FeedbackAction '尚未安装 App，请先按 2' 'warn'
     return
   }
   if (-not $script:serverReachable) {
@@ -744,6 +863,7 @@ function Start-LiveReloadPreview {
   if ($script:liveReloadProcess -and -not $script:liveReloadProcess.HasExited -and $existingClients -gt 0) {
     $script:liveReloadClients = $existingClients
     $script:liveReloadLaunched = $true
+    Update-PhoneRunId
     Write-Log ("热更新已接通 · clients={0}；保存即可刷新" -f $existingClients) 'Green'
     Set-FeedbackAction ("热更新已接通 · clients={0}" -f $existingClients) 'ok'
     return
@@ -777,18 +897,19 @@ function Start-LiveReloadPreview {
 
   $wait = Wait-LiveReloadClients -TimeoutSec 120
   if ($wait.Ok) {
+    Update-PhoneRunId
     Write-Log ("热更新已接通 · clients={0}；保持窗口打开，保存即可刷新" -f $wait.Clients) 'Green'
     Set-FeedbackAction ("热更新已接通 · clients={0}" -f $wait.Clients) 'ok'
     return
   }
   if ($wait.Reason -eq 'exited') {
-    Write-Log '热更新窗口已退出。请看弹窗：若曾出现 Invalid target / No devices found，已修无线序列号映射，请再按 L' 'Red'
+    Write-Log '热更新窗口已退出。请看弹窗：若曾出现 Invalid target / No devices found，已修无线序列号映射，请再按 1' 'Red'
     Stop-LiveReloadSession
-    Set-FeedbackAction '热更新窗口异常退出 · 查看弹窗后请再按 L' 'fail'
+    Set-FeedbackAction '热更新窗口异常退出 · 查看弹窗后请再按 1' 'fail'
     return
   }
   Write-Log '超时仍 clients=0：App 可能仍在吃包内资源。请确认热更新窗口无报错，且手机与电脑同一 Wi-Fi' 'Yellow'
-  Set-FeedbackAction '热更新未接通（clients=0）· 查看弹窗或再按 L' 'warn'
+  Set-FeedbackAction '热更新未接通（clients=0）· 查看弹窗或再按 1' 'warn'
 }
 
 function Start-Watchers {
@@ -863,7 +984,7 @@ try {
     $shouldDeploy = $true
     Write-Log '手机暂不可达 LAN，先打包推送保证可用' 'Cyan'
   } else {
-    Write-Log '已安装且 LAN 可达：跳过打包。日常请按 L 热更新' 'Green'
+    Write-Log '已安装且 LAN 可达：跳过打包。日常请按 1 热更新' 'Green'
   }
 
   if ($shouldDeploy) {
@@ -871,7 +992,7 @@ try {
   }
 
   $debounceUntil = Get-Date
-  Set-FeedbackAction '控制台已就绪 · 等待按键' 'idle'
+  Set-FeedbackAction '已就绪，请按下方按键' 'idle'
   Show-Dashboard
 
   while ($true) {
@@ -879,65 +1000,79 @@ try {
     try { $hasKey = [Console]::KeyAvailable } catch { $hasKey = $false }
     if ($hasKey) {
       $key = [Console]::ReadKey($true)
-      $ch = [string]$key.KeyChar
-      if ($key.Key -eq 'Q' -or $ch -eq 'q') {
-        Set-FeedbackInput 'Q' '退出'
-        Set-FeedbackAction '正在退出…' 'busy'
-        Show-Dashboard
-        break
-      } elseif ($ch -eq 'd' -or $ch -eq 'D') {
-        Set-FeedbackInput 'D' '打包推送'
-        Set-FeedbackAction '已收到指令 · 准备打包推送' 'busy'
-        Show-Dashboard
-        [void](Invoke-Deploy)
-      } elseif ($ch -eq 'r' -or $ch -eq 'R') {
-        Set-FeedbackInput 'R' '重启 App'
-        Set-FeedbackAction '已收到指令 · 准备重启' 'busy'
-        Show-Dashboard
-        Invoke-RestartApp
-      } elseif ($ch -eq 'c' -or $ch -eq 'C') {
-        Set-FeedbackInput 'C' '清缓存并重开'
-        Set-FeedbackAction '已收到指令 · 准备清缓存' 'busy'
-        Show-Dashboard
-        Invoke-ClearCacheAndRestart
-      } elseif ($ch -eq 'x' -or $ch -eq 'X') {
-        Set-FeedbackInput 'X' '清除全部数据'
-        Set-FeedbackAction '已收到指令 · 等待确认' 'busy'
-        Show-Dashboard
-        Invoke-WipeAppData
-      } elseif ($ch -eq 's' -or $ch -eq 'S') {
-        Set-FeedbackInput 'S' '仅同步 www'
-        Set-FeedbackAction '已收到指令 · 准备同步 www' 'busy'
-        Show-Dashboard
-        Invoke-SyncWwwOnly
-      } elseif ($ch -eq 'h' -or $ch -eq 'H') {
-        Set-FeedbackInput 'H' '检测手机连接'
-        Set-FeedbackAction '已收到指令 · 准备检测' 'busy'
-        Show-Dashboard
-        Test-PhoneHealth
-      } elseif ($ch -eq 'a' -or $ch -eq 'A') {
-        Set-FeedbackInput 'A' '开关自动推送'
-        $script:autoDeploy = -not $script:autoDeploy
-        $autoLabel = if ($script:autoDeploy) { '开（保存后打 APK，较慢）' } else { '关' }
-        Write-Log ("自动打包推送 → {0}" -f $autoLabel) 'Cyan'
-        Set-FeedbackAction ("自动推送已切换为 {0}" -f $autoLabel) 'ok'
-      } elseif ($ch -eq 'l' -or $ch -eq 'L') {
-        Set-FeedbackInput 'L' '开启热更新'
-        Set-FeedbackAction '已收到指令 · 准备开启热更新' 'busy'
-        Show-Dashboard
-        Start-LiveReloadPreview
-      } elseif ($ch -eq 'i' -or $ch -eq 'I') {
-        Set-FeedbackInput 'I' '刷新指纹'
-        Set-FeedbackAction '已收到指令 · 正在刷新指纹' 'busy'
-        Show-Dashboard
-        Update-ContentStatus
-        Write-Log ("当前指纹 {0}" -f $script:contentId) 'Yellow'
-        Set-FeedbackAction ("指纹已刷新 · {0}" -f $script:contentId) 'ok'
-      } else {
-        $shown = if ($ch) { $ch } else { [string]$key.Key }
-        Set-FeedbackInput $shown '未绑定按键'
-        Set-FeedbackAction ("未识别按键 [{0}]，请看下方按键说明" -f $shown) 'warn'
+      $digit = Get-MenuDigit $key
+      switch ($digit) {
+        '0' {
+          Set-FeedbackInput '0' '退出'
+          Set-FeedbackAction '正在退出…' 'busy'
+          Show-Dashboard
+          break
+        }
+        '1' {
+          Set-FeedbackInput '1' '开启热更新'
+          Set-FeedbackAction '已收到指令 · 准备开启热更新' 'busy'
+          Show-Dashboard
+          Start-LiveReloadPreview
+        }
+        '2' {
+          Set-FeedbackInput '2' '打包推送'
+          Set-FeedbackAction '已收到指令 · 准备打包推送' 'busy'
+          Show-Dashboard
+          [void](Invoke-Deploy)
+        }
+        '3' {
+          Set-FeedbackInput '3' '检测手机连接'
+          Set-FeedbackAction '已收到指令 · 准备检测' 'busy'
+          Show-Dashboard
+          Test-PhoneHealth
+        }
+        '4' {
+          Set-FeedbackInput '4' '重启 App'
+          Set-FeedbackAction '已收到指令 · 准备重启' 'busy'
+          Show-Dashboard
+          Invoke-RestartApp
+        }
+        '5' {
+          Set-FeedbackInput '5' '刷新指纹'
+          Set-FeedbackAction '已收到指令 · 正在刷新指纹' 'busy'
+          Show-Dashboard
+          Update-ContentStatus
+          Update-PhoneRunId -RefreshPackaged
+          Write-Log ("本地 {0} · 手机运行 {1}" -f $script:contentId, $(if ($script:phoneRunId) { $script:phoneRunId } else { '未知' })) 'Yellow'
+          Set-FeedbackAction ("指纹已刷新 · 本地 {0}" -f $script:contentId) 'ok'
+        }
+        '6' {
+          Set-FeedbackInput '6' '开关自动推送'
+          $script:autoDeploy = -not $script:autoDeploy
+          $autoLabel = if ($script:autoDeploy) { '开（保存后打 APK，较慢）' } else { '关' }
+          Write-Log ("自动打包推送 → {0}" -f $autoLabel) 'Cyan'
+          Set-FeedbackAction ("自动推送已切换为 {0}" -f $autoLabel) 'ok'
+        }
+        '7' {
+          Set-FeedbackInput '7' '清缓存并重开'
+          Set-FeedbackAction '已收到指令 · 准备清缓存' 'busy'
+          Show-Dashboard
+          Invoke-ClearCacheAndRestart
+        }
+        '8' {
+          Set-FeedbackInput '8' '清除全部数据'
+          Set-FeedbackAction '已收到指令 · 等待确认' 'busy'
+          Show-Dashboard
+          Invoke-WipeAppData
+        }
+        '9' {
+          Set-FeedbackInput '9' '仅同步 www'
+          Set-FeedbackAction '已收到指令 · 准备同步 www' 'busy'
+          Show-Dashboard
+          Invoke-SyncWwwOnly
+        }
+        default {
+          $shown = if ($digit) { $digit } elseif ($key.KeyChar) { [string]$key.KeyChar } else { [string]$key.Key }
+          Set-FeedbackInput $shown '未绑定按键'
+          Set-FeedbackAction ("未识别按键 [{0}]，请按下方数字（无需回车）" -f $shown) 'warn'
+        }
       }
+      if ($digit -eq '0') { break }
       Show-Dashboard
     }
 
@@ -953,17 +1088,18 @@ try {
       Update-ContentStatus
       $mode = Get-PreviewMode
       if ($mode -eq 'hot') {
+        Update-PhoneRunId
         Write-Log ("已更新 {0} · 热更新应自动刷新手机" -f $script:contentId) 'Green'
         Set-FeedbackAction ("检测到改动 {0} · 热更新应已刷新" -f $script:contentId) 'ok'
       } elseif ($mode -eq 'hot-wait') {
         Write-Log ("已更新 {0} · WebView 未连上，手机可能仍是旧 APK" -f $script:contentId) 'Yellow'
-        Set-FeedbackAction ("检测到改动 {0} · 请回 App 前台或按 D" -f $script:contentId) 'warn'
+        Set-FeedbackAction ("检测到改动 {0} · 请回 App 前台或按 2" -f $script:contentId) 'warn'
       } elseif ($mode -eq 'ready') {
-        Write-Log ("已更新 {0} · 按 L 开热更新后即可免推送（S 不会改手机）" -f $script:contentId) 'Yellow'
-        Set-FeedbackAction ("检测到改动 {0} · 建议按 L" -f $script:contentId) 'warn'
+        Write-Log ("已更新 {0} · 按 1 开热更新后即可免推送（9 不会改手机）" -f $script:contentId) 'Yellow'
+        Set-FeedbackAction ("检测到改动 {0} · 建议按 1" -f $script:contentId) 'warn'
       } else {
-        Write-Log ("已更新 {0} · 当前需按 D 推送，或先修好 LAN 再按 L" -f $script:contentId) 'Yellow'
-        Set-FeedbackAction ("检测到改动 {0} · 需按 D 推送" -f $script:contentId) 'warn'
+        Write-Log ("已更新 {0} · 当前需按 2 推送，或先修好网络再按 1" -f $script:contentId) 'Yellow'
+        Set-FeedbackAction ("检测到改动 {0} · 需按 2 推送" -f $script:contentId) 'warn'
       }
       if ($script:autoDeploy) {
         [void](Invoke-Deploy)

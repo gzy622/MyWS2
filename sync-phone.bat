@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableExtensions
 cd /d "%~dp0"
-chcp 65001 >nul
+rem Do not chcp 65001 before powershell.exe: legacy conhost then duplicates CJK glyphs.
 title Teacher Workbench - Phone Sync
 
 where node >nul 2>&1
@@ -22,7 +22,7 @@ if not exist "%~dp0node_modules\@capacitor\cli\" (
 )
 
 echo Starting phone sync console...
-echo Tip: L = live reload (save to refresh). D = full APK only.
+echo Tip: 1 = save to refresh. 2 = install on phone. 0 = quit. Use -Details for more.
 echo.
 powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\sync-phone.ps1" %*
 set "EXIT_CODE=%ERRORLEVEL%"
