@@ -6,9 +6,17 @@ import { haptic, Haptic } from './haptics.js';
 import { createSheetController } from './sheet-drag.js';
 import { blurIfSheetChrome, focusSilently } from './focus.js';
 
+const PEOPLE_PAGE_INDEX = 0;
 const REGISTER_PAGE_INDEX = 1;
 const GRID_SUBVIEW_INDEX = 0;
 const SEAT_SUBVIEW_INDEX = 1;
+const ROLE_SUBVIEW_INDEX = 0;
+const DUTY_SUBVIEW_INDEX = 1;
+
+const REGISTER_ACTIONS = new Set(['clear-assignment', 'font-size', 'seat-edit', 'seat-reset']);
+const PEOPLE_ROLE_ACTIONS = new Set(['add-role', 'clear-roles']);
+const PEOPLE_DUTY_ACTIONS = new Set(['add-duty', 'clear-duties']);
+const PEOPLE_ACTIONS = new Set([...PEOPLE_ROLE_ACTIONS, ...PEOPLE_DUTY_ACTIONS]);
 
 export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, closeOthers }) {
   let trigger = null;
@@ -86,12 +94,29 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
   }
 
   function render() {
+    const onRegister = state.currentPage === REGISTER_PAGE_INDEX;
+    const onPeople = state.currentPage === PEOPLE_PAGE_INDEX;
     const isGrid = state.subviews[REGISTER_PAGE_INDEX] === GRID_SUBVIEW_INDEX;
     const isSeats = state.subviews[REGISTER_PAGE_INDEX] === SEAT_SUBVIEW_INDEX;
+    const isRoles = state.subviews[PEOPLE_PAGE_INDEX] === ROLE_SUBVIEW_INDEX;
+    const isDuties = state.subviews[PEOPLE_PAGE_INDEX] === DUTY_SUBVIEW_INDEX;
     for (const button of elements.moreActions) {
       const action = button.dataset.moreAction;
-      button.hidden = (action === 'font-size' && !isGrid)
-        || ((action === 'seat-edit' || action === 'seat-reset') && !isSeats);
+      let hidden = false;
+      if (action === 'theme') {
+        hidden = false;
+      } else if (REGISTER_ACTIONS.has(action)) {
+        hidden = !onRegister
+          || (action === 'font-size' && !isGrid)
+          || ((action === 'seat-edit' || action === 'seat-reset') && !isSeats);
+      } else if (PEOPLE_ACTIONS.has(action)) {
+        hidden = !onPeople
+          || (PEOPLE_ROLE_ACTIONS.has(action) && !isRoles)
+          || (PEOPLE_DUTY_ACTIONS.has(action) && !isDuties);
+      } else {
+        hidden = true;
+      }
+      button.hidden = hidden;
       if (action === 'seat-edit') {
         button.setAttribute('aria-pressed', String(state.seatEditing));
         button.textContent = state.seatEditing ? '退出编辑模式' : '编辑座位表';
@@ -103,7 +128,7 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
   }
 
   function open() {
-    if (state.currentPage !== REGISTER_PAGE_INDEX) {
+    if (state.currentPage !== REGISTER_PAGE_INDEX && state.currentPage !== PEOPLE_PAGE_INDEX) {
       showToast('更多功能即将推出');
       return;
     }
@@ -173,7 +198,7 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
     if (action === 'reset-roster') {
       confirm({
         title: '恢复默认名单和座位？',
-        message: '将恢复默认名单与座位，并清除所有作业的登记和分数。',
+        message: '将恢复默认名单、座位、班干与值日，并清除所有作业的登记和分数。',
         action: () => { store.resetRoster(); seatCanvas.reset(); showToast('已恢复默认名单和座位'); },
         returnFocus: elements.menuButton
       });
@@ -217,6 +242,36 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
       seatCanvas.reset();
       close();
       showToast('座位视图已复位');
+      return;
+    }
+    if (action === 'add-role') {
+      close();
+      const role = store.addRole();
+      showToast(role ? `已新增「${role.title}」` : '无法新增班干');
+      return;
+    }
+    if (action === 'add-duty') {
+      close();
+      const duty = store.addDuty();
+      showToast(duty ? `已新增「${duty.title}」` : '无法新增值日');
+      return;
+    }
+    if (action === 'clear-roles') {
+      confirm({
+        title: '清空班干指派？',
+        message: '将清除所有班干职位上的学生指派，职位本身保留。',
+        action: () => showToast(store.clearAllRoleAssignments() ? '已清空班干指派' : '当前没有班干指派'),
+        returnFocus: elements.moreButton
+      });
+      return;
+    }
+    if (action === 'clear-duties') {
+      confirm({
+        title: '清空值日安排？',
+        message: '将清除所有值日项上的学生安排，值日项本身保留。',
+        action: () => showToast(store.clearAllDutyAssignments() ? '已清空值日安排' : '当前没有值日安排'),
+        returnFocus: elements.moreButton
+      });
     }
   }));
   elements.menuItems.forEach((button) => button.addEventListener('click', () => handleMenuAction(button)));

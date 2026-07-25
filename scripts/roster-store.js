@@ -3,6 +3,7 @@ import {
   createDefaultRosterState,
   isValidRosterState,
   parseScore,
+  PEOPLE_TEXT_MAX_LENGTH,
   SEAT_COUNT
 } from './roster-model.js';
 
@@ -10,6 +11,20 @@ function cleanName(value) {
   if (typeof value !== 'string') return null;
   const name = value.trim();
   return name || null;
+}
+
+function cleanPeopleTitle(value) {
+  if (typeof value !== 'string') return null;
+  const title = value.trim();
+  if (!title || title.length > PEOPLE_TEXT_MAX_LENGTH) return null;
+  return title;
+}
+
+function cleanNote(value) {
+  if (typeof value !== 'string') return null;
+  const note = value.trim();
+  if (note.length > PEOPLE_TEXT_MAX_LENGTH) return null;
+  return note;
 }
 
 function recordKey(assignmentId, studentId) {
@@ -211,7 +226,171 @@ export class RosterStore {
     this.#state.seats = defaults.seats;
     this.#state.submissions = [];
     this.#state.scores = [];
+    this.#state.roles = defaults.roles;
+    this.#state.duties = defaults.duties;
+    this.#state.nextRoleId = defaults.nextRoleId;
+    this.#state.nextDutyId = defaults.nextDutyId;
     this.#notify();
+  }
+
+  assignRole(roleId, studentId) {
+    const role = this.#findRole(roleId);
+    if (!role || !this.#hasStudent(studentId)) return false;
+    if (role.studentId === studentId) return true;
+    role.studentId = studentId;
+    this.#notify();
+    return true;
+  }
+
+  clearRole(roleId) {
+    const role = this.#findRole(roleId);
+    if (!role || role.studentId === null) return false;
+    role.studentId = null;
+    this.#notify();
+    return true;
+  }
+
+  addRole(value = '新班干') {
+    const title = cleanPeopleTitle(value);
+    if (!title || this.#state.nextRoleId >= Number.MAX_SAFE_INTEGER) return null;
+    const id = this.#state.nextRoleId + 1;
+    const role = { id, title, studentId: null };
+    this.#state.roles.push(role);
+    this.#state.nextRoleId = id;
+    this.#notify();
+    return { ...role };
+  }
+
+  renameRole(roleId, value) {
+    const title = cleanPeopleTitle(value);
+    const role = this.#findRole(roleId);
+    if (!role || !title || role.title === title) return false;
+    role.title = title;
+    this.#notify();
+    return true;
+  }
+
+  deleteRole(roleId) {
+    if (this.#state.roles.length <= 1) return false;
+    const index = this.#state.roles.findIndex((role) => role.id === roleId);
+    if (index < 0) return false;
+    this.#state.roles.splice(index, 1);
+    this.#notify();
+    return true;
+  }
+
+  clearAllRoleAssignments() {
+    let changed = false;
+    for (const role of this.#state.roles) {
+      if (role.studentId !== null) {
+        role.studentId = null;
+        changed = true;
+      }
+    }
+    if (changed) this.#notify();
+    return changed;
+  }
+
+  assignDuty(dutyId, studentId) {
+    const duty = this.#findDuty(dutyId);
+    if (!duty || !this.#hasStudent(studentId)) return false;
+    if (duty.studentId === studentId) return true;
+    duty.studentId = studentId;
+    this.#notify();
+    return true;
+  }
+
+  clearDuty(dutyId) {
+    const duty = this.#findDuty(dutyId);
+    if (!duty || duty.studentId === null) return false;
+    duty.studentId = null;
+    this.#notify();
+    return true;
+  }
+
+  addDuty(titleValue = '新值日', noteValue = '') {
+    const title = cleanPeopleTitle(titleValue);
+    const note = cleanNote(noteValue);
+    if (!title || note === null || this.#state.nextDutyId >= Number.MAX_SAFE_INTEGER) return null;
+    const id = this.#state.nextDutyId + 1;
+    const duty = { id, title, note, studentId: null };
+    this.#state.duties.push(duty);
+    this.#state.nextDutyId = id;
+    this.#notify();
+    return { ...duty };
+  }
+
+  renameDuty(dutyId, value) {
+    const title = cleanPeopleTitle(value);
+    const duty = this.#findDuty(dutyId);
+    if (!duty || !title || duty.title === title) return false;
+    duty.title = title;
+    this.#notify();
+    return true;
+  }
+
+  updateDutyNote(dutyId, value) {
+    const note = cleanNote(value);
+    const duty = this.#findDuty(dutyId);
+    if (!duty || note === null || duty.note === note) return false;
+    duty.note = note;
+    this.#notify();
+    return true;
+  }
+
+  updateDuty(dutyId, { title, note } = {}) {
+    const duty = this.#findDuty(dutyId);
+    if (!duty) return false;
+    let changed = false;
+    if (title !== undefined) {
+      const nextTitle = cleanPeopleTitle(title);
+      if (!nextTitle) return false;
+      if (duty.title !== nextTitle) {
+        duty.title = nextTitle;
+        changed = true;
+      }
+    }
+    if (note !== undefined) {
+      const nextNote = cleanNote(note);
+      if (nextNote === null) return false;
+      if (duty.note !== nextNote) {
+        duty.note = nextNote;
+        changed = true;
+      }
+    }
+    if (changed) this.#notify();
+    return changed;
+  }
+
+  deleteDuty(dutyId) {
+    if (this.#state.duties.length <= 1) return false;
+    const index = this.#state.duties.findIndex((duty) => duty.id === dutyId);
+    if (index < 0) return false;
+    this.#state.duties.splice(index, 1);
+    this.#notify();
+    return true;
+  }
+
+  clearAllDutyAssignments() {
+    let changed = false;
+    for (const duty of this.#state.duties) {
+      if (duty.studentId !== null) {
+        duty.studentId = null;
+        changed = true;
+      }
+    }
+    if (changed) this.#notify();
+    return changed;
+  }
+
+  #findRole(roleId) {
+    if (!Number.isSafeInteger(roleId)) return null;
+    return this.#state.roles.find((role) => role.id === roleId) ?? null;
+  }
+
+  #findDuty(dutyId) {
+    if (!Number.isSafeInteger(dutyId)) return null;
+    return this.#state.duties.find((duty) => duty.id === dutyId) ?? null;
   }
 
   #hasStudent(studentId) {

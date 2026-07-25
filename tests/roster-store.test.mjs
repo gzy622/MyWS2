@@ -3,13 +3,18 @@ import test from 'node:test';
 import { createDefaultRosterState, isValidRosterState, SEAT_COUNT } from '../scripts/roster-model.js';
 import { createRosterStore } from '../scripts/roster-store.js';
 
-test('默认名单、座位和作业满足领域不变量', () => {
+test('默认名单、座位、作业与人员项满足领域不变量', () => {
   const state = createDefaultRosterState();
   assert.equal(state.students.length, 46);
   assert.equal(state.seats.length, 46);
   assert.equal(new Set(state.seats.map(({ seatIndex }) => seatIndex)).size, 46);
   assert.ok(state.seats.every(({ seatIndex }) => seatIndex >= 0 && seatIndex < SEAT_COUNT));
   assert.deepEqual(state.assignments, [{ id: 1, name: '作业 1' }]);
+  assert.equal(state.schemaVersion, 2);
+  assert.equal(state.roles.length, 4);
+  assert.equal(state.duties.length, 3);
+  assert.ok(state.roles.every((role) => role.studentId === null));
+  assert.ok(state.duties.every((duty) => duty.studentId === null));
   assert.ok(isValidRosterState(state));
 });
 
@@ -96,11 +101,14 @@ test('移动和交换座位不会产生重复位置或非法引用', () => {
   assert.equal(new Set(store.getSnapshot().seats.map(({ seatIndex }) => seatIndex)).size, 46);
 });
 
-test('恢复默认名单和座位时保留作业，清空全部登记记录', () => {
+test('恢复默认名单和座位时保留作业，清空全部登记记录并重置人员项', () => {
   const store = createRosterStore();
   store.addAssignment('第二次作业');
   store.setScore(1, 60);
   store.moveStudentSeat(1, 0);
+  store.assignRole(1, 1);
+  store.addRole('生活委员');
+  store.assignDuty(1, 2);
   store.resetRoster();
   const state = store.getSnapshot();
   assert.equal(state.assignments.length, 2);
@@ -108,6 +116,45 @@ test('恢复默认名单和座位时保留作业，清空全部登记记录', ()
   assert.equal(state.submissions.length, 0);
   assert.equal(state.scores.length, 0);
   assert.equal(state.seats.find(({ studentId }) => studentId === 1).seatIndex, 17);
+  assert.equal(state.roles.length, 4);
+  assert.equal(state.duties.length, 3);
+  assert.ok(state.roles.every((role) => role.studentId === null));
+  assert.ok(state.duties.every((duty) => duty.studentId === null));
+});
+
+test('班干与值日可指派、增删改，并保留至少一项', () => {
+  const store = createRosterStore();
+  assert.equal(store.assignRole(1, 1), true);
+  assert.equal(store.getSnapshot().roles.find(({ id }) => id === 1).studentId, 1);
+  assert.equal(store.clearRole(1), true);
+  const role = store.addRole();
+  assert.equal(role.title, '新班干');
+  assert.equal(store.renameRole(role.id, '宣传委员'), true);
+  assert.equal(store.deleteRole(role.id), true);
+  assert.equal(store.deleteRole(1), true);
+  assert.equal(store.deleteRole(2), true);
+  assert.equal(store.deleteRole(3), true);
+  assert.equal(store.deleteRole(4), false);
+
+  assert.equal(store.assignDuty(1, 2), true);
+  assert.equal(store.updateDuty(1, { title: '周二', note: '拖地' }), true);
+  const duty = store.getSnapshot().duties.find(({ id }) => id === 1);
+  assert.equal(duty.title, '周二');
+  assert.equal(duty.note, '拖地');
+  assert.equal(store.clearDuty(1), true);
+  const added = store.addDuty();
+  assert.equal(added.title, '新值日');
+  assert.equal(added.note, '');
+  assert.equal(store.deleteDuty(added.id), true);
+  assert.equal(store.deleteDuty(1), true);
+  assert.equal(store.deleteDuty(2), true);
+  assert.equal(store.deleteDuty(3), false);
+
+  store.assignRole(4, 3);
+  store.assignDuty(3, 4);
+  assert.equal(store.clearAllRoleAssignments(), true);
+  assert.equal(store.clearAllDutyAssignments(), true);
+  assert.equal(store.clearAllRoleAssignments(), false);
 });
 
 test('非法初始状态整体回退默认领域状态', () => {

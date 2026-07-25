@@ -260,3 +260,186 @@
 .confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .confirm-actions button { min-height: 44px; border: 0; border-radius: 12px; background: var(--control); color: var(--ink); cursor: pointer; }
 #acceptConfirm { color: white; background: var(--accent); }
+
+.people-pick-sheet,
+.people-edit-sheet {
+  position: absolute;
+  z-index: 30;
+  inset: 0;
+  display: grid;
+  place-items: end center;
+  padding: 16px 12px max(16px, env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+.people-edit-sheet { z-index: 31; }
+.people-pick-sheet::before,
+.people-edit-sheet::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+  opacity: 0;
+  transition: opacity var(--duration-fade) linear;
+}
+.people-pick-sheet.show,
+.people-edit-sheet.show { pointer-events: auto; touch-action: none; }
+.people-pick-sheet.show::before,
+.people-edit-sheet.show::before { opacity: 1; }
+.people-pick-sheet.is-revealing:not(.is-dragging),
+.people-edit-sheet.is-revealing:not(.is-dragging) { pointer-events: none; }
+.people-pick-sheet.show.is-dragging,
+.people-pick-sheet.show.is-settling,
+.people-edit-sheet.show.is-dragging,
+.people-edit-sheet.show.is-settling { pointer-events: auto; }
+.people-pick-sheet.show.is-revealing::before,
+.people-pick-sheet.show.is-settling::before,
+.people-pick-sheet.is-revealing::before,
+.people-pick-sheet.is-settling::before,
+.people-pick-sheet.show.is-dragging::before,
+.people-edit-sheet.show.is-revealing::before,
+.people-edit-sheet.show.is-settling::before,
+.people-edit-sheet.is-revealing::before,
+.people-edit-sheet.is-settling::before,
+.people-edit-sheet.show.is-dragging::before {
+  opacity: var(--sheet-reveal-progress, 0);
+}
+.people-pick-sheet.show.is-revealing::before,
+.people-pick-sheet.is-revealing::before,
+.people-pick-sheet.show.is-dragging::before,
+.people-edit-sheet.show.is-revealing::before,
+.people-edit-sheet.is-revealing::before,
+.people-edit-sheet.show.is-dragging::before {
+  transition: opacity var(--duration-scrim-track) linear;
+}
+.people-pick-sheet.show.is-settling::before,
+.people-pick-sheet.is-settling::before,
+.people-edit-sheet.show.is-settling::before,
+.people-edit-sheet.is-settling::before {
+  transition: opacity var(--duration-sheet) var(--ease);
+}
+.people-pick-panel,
+.people-edit-panel {
+  width: min(100%, 420px);
+  max-height: min(72vh, 100%);
+  overflow: hidden;
+  touch-action: none;
+  padding: 0 18px 18px;
+  visibility: hidden;
+  transform: translateY(calc(100% + 72px));
+  transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet);
+}
+.people-pick-panel {
+  display: flex;
+  flex-direction: column;
+}
+.people-edit-panel {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.people-pick-sheet.show .people-pick-panel,
+.people-edit-sheet.show .people-edit-panel {
+  visibility: visible;
+  transform: translateY(0);
+  transition-delay: 0s;
+}
+.people-pick-panel.dragging,
+.people-edit-panel.dragging {
+  transition: none;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+.people-pick-panel .sheet-head { flex: none; margin-bottom: 12px; }
+.people-pick-list {
+  display: grid;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: min(48vh, 360px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px;
+  border-radius: 16px;
+  background: var(--paper);
+  scrollbar-width: thin;
+  scrollbar-color: var(--disabled) color-mix(in srgb, var(--line) 70%, transparent);
+}
+.people-pick-list::-webkit-scrollbar { width: 4px; }
+.people-pick-list::-webkit-scrollbar-thumb {
+  background: var(--disabled);
+  border-radius: 999px;
+}
+.people-pick-option {
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--control);
+  color: var(--ink);
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.people-pick-option.is-selected {
+  background: color-mix(in srgb, var(--accent) 16%, var(--control));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.people-pick-option:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.people-pick-clear {
+  flex: none;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--control);
+  color: var(--ink);
+  font-weight: 600;
+  cursor: pointer;
+}
+.people-pick-clear:disabled { opacity: .45; cursor: default; }
+.people-edit-panel .sheet-title { margin-bottom: 2px; }
+.people-edit-hint { margin: 6px 0 16px; color: var(--muted); font-size: 13px; }
+.people-edit-field { display: block; margin-bottom: 12px; }
+.people-edit-field span { display: block; margin: 0 2px 7px; color: var(--muted); font-size: 12px; font-weight: 600; }
+.people-edit-field input {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  outline: 0;
+  background: var(--control);
+  color: var(--ink);
+}
+.people-edit-field input:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.people-edit-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+.people-edit-actions button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--control);
+  color: var(--ink);
+  cursor: pointer;
+  font-weight: 600;
+}
+.people-edit-actions .primary { color: white; background: var(--accent); }
+.people-edit-delete {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--control);
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+}
+.people-edit-delete:disabled { opacity: .45; cursor: default; color: var(--muted); }
+.people-pick-sheet.is-ime-host,
+.people-edit-sheet.is-ime-host {
+  bottom: var(--ime-inset-bottom, 0px);
+}

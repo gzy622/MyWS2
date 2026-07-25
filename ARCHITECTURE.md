@@ -24,7 +24,7 @@ node lan-server.js
 
 | 位置 | 职责 |
 | --- | --- |
-| `index.html` | 静态语义结构、三页内容、登记网格与座位画布容器、业务浮层、导航、通用菜单与 Toast 文案。修改页面文案请编辑此文件；学生与座位默认数据由领域模型维护。 |
+| `index.html` | 静态语义结构、三页内容、人员列表容器、登记网格与座位画布容器、业务浮层、导航、通用菜单与 Toast 文案。修改页面文案请编辑此文件；学生、座位、班干与值日默认数据由领域模型维护。 |
 | `styles/tokens.css` | 颜色、尺寸与动画变量（含 Sheet / Popover / 遮罩语义 token）。 |
 | `styles/base.css` | Reset、基础元素、通用动画和减弱动效设置。 |
 | `styles/shell.css` | 应用外壳、顶栏、页面视口及桌面容器。 |
@@ -47,11 +47,13 @@ node lan-server.js
 | `scripts/student-font-size.js` | 网格姓名字号控制及字号持久化。 |
 | `scripts/seat-geometry.js` | 13×8 座位逻辑几何的唯一常量来源。 |
 | `scripts/seat-canvas.js` | 座位画布的自适应定位、平移、缩放、惯性与编辑拖放手势。 |
-| `scripts/roster-model.js` | 默认学生、座位、作业及领域纯校验函数。 |
+| `scripts/roster-model.js` | 默认学生、座位、作业、班干、值日及领域纯校验函数。 |
 | `scripts/roster-store.js` | 唯一业务状态、领域查询、变更与订阅通知。 |
-| `scripts/roster-storage.js` | 业务 Schema 的严格读取、迁移、回退与写入。 |
+| `scripts/roster-storage.js` | 业务 Schema 的严格读取、迁移（含 1→2）、回退与写入。 |
 | `scripts/theme.js` | 浅色/深色主题状态、根主题属性、`theme-color` meta 与 Capacitor StatusBar 外观同步，以及受控主题持久化。 |
 | `scripts/roster-renderer.js` | 基于 Store 同步渲染网格和座位卡。 |
+| `scripts/people-renderer.js` | 基于 Store 同步渲染班干与值日列表。 |
+| `scripts/people-interactions.js` | 人员页轻点指派、长按编辑、选人与编辑 Sheet。 |
 | `scripts/student-interactions.js` | 学生轻点、长按、右键和点击抑制。 |
 | `scripts/student-record.js` | 学生记录、分数草稿、校验和焦点管理。 |
 | `scripts/assignments.js` | 作业列表及新增、改名、删除流程。 |
@@ -128,7 +130,7 @@ LAN 服务也会在启动日志和 `/__health`、`/__build-id` 中返回同一�
 
 ## 状态与 DOM 契约
 
-状态分为两个边界：`scripts/state.js` 是 UI 瞬时状态来源，`scripts/roster-store.js` 是学生、座位、作业、提交和分数的唯一业务状态来源。刷新后仍从中间的“登记”页和各页第一子视图开始；导航、子视图、通用菜单、浮层、座位编辑模式和画布 transform 均不持久化。持久化仅限学生姓名字号键 `teacher-workbench.student-name-font-size`、业务数据键 `teacher-workbench.roster.v1` 与主题键 `teacher-workbench.theme`，其读取和失败回退必须遵守工程 Spec。
+状态分为两个边界：`scripts/state.js` 是 UI 瞬时状态来源，`scripts/roster-store.js` 是学生、座位、作业、提交、分数、班干与值日的唯一业务状态来源。刷新后仍从中间的“登记”页和各页第一子视图开始；导航、子视图、通用菜单、浮层、座位编辑模式和画布 transform 均不持久化。持久化仅限学生姓名字号键 `teacher-workbench.student-name-font-size`、业务数据键 `teacher-workbench.roster.v1` 与主题键 `teacher-workbench.theme`，其读取和失败回退必须遵守工程 Spec。
 
 `scripts/viewport.js` 将 Visual Viewport 的可见高度和顶部偏移同步到应用外壳；不支持时回退到 `window.innerHeight`。学生记录或作业输入期间只锁定背景网格的实际高度，不改变业务状态；短横屏仅在视口宽至少 500px 且高不超过 500px 时使用 10×5 网格，其他场景保持 5×10。
 

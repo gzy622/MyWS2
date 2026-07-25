@@ -20,6 +20,8 @@ const FLICK_MIN_CLOSE_PX = 36;
 /** Top-most first; matches system-back dismiss order for vertical sheets. */
 export const SHEET_STACK_ORDER = [
   'confirm',
+  'people-edit',
+  'people-pick',
   'assignment-name',
   'assignments',
   'student-record',
@@ -49,6 +51,8 @@ export function createSheetController({
   direction,
   useShowClass = true,
   scrollPorts = [],
+  /** Ports that keep browser-native pan/momentum instead of JS scrub scroll. */
+  nativeScrollPorts = [],
   isOpen: isOpenFn = null,
   onPrepare,
   onOpened,
@@ -570,6 +574,7 @@ export function createSheetController({
     panel,
     layer,
     getScrollPorts: () => scrollPorts.filter(Boolean),
+    getNativeScrollPorts: () => nativeScrollPorts.filter(Boolean),
     beginDrag,
     moveByDeltaY,
     setProgress,

@@ -7,6 +7,8 @@ import { initStudentFontSize } from './student-font-size.js';
 import { initSeatCanvas } from './seat-canvas.js';
 import { createRosterStore } from './roster-store.js';
 import { initRosterRenderer } from './roster-renderer.js';
+import { initPeopleRenderer } from './people-renderer.js';
+import { initPeopleInteractions } from './people-interactions.js';
 import { initStudentInteractions } from './student-interactions.js';
 import { initStudentRecord } from './student-record.js';
 import { initAssignments } from './assignments.js';
@@ -27,10 +29,14 @@ initSheetDebug();
 initNavigation({ getActiveAssignmentTitle: () => rosterStore.getCurrentAssignment().name });
 const fontSize = initStudentFontSize();
 initRosterRenderer(rosterStore);
+initPeopleRenderer(rosterStore);
 let studentRecord;
 let assignments;
 let moreSheet;
+let people;
 function closeOverlays(except) {
+  if (except !== 'people-pick') people?.closePick({ restoreFocus: false });
+  if (except !== 'people-edit') people?.closeEdit({ restoreFocus: false });
   if (except !== 'student-record') studentRecord?.close();
   if (except !== 'assignments') assignments?.close();
   if (except !== 'more') moreSheet?.close({ restoreFocus: false });
@@ -49,10 +55,18 @@ assignments = initAssignments({
 initStudentInteractions({ store: rosterStore, showToast, openStudentRecord: studentRecord.open });
 export const seatCanvas = initSeatCanvas({ store: rosterStore, showToast, openStudentRecord: studentRecord.open });
 moreSheet = initMoreSheet({ store: rosterStore, showToast, seatCanvas, fontSize, theme, closeOthers: closeOverlays });
+people = initPeopleInteractions({
+  store: rosterStore,
+  showToast,
+  viewport: appViewport,
+  closeOthers: closeOverlays,
+  confirm: (...args) => moreSheet.confirm(...args),
+});
 initDrawer({ closeOverlays });
 initHorizontalGestures();
 createSystemBackController({
   closeConfirm: () => moreSheet.closeConfirm(),
+  dismissPeople: () => people.dismissBack(),
   dismissAssignments: () => assignments.dismissBack(),
   closeStudentRecord: () => studentRecord.close(),
   closeMore: () => moreSheet.close(),

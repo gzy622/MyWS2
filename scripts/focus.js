@@ -14,7 +14,7 @@ export function focusSilently(element) {
 /** Drop focus from chrome that should not keep a ring after a sheet gesture. */
 export function blurIfSheetChrome(element = document.activeElement) {
   if (!(element instanceof HTMLElement)) return;
-  if (element.closest?.('.topbar, .assignment-sheet, .assignment-name-sheet, .menu-drawer, .student-record-sheet, .confirm-sheet')) {
+  if (element.closest?.('.topbar, .assignment-sheet, .assignment-name-sheet, .menu-drawer, .student-record-sheet, .people-pick-sheet, .people-edit-sheet, .confirm-sheet')) {
     element.blur();
   }
 }

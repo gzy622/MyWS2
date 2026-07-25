@@ -25,6 +25,8 @@
 | 业务 Store、变更和订阅 | `scripts/roster-store.js` |
 | 业务存储 Schema、迁移与回退 | `scripts/roster-storage.js` |
 | 网格与座位共享渲染 | `scripts/roster-renderer.js` |
+| 人员页班干/值日列表渲染 | `scripts/people-renderer.js` |
+| 人员页指派、编辑与 Sheet | `scripts/people-interactions.js` |
 | 学生轻点、长按和右键 | `scripts/student-interactions.js` |
 | 学生记录 | `scripts/student-record.js` |
 | 作业列表与作业名称 | `scripts/assignments.js` |
@@ -53,8 +55,8 @@
 
 以下 selector/属性被脚本依赖，修改结构时必须保留语义和唯一性：
 
-- ID：`#app`、`#viewport`、`#pages`、`#nav`、`#glider`、`#topbarTitle`、`#topbarTitleLabel`、`#fontSizePopover`、`#studentGrid`、`#studentFontSize`、`#studentFontSizeValue`、`#menuDrawer`、`#menuDrawerHandle`、`#menuDrawerBuild`、`#menuButton`、`#moreButton`、`#closeMenuDrawer`、`#scrim`、`#toast`。
-- Class：`.page`、`.nav-btn`、`.segment`、`.segment-glider`、`.subview`、`.student-grid`、`.student-card`、`.subdots i`、`.menu-item`、`.menu-drawer`、`.student-record-sheet`、`.confirm-sheet`、`.assignment-sheet`、`.assignment-name-sheet`、`.more-menu`。
+- ID：`#app`、`#viewport`、`#pages`、`#nav`、`#glider`、`#topbarTitle`、`#topbarTitleLabel`、`#fontSizePopover`、`#studentGrid`、`#studentFontSize`、`#studentFontSizeValue`、`#roleList`、`#dutyList`、`#menuDrawer`、`#menuDrawerHandle`、`#menuDrawerBuild`、`#menuButton`、`#moreButton`、`#closeMenuDrawer`、`#scrim`、`#toast`。
+- Class：`.page`、`.nav-btn`、`.segment`、`.segment-glider`、`.subview`、`.student-grid`、`.student-card`、`.people-row`、`.subdots i`、`.menu-item`、`.menu-drawer`、`.student-record-sheet`、`.people-pick-sheet`、`.people-edit-sheet`、`.confirm-sheet`、`.assignment-sheet`、`.assignment-name-sheet`、`.more-menu`。
 - Data：`data-page`、`data-index`、`data-sub`、`data-view`、`data-action`，以及学生格可选的 `data-score`。
 
 索引必须是从 0 开始的连续整数，并保持“页面—导航—状态数组”一一对应。
@@ -62,8 +64,8 @@
 ## 4. 模块依赖边界
 
 - `dom.js`、`state.js` 与 `roster-model.js` 为基础模块。
-- `roster-store.js` 是学生、座位、作业、提交和分数的唯一可写来源；组件、渲染器和交互模块只能调用其方法，不得直接改业务数组或建立第二份可写副本。
-- `roster-storage.js` 只负责严格读取、已知版本迁移和写入；无法完整解析或校验的数据必须整体回退默认值。
+- `roster-store.js` 是学生、座位、作业、提交、分数、班干与值日的唯一可写来源；组件、渲染器和交互模块只能调用其方法，不得直接改业务数组或建立第二份可写副本。
+- `roster-storage.js` 只负责严格读取、已知版本迁移（含 Schema 1→2）和写入；无法完整解析或校验的数据必须整体回退默认值。
 - `navigation.js` 负责状态到导航 DOM 和动态顶栏标题的统一渲染。
 - `gestures.js` 可以调用导航渲染，但不得直接形成新的导航状态源。
 - `student-font-size.js` 独立管理姓名字号控件、实时字号渲染和字号键；不得把该逻辑复制到导航或 Toast 模块。
@@ -74,26 +76,31 @@
 
 ## 4.1 业务数据与存储契约
 
-业务存储值必须是以下 Schema Version 1 的完整对象：
+业务存储值必须是以下 Schema Version 2 的完整对象：
 
 ```js
 {
-  schemaVersion: 1,
+  schemaVersion: 2,
   students: [{ id: 1, name: '示例学生' }],
   seats: [{ studentId: 1, seatIndex: 0 }],
   assignments: [{ id: 1, name: '作业 1' }],
   activeAssignmentId: 1,
   submissions: [{ assignmentId: 1, studentId: 1 }],
   scores: [{ assignmentId: 1, studentId: 1, value: 95.5 }],
-  nextAssignmentId: 1
+  nextAssignmentId: 1,
+  roles: [{ id: 1, title: '班长', studentId: null }],
+  duties: [{ id: 1, title: '周一', note: '扫地 · 擦黑板', studentId: null }],
+  nextRoleId: 1,
+  nextDutyId: 1
 }
 ```
 
-- 默认值使用现有 46 名学生、稳定默认座位映射和“作业 1”；不得在 HTML、渲染器或交互模块复制默认名单或座位。
-- 学生 ID、作业 ID、座位索引唯一；每名学生恰有一个 `0～103` 的座位，所有引用必须存在。
+- 默认值使用现有 46 名学生、稳定默认座位映射、“作业 1”、4 个默认班干职位与 3 个默认值日项；不得在 HTML、渲染器或交互模块复制默认名单或座位。
+- 学生 ID、作业 ID、班干 ID、值日 ID、座位索引唯一；每名学生恰有一个 `0～103` 的座位，所有引用必须存在；`roles`/`duties` 的 `studentId` 可为 `null` 或指向存在的学生。
 - 同一 `(assignmentId, studentId)` 最多一条提交和一条分数；分数必须为 `0～100`、最多一位小数且必须对应提交。清除完成记录同时清除分数。
-- 至少保留一个作业，活动作业必须存在，`nextAssignmentId` 不小于已有最大作业 ID。
-- `schemaVersion` 不匹配仅可进入显式的已知迁移；损坏 JSON、未知版本、引用失效、重复值或存储异常不得阻止启动，读取时整体回退默认值，写入失败保留当前内存会话。
+- 至少保留一个作业、一个班干职位与一个值日项；活动作业必须存在；`nextAssignmentId` / `nextRoleId` / `nextDutyId` 不小于各自已有最大 ID。
+- 班干职位名、值日标题为非空字符串，值日 `note` 可为空串，三者 trim 后长度不超过 40。
+- Schema 1 可读入并迁移为 Schema 2（注入默认空指派的班干/值日）；其他 `schemaVersion` 不匹配仅可进入显式的已知迁移；损坏 JSON、未知版本、引用失效、重复值或存储异常不得阻止启动，读取时整体回退默认值，写入失败保留当前内存会话。
 
 ## 5. 改动流程
 

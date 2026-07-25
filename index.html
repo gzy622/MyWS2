@@ -51,21 +51,12 @@
                 <button class="segment" data-sub="1">值日</button>
               </div>
               <div class="subview active" data-view="0">
-                <div class="section-title">班干名单 <span>未接入</span></div>
-                <div class="card role-list" role="list" aria-label="班干职位">
-                  <div class="row" role="listitem"><div class="grow"><div class="item-title">班长</div></div><span class="item-status">未指定</span></div>
-                  <div class="row" role="listitem"><div class="grow"><div class="item-title">学习委员</div></div><span class="item-status">未指定</span></div>
-                  <div class="row" role="listitem"><div class="grow"><div class="item-title">纪律委员</div></div><span class="item-status">未指定</span></div>
-                  <div class="row" role="listitem"><div class="grow"><div class="item-title">体育委员</div></div><span class="item-status">未指定</span></div>
-                </div>
+                <div class="section-title">班干名单</div>
+                <div class="card role-list" id="roleList" role="list" aria-label="班干职位"></div>
               </div>
               <div class="subview" data-view="1">
-                <div class="section-title">本周值日 <span>未接入</span></div>
-                <div class="card duty-list" role="list" aria-label="值日轮换">
-                  <div class="row" role="listitem"><div class="grow"><div class="item-title">周一</div><div class="item-note">扫地 · 擦黑板</div></div><span class="item-status">未排</span></div>
-                  <div class="row" role="listitem"><div class="grow"><div class="item-title">周三</div><div class="item-note">扫地 · 倒垃圾</div></div><span class="item-status">未排</span></div>
-                  <div class="row" role="listitem"><div class="grow"><div class="item-title">周五</div><div class="item-note">大扫除</div></div><span class="item-status">未排</span></div>
-                </div>
+                <div class="section-title">本周值日</div>
+                <div class="card duty-list" id="dutyList" role="list" aria-label="值日轮换"></div>
               </div>
             </div>
           </section>
@@ -190,6 +181,10 @@
             <button type="button" role="menuitem" data-more-action="font-size">姓名字号</button>
             <button type="button" role="menuitem" data-more-action="seat-edit" aria-pressed="false">编辑座位表</button>
             <button type="button" role="menuitem" data-more-action="seat-reset">复位座位视图</button>
+            <button type="button" role="menuitem" data-more-action="add-role">新增班干</button>
+            <button type="button" role="menuitem" data-more-action="clear-roles">清空班干指派</button>
+            <button type="button" role="menuitem" data-more-action="add-duty">新增值日</button>
+            <button type="button" role="menuitem" data-more-action="clear-duties">清空值日安排</button>
           </div>
         </div>
       </section>

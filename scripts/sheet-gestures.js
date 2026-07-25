@@ -53,6 +53,9 @@ export function createSheetGestureBridge() {
 
     const top = getTopSheet();
     if (top) {
+      // Native-scroll ports keep browser momentum; do not claim the pointer.
+      if (findScrollPort(event.target, top.getNativeScrollPorts?.() ?? [])) return null;
+
       const scrollPort = findScrollPort(event.target, top.getScrollPorts());
       session = {
         sheet: top,

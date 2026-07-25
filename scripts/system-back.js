@@ -3,10 +3,11 @@ import { state } from './state.js';
 
 /**
  * Close the topmost sheet/overlay. Returns true when something was dismissed.
- * Priority: confirm → assignment name editor → assignments → student-record → more → font-size → drawer
+ * Priority: confirm → people edit → people pick → assignment name editor → assignments → student-record → more → font-size → drawer
  */
 export function createSystemBackController({
   closeConfirm,
+  dismissPeople,
   dismissAssignments,
   closeStudentRecord,
   closeMore,
@@ -18,6 +19,7 @@ export function createSystemBackController({
       closeConfirm?.();
       return true;
     }
+    if (dismissPeople?.()) return true;
     if (dismissAssignments?.()) return true;
     if (elements.studentRecordSheet.classList.contains('show')) {
       closeStudentRecord?.();

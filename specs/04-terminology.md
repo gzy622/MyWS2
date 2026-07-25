@@ -95,19 +95,23 @@
 | 座位编辑模式 | `state.seatEditing` | 拖到空位移动，拖到占用位置交换。 |
 | 座位画布 transform | `seat-canvas.js` 内存态 | 当前会话的平移和缩放，不持久化。 |
 
-## 7. 占位子视图内容组件
+## 7. 人员列表与课程占位组件
 
-人员 / 课程未接入业务前，使用差异化空态骨架（单层卡片，无假进度、无色块字图标）：
+人员页为已接入列表；课程页未接入前仍用差异化空态骨架（单层卡片，无假进度、无色块字图标）：
 
 | 沟通名称 | 对应元素 / 标识 | 说明 |
 | --- | --- | --- |
-| 内容区标题 | `.section-title` | 子视图区块标题；右侧可用「未接入」状态字。 |
+| 内容区标题 | `.section-title` | 子视图区块标题；课程空态右侧可用「未接入」状态字。 |
 | 内容卡片 | `.card` | 当前子视图的唯一信息组容器。 |
-| 内容行 | `.card .row` | 班干 / 值日列表行。 |
+| 班干列表 | `#roleList.role-list` | Store 驱动的班干职位列表。 |
+| 值日列表 | `#dutyList.duty-list` | Store 驱动的值日轮换列表。 |
+| 人员行 | `.people-row` | 可轻点指派、长按编辑的班干 / 值日行。 |
 | 内容文案组 | `.grow` | 行内左侧文字容器。 |
 | 内容项标题 | `.item-title` | 职位或日期等主文案。 |
 | 内容项说明 | `.item-note` | 值日任务等辅助说明。 |
-| 行状态 | `.item-status` | 「未指定」「未排」等诚实空态。 |
+| 行状态 | `.item-status` | 未指派为「未指定」「未排」；已指派显示学生姓名。 |
+| 学生选择 Sheet | `.people-pick-sheet` | 从名单指派或清除指派。 |
+| 人员编辑 Sheet | `.people-edit-sheet` | 编辑职位/值日文案或删除项。 |
 | 周课表条 | `.week-strip` | 课表视图的一周占位骨架。 |
 | 成绩表 | `.grade-table` | 成绩视图的表头 + `—` 占位行。 |
 | 空态说明 | `.empty-note` | 卡片内短说明，不假装已有业务数据。 |
@@ -139,8 +143,8 @@
 | 指示点选中态 | `.subdots i.on` | 当前子视图对应的状态点。 |
 | 姓名字号 | `state.studentFontSize` | 取值 14～18，并持久化保存。 |
 | 姓名字号打开态 | `state.fontSizePopoverOpen`、`.font-size-popover.show` | 姓名字号控件当前可见；不持久化。 |
-| 业务状态 | `roster-store.js` | 学生、座位、作业、提交和分数的唯一可写来源。 |
-| 活动浮层 | `state.activeOverlay` | 当前登记业务浮层（`assignments` / `student-record` / `more` / `confirm`）；与通用菜单互斥且不持久化。 |
+| 业务状态 | `roster-store.js` | 学生、座位、作业、提交、分数、班干与值日的唯一可写来源。 |
+| 活动浮层 | `state.activeOverlay` | 当前业务浮层（`assignments` / `student-record` / `people-pick` / `people-edit` / `more` / `confirm`）；与通用菜单互斥且不持久化。 |
 | 座位编辑态 | `state.seatEditing` | 当前会话中座位卡可移动/交换的状态。 |
 | 拖动中 | `.pages.dragging`、`.nav-glider.dragging`、`.segment-glider.dragging` 或 `.menu-drawer.dragging` | 手势跟手阶段，临时取消过渡动画。 |
 | 通用菜单打开态 | `state.drawerOpen`、`.app.drawer-open` | 通用菜单已打开（状态字段名保留 `drawerOpen`）。 |

@@ -1,4 +1,9 @@
-import { cloneRosterState, createDefaultRosterState, isValidRosterState, ROSTER_SCHEMA_VERSION } from './roster-model.js';
+import {
+  createDefaultRosterState,
+  isValidRosterState,
+  migrateRosterStateToCurrent,
+  ROSTER_SCHEMA_VERSION
+} from './roster-model.js';
 
 export const ROSTER_STORAGE_KEY = 'teacher-workbench.roster.v1';
 
@@ -11,9 +16,7 @@ function browserStorage() {
 }
 
 export function parseStoredRoster(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-  if (value.schemaVersion !== ROSTER_SCHEMA_VERSION) return null;
-  return isValidRosterState(value) ? cloneRosterState(value) : null;
+  return migrateRosterStateToCurrent(value);
 }
 
 export function loadRosterState(storage = browserStorage()) {
@@ -35,3 +38,5 @@ export function saveRosterState(state, storage = browserStorage()) {
     return false;
   }
 }
+
+export { ROSTER_SCHEMA_VERSION };

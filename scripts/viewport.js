@@ -4,6 +4,8 @@ const IME_HOST_SELECTOR = [
   '.assignment-name-sheet',
   '.assignment-sheet',
   '.student-record-sheet',
+  '.people-pick-sheet',
+  '.people-edit-sheet',
   '.confirm-sheet',
   '.menu-drawer',
   '.more-menu',

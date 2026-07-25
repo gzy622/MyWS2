@@ -26,6 +26,8 @@ export const elements = {
   seatStage: required('#seatStage'),
   seatGrid: required('#seatGrid'),
   seatHint: required('#seatHint'),
+  roleList: required('#roleList'),
+  dutyList: required('#dutyList'),
   navButtons: requiredAll('.nav-btn'),
   pageElements: requiredAll('.page'),
   menuDrawer: required('#menuDrawer'),
