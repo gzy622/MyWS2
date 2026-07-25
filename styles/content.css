@@ -34,23 +34,24 @@ h1 { margin: 0; font-size: clamp(32px, 8.5vw, 36px); font-weight: 720; line-heig
 }
 .student-card {
   appearance: none; width: 100%; border: 0; border-radius: 0; background: transparent; font: inherit; cursor: pointer;
-  position: relative; display: grid; min-height: 0; place-items: center; padding: 4px 3px; overflow: hidden; color: var(--ink);
-  font-size: var(--student-name-size, 16px); font-weight: 600; line-height: 1.15; text-align: center; white-space: nowrap;
+  position: relative; display: grid; min-height: 0; place-items: center; padding: 4px 3px; overflow: hidden; color: var(--ink-soft);
+  font-size: var(--student-name-size, 16px); font-weight: 500; line-height: 1.15; text-align: center; white-space: nowrap;
 }
 .student-card.is-completed {
-  color: var(--ink);
-  background: color-mix(in srgb, var(--accent) 8%, var(--card));
+  color: var(--muted);
+  font-weight: 400;
+  background: var(--paper);
   box-shadow: inset -.5px 0 var(--student-grid-line), inset 0 -.5px var(--student-grid-line);
 }
 .student-card.is-completed:not([data-score])::before {
-  content: "✓"; position: absolute; top: 4px; right: 5px;
-  color: var(--accent); font-size: 10px; font-weight: 750; line-height: 1;
+  content: "✓"; position: absolute; top: 4px; right: 4px;
+  color: var(--disabled); font-size: 11px; font-weight: 600; line-height: 1;
 }
 .student-card:focus-visible { z-index: 1; outline: 2px solid var(--accent); outline-offset: -2px; }
 .student-card:active { background: var(--control); }
 .student-card[data-score]::after {
-  content: attr(data-score); position: absolute; top: 4px; right: 5px; color: var(--accent);
-  font-size: 10px; font-weight: 750; font-variant-numeric: tabular-nums; line-height: 1;
+  content: attr(data-score); position: absolute; top: 4px; right: 4px; color: var(--muted);
+  font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1;
 }
 .page[data-page="1"] { position: relative; }
 .page[data-page="1"] .seat-subview.active {
@@ -81,7 +82,7 @@ h1 { margin: 0; font-size: clamp(32px, 8.5vw, 36px); font-weight: 720; line-heig
 .seat-cell.is-drop-target { background: color-mix(in srgb, var(--teal) 10%, transparent); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--teal) 45%, transparent); }
 .seat-card {
   position: absolute; z-index: 1; top: 12px; left: 8px; width: 98px; height: 72px; cursor: pointer;
-  display: grid; place-items: center; padding: 6px; overflow: hidden; color: var(--ink);
+  display: grid; place-items: center; padding: 6px; overflow: hidden; color: var(--ink-soft);
   background: var(--card); border: .5px solid var(--line); border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, .08); font-size: 18px; font-weight: 500; line-height: 1.1;
   touch-action: none; will-change: transform;
@@ -89,15 +90,20 @@ h1 { margin: 0; font-size: clamp(32px, 8.5vw, 36px); font-weight: 720; line-heig
 .seat-stage.is-view-mode .seat-card { top: 6px; }
 .seat-stage.is-edit-mode .seat-card { cursor: grab; }
 .seat-card.is-completed {
-  color: var(--ink);
-  background: color-mix(in srgb, var(--accent) 8%, var(--card));
-  border-color: var(--line);
+  color: var(--muted);
+  font-weight: 400;
+  background: var(--paper);
+  border-color: transparent;
+  box-shadow: none;
 }
 .seat-card.is-completed:not([data-score])::before {
-  content: "✓"; position: absolute; top: 5px; right: 6px;
-  color: var(--accent); font-size: 11px; font-weight: 800; line-height: 1;
+  content: "✓"; position: absolute; top: 4px; right: 4px;
+  color: var(--disabled); font-size: 12px; font-weight: 600; line-height: 1;
 }
-.seat-card[data-score]::after { content: attr(data-score); position: absolute; top: 5px; right: 6px; color: var(--accent); font-size: 11px; font-weight: 800; }
+.seat-card[data-score]::after {
+  content: attr(data-score); position: absolute; top: 4px; right: 4px; color: var(--muted);
+  font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1;
+}
 .seat-card.is-pressing { transform: scale(.96); box-shadow: 0 1px 3px rgba(0, 0, 0, .14); }
 .seat-card.is-dragging { z-index: 3; cursor: grabbing; box-shadow: 0 12px 24px rgba(0, 0, 0, .2); transition: none; }
 .podium {
