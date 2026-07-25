@@ -20,11 +20,11 @@ const REGISTER_ACTIONS = new Set(['clear-assignment', 'font-size', 'seat-edit', 
 const PEOPLE_ROLE_ACTIONS = new Set(['add-role', 'clear-roles']);
 const PEOPLE_DUTY_ACTIONS = new Set(['add-duty', 'clear-duties']);
 const PEOPLE_ACTIONS = new Set([...PEOPLE_ROLE_ACTIONS, ...PEOPLE_DUTY_ACTIONS]);
-const COURSES_SCHEDULE_ACTIONS = new Set(['clear-schedule']);
+const COURSES_SCHEDULE_ACTIONS = new Set(['clear-schedule', 'highlight-subjects']);
 const COURSES_GRADES_ACTIONS = new Set(['add-subject', 'clear-grades']);
 const COURSES_ACTIONS = new Set([...COURSES_SCHEDULE_ACTIONS, ...COURSES_GRADES_ACTIONS]);
 
-export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, closeOthers }) {
+export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, closeOthers, highlightSubjects }) {
   let trigger = null;
   let confirmAction = null;
   let confirmReturnFocus = null;
@@ -300,6 +300,11 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
         action: () => showToast(store.clearAllScheduleSlots() ? '已清空本周课表' : '当前课表为空'),
         returnFocus: elements.moreButton
       });
+      return;
+    }
+    if (action === 'highlight-subjects') {
+      close({ restoreFocus: false });
+      highlightSubjects?.open({ returnFocus: elements.moreButton });
       return;
     }
     if (action === 'add-subject') {

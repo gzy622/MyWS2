@@ -1,5 +1,5 @@
 import { elements } from './dom.js';
-import { SCHEDULE_DAY_LABELS } from './roster-model.js';
+import { SCHEDULE_DAY_LABELS, formatPeriodColumnLabel } from './roster-model.js';
 
 function slotMap(scheduleSlots) {
   const map = new Map();
@@ -31,7 +31,7 @@ function todayDayIndex() {
   return weekday >= 1 && weekday <= 5 ? weekday - 1 : -1;
 }
 
-function renderWeekStrip({ periods, scheduleSlots }) {
+function renderWeekStrip({ periods, scheduleSlots }, matchesHighlight) {
   const slots = slotMap(scheduleSlots);
   const today = todayDayIndex();
   const root = document.createElement('div');
@@ -43,7 +43,7 @@ function renderWeekStrip({ periods, scheduleSlots }) {
   head.setAttribute('aria-hidden', 'true');
   const corner = document.createElement('span');
   corner.className = 'week-matrix-corner';
-  corner.textContent = '节次';
+  corner.setAttribute('aria-hidden', 'true');
   head.append(corner);
   for (let day = 0; day < SCHEDULE_DAY_LABELS.length; day += 1) {
     const dayEl = document.createElement('span');
@@ -60,6 +60,14 @@ function renderWeekStrip({ periods, scheduleSlots }) {
   body.setAttribute('aria-label', '本周课表');
 
   periods.forEach((period, index) => {
+    // Soft band breaks before 午测 / 课后服务 — keeps am·noon·pm rhythm readable.
+    if (index === 5 || index === 9) {
+      const gap = document.createElement('div');
+      gap.className = 'week-matrix-band-gap';
+      gap.setAttribute('aria-hidden', 'true');
+      body.append(gap);
+    }
+
     const band = periodBand(index);
     const row = document.createElement('div');
     row.className = `week-matrix-row is-${band}`;
@@ -71,7 +79,7 @@ function renderWeekStrip({ periods, scheduleSlots }) {
     periodBtn.className = 'week-period-label';
     periodBtn.dataset.periodId = String(period.id);
     periodBtn.dataset.band = band;
-    periodBtn.textContent = period.title;
+    periodBtn.textContent = formatPeriodColumnLabel(period.title);
     periodBtn.setAttribute('aria-label', `节次 ${period.title}，长按可改名`);
     row.append(periodBtn);
 
@@ -87,6 +95,7 @@ function renderWeekStrip({ periods, scheduleSlots }) {
       const dayLabel = SCHEDULE_DAY_LABELS[day];
       if (subject) {
         cell.classList.add('is-filled');
+        if (matchesHighlight?.(subject)) cell.classList.add('is-highlight');
         cell.textContent = subject;
         cell.setAttribute('aria-label', `周${dayLabel} ${period.title}，${subject}`);
       } else {
@@ -164,13 +173,14 @@ function renderGradeTable({ students, subjects, courseGrades }) {
   elements.gradeTable.replaceChildren(scroller);
 }
 
-export function initCoursesRenderer(store) {
+export function initCoursesRenderer(store, highlightSubjects) {
   function render(snapshot = store.getSnapshot()) {
-    renderWeekStrip(snapshot);
+    renderWeekStrip(snapshot, (subject) => highlightSubjects?.matches?.(subject));
     renderGradeTable(snapshot);
   }
 
   store.subscribe(render);
+  highlightSubjects?.subscribe?.(render);
   render();
   return { render };
 }

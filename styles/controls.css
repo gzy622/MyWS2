@@ -450,7 +450,8 @@
 .course-slot-sheet,
 .course-period-sheet,
 .course-subject-sheet,
-.course-grade-sheet {
+.course-grade-sheet,
+.course-highlight-sheet {
   position: absolute;
   z-index: 30;
   inset: 0;
@@ -462,10 +463,12 @@
 .course-period-sheet,
 .course-subject-sheet { z-index: 31; }
 .course-grade-sheet { z-index: 32; }
+.course-highlight-sheet { z-index: 33; }
 .course-slot-sheet::before,
 .course-period-sheet::before,
 .course-subject-sheet::before,
-.course-grade-sheet::before {
+.course-grade-sheet::before,
+.course-highlight-sheet::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -476,16 +479,19 @@
 /* Text sheets: avoid ancestor touch-action:none (blocks Android IME focus on inputs). */
 .course-slot-sheet.show,
 .course-period-sheet.show,
-.course-subject-sheet.show { pointer-events: auto; touch-action: manipulation; }
+.course-subject-sheet.show,
+.course-highlight-sheet.show { pointer-events: auto; touch-action: manipulation; }
 .course-grade-sheet.show { pointer-events: auto; touch-action: none; }
 .course-slot-sheet.show::before,
 .course-period-sheet.show::before,
 .course-subject-sheet.show::before,
-.course-grade-sheet.show::before { opacity: 1; }
+.course-grade-sheet.show::before,
+.course-highlight-sheet.show::before { opacity: 1; }
 .course-slot-sheet.is-revealing:not(.is-dragging),
 .course-period-sheet.is-revealing:not(.is-dragging),
 .course-subject-sheet.is-revealing:not(.is-dragging),
-.course-grade-sheet.is-revealing:not(.is-dragging) { pointer-events: none; }
+.course-grade-sheet.is-revealing:not(.is-dragging),
+.course-highlight-sheet.is-revealing:not(.is-dragging) { pointer-events: none; }
 .course-slot-sheet.show.is-dragging,
 .course-slot-sheet.show.is-settling,
 .course-period-sheet.show.is-dragging,
@@ -493,7 +499,9 @@
 .course-subject-sheet.show.is-dragging,
 .course-subject-sheet.show.is-settling,
 .course-grade-sheet.show.is-dragging,
-.course-grade-sheet.show.is-settling { pointer-events: auto; }
+.course-grade-sheet.show.is-settling,
+.course-highlight-sheet.show.is-dragging,
+.course-highlight-sheet.show.is-settling { pointer-events: auto; }
 .course-slot-sheet.show.is-revealing::before,
 .course-slot-sheet.show.is-settling::before,
 .course-slot-sheet.is-revealing::before,
@@ -543,7 +551,8 @@
 .course-slot-sheet-panel,
 .course-period-sheet-panel,
 .course-subject-sheet-panel,
-.course-grade-panel {
+.course-grade-panel,
+.course-highlight-panel {
   width: min(100%, 420px);
   max-height: min(72vh, 100%);
   overflow-y: auto;
@@ -555,15 +564,18 @@
 }
 .course-slot-sheet-panel,
 .course-period-sheet-panel,
-.course-subject-sheet-panel { touch-action: pan-y; }
+.course-subject-sheet-panel,
+.course-highlight-panel { touch-action: pan-y; }
 .course-grade-panel { touch-action: none; }
 .course-slot-sheet .sheet-handle-zone,
 .course-period-sheet .sheet-handle-zone,
-.course-subject-sheet .sheet-handle-zone { touch-action: none; }
+.course-subject-sheet .sheet-handle-zone,
+.course-highlight-sheet .sheet-handle-zone { touch-action: none; }
 .course-slot-sheet.show .course-slot-sheet-panel,
 .course-period-sheet.show .course-period-sheet-panel,
 .course-subject-sheet.show .course-subject-sheet-panel,
-.course-grade-sheet.show .course-grade-panel {
+.course-grade-sheet.show .course-grade-panel,
+.course-highlight-sheet.show .course-highlight-panel {
   visibility: visible;
   transform: translateY(0);
   transition-delay: 0s;
@@ -571,7 +583,8 @@
 .course-slot-sheet-panel.dragging,
 .course-period-sheet-panel.dragging,
 .course-subject-sheet-panel.dragging,
-.course-grade-panel.dragging {
+.course-grade-panel.dragging,
+.course-highlight-panel.dragging {
   transition: none;
   will-change: transform;
   backface-visibility: hidden;
@@ -592,7 +605,24 @@
   -webkit-user-select: text;
   user-select: text;
 }
-.course-edit-field input:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.course-edit-field input:focus-visible,
+.course-edit-field textarea:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.course-highlight-field textarea {
+  width: 100%;
+  min-height: 112px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 12px;
+  outline: 0;
+  resize: vertical;
+  background: var(--control);
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.45;
+  touch-action: manipulation;
+  -webkit-user-select: text;
+  user-select: text;
+}
 .course-edit-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
 .course-edit-actions button {
   min-height: 44px;
@@ -629,6 +659,7 @@
 .course-slot-sheet.is-ime-host,
 .course-period-sheet.is-ime-host,
 .course-subject-sheet.is-ime-host,
-.course-grade-sheet.is-ime-host {
+.course-grade-sheet.is-ime-host,
+.course-highlight-sheet.is-ime-host {
   bottom: var(--ime-inset-bottom, 0px);
 }

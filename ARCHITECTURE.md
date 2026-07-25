@@ -56,6 +56,7 @@ node lan-server.js
 | `scripts/people-interactions.js` | 人员页轻点指派、长按编辑、选人与编辑 Sheet。 |
 | `scripts/courses-renderer.js` | 基于 Store 同步渲染周课表与成绩表。 |
 | `scripts/courses-interactions.js` | 课程页课表格、节次改名、科目编辑与成绩录入 Sheet。 |
+| `scripts/highlight-subjects.js` | 课表高亮科目关键词的设置 Sheet、匹配与受控持久化。 |
 | `scripts/student-interactions.js` | 学生轻点、长按、右键和点击抑制。 |
 | `scripts/student-record.js` | 学生记录、分数草稿、校验和焦点管理。 |
 | `scripts/assignments.js` | 作业列表及新增、改名、删除流程。 |
@@ -84,7 +85,7 @@ node lan-server.js
 | --- | --- |
 | 终端打印的地址 | `http://192.168.x.x:8080`（无线）或 `http://localhost:8080`（`-Usb`） |
 | `…/__health` 探测 | `OK: device reached …`；若 WARN 则手机仍可能吃 APK 旧资源 |
-| App 内调试浮层（长按菜单 / 连点菜单 3 次 / `?sheetDebug=1`） | `origin` 与终端 LAN 一致；`build` 与 `npm run code:id` 一致 |
+| App 内调试条（长按菜单 / 连点菜单 3 次 / `?sheetDebug=1`；默认右上角紧凑 `build` 条，点开才看日志） | `origin` 与终端 LAN 一致；`build` 与 `npm run code:id` 一致 |
 | 按 `L` 后 | 控制台应出现「热更新已接通 · clients≥1」；若一直 `clients=0`，看弹出的热更新窗口报错 |
 | 按 `D` 后 | 会断开热更新会话（包内 APK 无 `server.url`）；要继续热更新须再按 `L` |
 | 无线调试 | mDNS 序列号常含空格，`native-run`/`cap run` 看不见；脚本会经 `adb mdns services` 映射为 `IP:端口` 再 `adb connect` |
@@ -95,7 +96,7 @@ node lan-server.js
 ### 如何确认手机与电脑代码一致
 
 1. 电脑执行：`npm run code:id`，得到 12 位内容指纹（对 `index.html` + `styles` + `scripts` 哈希）。
-2. 手机打开调试浮层（长按左上角菜单，或连点 3 次，或 `?sheetDebug=1`），看高亮区的 `build`。
+2. 手机打开调试条（长按左上角菜单，或连点 3 次，或 `?sheetDebug=1`），看右上角 `build`；需要日志时再点该条展开。
 3. **两者相同**即当前 Web 资源与电脑源码一致。
 4. 同时看 `origin=`：局域网地址表示吃 Live Reload；`https://localhost` 一类表示吃 APK 内打包资源（指纹来自上次 `sync:www` / `deploy:apk`）。
 
@@ -132,7 +133,7 @@ LAN 服务也会在启动日志和 `/__health`、`/__build-id` 中返回同一�
 
 ## 状态与 DOM 契约
 
-状态分为两个边界：`scripts/state.js` 是 UI 瞬时状态来源，`scripts/roster-store.js` 是学生、座位、作业、提交、分数、班干与值日的唯一业务状态来源。刷新后仍从中间的“登记”页和各页第一子视图开始；导航、子视图、通用菜单、浮层、座位编辑模式和画布 transform 均不持久化。持久化仅限学生姓名字号键 `teacher-workbench.student-name-font-size`、业务数据键 `teacher-workbench.roster.v1` 与主题键 `teacher-workbench.theme`，其读取和失败回退必须遵守工程 Spec。
+状态分为两个边界：`scripts/state.js` 是 UI 瞬时状态来源，`scripts/roster-store.js` 是学生、座位、作业、提交、分数、班干与值日的唯一业务状态来源。刷新后仍从中间的“登记”页和各页第一子视图开始；导航、子视图、通用菜单、浮层、座位编辑模式和画布 transform 均不持久化。持久化仅限学生姓名字号键 `teacher-workbench.student-name-font-size`、业务数据键 `teacher-workbench.roster.v1`、主题键 `teacher-workbench.theme` 与课表高亮关键词键 `teacher-workbench.highlight-subjects`，其读取和失败回退必须遵守工程 Spec。
 
 `scripts/viewport.js` 将 Visual Viewport 的可见高度和顶部偏移同步到应用外壳；不支持时回退到 `window.innerHeight`。学生记录或作业输入期间只锁定背景网格的实际高度，不改变业务状态；短横屏仅在视口宽至少 500px 且高不超过 500px 时使用 10×5 网格，其他场景保持 5×10。
 
@@ -142,6 +143,6 @@ LAN 服务也会在启动日志和 `/__health`、`/__build-id` 中返回同一�
 
 ## 模块依赖
 
-`dom.js`、`state.js` 和 `roster-model.js` 是基础模块。`roster-store.js` 只依赖模型并通过注入的 `roster-storage.js` 保存器持久化；渲染器和交互模块只通过 Store 读写业务数据，不直接修改业务数组。`navigation.js`、`gestures.js`、`drawer.js` 与 `toast.js` 只依赖 UI 基础模块（`gestures.js` 还使用导航的渲染接口）。`student-font-size.js` 和 `theme.js` 分别管理各自受控键；`seat-canvas.js` 依赖固定 DOM、`seat-geometry.js` 与 Store 操作接口，并独立保存非持久化的画布 transform。`main.js` 只负责创建 Store、初始化模块和注入接口，避免循环依赖。
+`dom.js`、`state.js` 和 `roster-model.js` 是基础模块。`roster-store.js` 只依赖模型并通过注入的 `roster-storage.js` 保存器持久化；渲染器和交互模块只通过 Store 读写业务数据，不直接修改业务数组。`navigation.js`、`gestures.js`、`drawer.js` 与 `toast.js` 只依赖 UI 基础模块（`gestures.js` 还使用导航的渲染接口）。`student-font-size.js`、`theme.js` 和 `highlight-subjects.js` 分别管理各自受控键；`seat-canvas.js` 依赖固定 DOM、`seat-geometry.js` 与 Store 操作接口，并独立保存非持久化的画布 transform。`main.js` 只负责创建 Store、初始化模块和注入接口，避免循环依赖。
 
 修改导航请编辑 `scripts/navigation.js`，修改页面手势请编辑 `scripts/gestures.js`，修改通用菜单请编辑 `scripts/drawer.js`，修改网格姓名字号行为请编辑 `scripts/student-font-size.js`，修改领域数据请编辑 `scripts/roster-store.js`。视觉修改应按对应样式模块定位。

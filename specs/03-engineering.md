@@ -7,7 +7,7 @@
 - 不增加 Demo 构建步骤；运行入口始终是 `node lan-server.js`。
 - Capacitor / npm / `android/` 仅为**可选** APK 打包通道，不得成为日常 Demo 验收前置；零依赖 Web 路径必须保持可用。Capacitor 相关依赖仅用于原生壳打包，不得进入 LAN Demo 的模块图（`haptics.js` 通过 `globalThis.Capacitor` 桥接，禁止静态 import npm 包）。
 - 代码应能在当前主流移动浏览器中工作；手势使用 Pointer Events。
-- 不使用 cookie 或 IndexedDB 保存界面状态。`localStorage` 仅允许以下键：`teacher-workbench.student-name-font-size`（姓名字号）、`teacher-workbench.roster.v1`（业务数据）和 `teacher-workbench.theme`（`light` 或 `dark`）。禁止保存导航、子视图、抽屉、浮层、座位编辑模式或画布 transform。
+- 不使用 cookie 或 IndexedDB 保存界面状态。`localStorage` 仅允许以下键：`teacher-workbench.student-name-font-size`（姓名字号）、`teacher-workbench.roster.v1`（业务数据）、`teacher-workbench.theme`（`light` 或 `dark`）和 `teacher-workbench.highlight-subjects`（课表高亮关键词 JSON）。禁止保存导航、子视图、抽屉、浮层、座位编辑模式或画布 transform。
 
 ## 2. 文件职责
 
@@ -29,12 +29,13 @@
 | 人员页指派、编辑与 Sheet | `scripts/people-interactions.js` |
 | 课程页课表/成绩列表渲染 | `scripts/courses-renderer.js` |
 | 课程页课表、科目与成绩 Sheet | `scripts/courses-interactions.js` |
+| 课表高亮科目关键词（更多菜单入口） | `scripts/highlight-subjects.js` |
 | 学生轻点、长按和右键 | `scripts/student-interactions.js` |
 | 学生记录 | `scripts/student-record.js` |
 | 作业列表与作业名称 | `scripts/assignments.js` |
 | Sheet progress 控制器与栈 | `scripts/sheet-drag.js` |
 | Sheet 纵向跟手桥接 | `scripts/sheet-gestures.js` |
-| 调试浮层（长按菜单 / 连点 3 次 / `?sheetDebug=1`；默认展示 build/origin） | `scripts/sheet-debug.js` |
+| 调试条（长按菜单 / 连点 3 次 / `?sheetDebug=1`；默认右上角紧凑 build 条，点开看日志） | `scripts/sheet-debug.js` |
 | 内容指纹（`npm run code:id` / `/__build-id` / `build-id.json`） | `scripts/content-id.cjs`、`scripts/build-id.js` |
 | 静默焦点（避免手势后焦点环） | `scripts/focus.js` |
 | 座位逻辑几何 | `scripts/seat-geometry.js` |
@@ -94,7 +95,7 @@
   duties: [{ id: 1, title: '周一', note: '扫地 · 擦黑板', studentId: null }],
   nextRoleId: 1,
   nextDutyId: 1,
-  periods: [{ id: 1, title: '早读' }],
+  periods: [{ id: 1, title: '早' }],
   scheduleSlots: [{ day: 0, periodId: 2, subject: '语文' }],
   subjects: [{ id: 1, title: '语文' }],
   courseGrades: [{ subjectId: 1, studentId: 1, value: 88 }],
@@ -139,7 +140,7 @@
 - [ ] `node --check` 检查所有 `scripts/*.js` 和 `lan-server.js` 无语法错误。
 - [ ] 页面中的 ID 唯一，`data-page` / `data-index` 连续且对应；登记网格恰有 46 个 `.student-card`，座位表恰有 104 个逻辑位置和 46 张座位卡。
 - [ ] 新增颜色、尺寸、动效符合视觉 Spec；深色仅覆盖 token。
-- [ ] 没有远程资源、第三方运行时依赖或内联业务脚本样式；`localStorage` 仅使用三个规定键并由对应模块访问。可选 Capacitor 打包依赖不得被 Demo 模块静态导入。
+- [ ] 没有远程资源、第三方运行时依赖或内联业务脚本样式；`localStorage` 仅使用规定键并由对应模块访问。可选 Capacitor 打包依赖不得被 Demo 模块静态导入。
 - [ ] `git diff --check` 无空白错误。
 - [ ] （可选 APK）`npm run build:apk` 可生成 debug APK；`npm run deploy:apk` 可一键同步、打包并用 adb 覆盖安装到已连接设备；安装后触觉只震一次、无系统二次震，底栏滑动不被原生 overscroll 抢占。
 

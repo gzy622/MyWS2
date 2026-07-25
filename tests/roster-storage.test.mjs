@@ -86,7 +86,7 @@ test('Schema 1 迁移为 Schema 3 并注入默认人员与课程', () => {
   const loaded = loadRosterState(storage);
   assert.equal(loaded.schemaVersion, 3);
   assert.equal(loaded.roles[0].title, '班长');
-  assert.equal(loaded.periods[0].title, '早读');
+  assert.equal(loaded.periods[0].title, '早');
 });
 
 test('Schema 2 迁移为 Schema 3 并保留人员指派、注入空课表', () => {

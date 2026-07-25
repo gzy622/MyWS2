@@ -3,7 +3,7 @@ import { state } from './state.js';
 
 /**
  * Close the topmost sheet/overlay. Returns true when something was dismissed.
- * Priority: confirm → course subject/period/slot/grade → people edit/pick → assignment name → assignments → student-record → more → font-size → drawer
+ * Priority: confirm → course highlight/subject/period/slot/grade → people edit/pick → assignment name → assignments → student-record → more → font-size → drawer
  */
 export function createSystemBackController({
   closeConfirm,

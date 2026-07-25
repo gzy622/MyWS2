@@ -23,6 +23,22 @@
   padding: calc(var(--topbar-h) + env(safe-area-inset-top) + 6px) 12px 14px;
 }
 .page[data-page="1"] .subview.active { flex: 1; min-height: 0; }
+.page[data-page="2"] .page-inner {
+  display: flex; flex-direction: column; height: 100%; min-height: 0;
+  box-sizing: border-box;
+  padding: calc(var(--topbar-h) + env(safe-area-inset-top) + 6px) 12px 12px;
+}
+.page[data-page="2"] .segments { margin-bottom: 10px; flex: none; }
+.page[data-page="2"] .subview.active {
+  flex: 1; min-height: 0; display: flex; flex-direction: column;
+}
+.page[data-page="2"] .subview[data-view="0"].active .week-strip {
+  flex: 1; min-height: 0; overflow: hidden;
+}
+.page[data-page="2"] .subview[data-view="1"].active {
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
 .student-grid {
   --student-grid-line: var(--line);
   position: relative;
@@ -156,99 +172,135 @@
   font-size: 13px;
 }
 .empty-note { margin: 14px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
-.week-strip { padding: 12px 10px 14px; }
+/*
+ * Hallmark · component: week-matrix · genre: modern-minimal · theme: OriginOS tokens
+ * voice: Almanac soft-mosaic · states: default · active · focus-visible
+ * contrast: pass · constraint: one-screen, max practical area
+ */
+.card.week-strip {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 8px 8px;
+  box-shadow: var(--shadow-soft);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--card) 92%, var(--paper)) 0%, var(--card) 28%);
+}
 .week-matrix {
-  --week-period-col: 46px;
-  display: grid;
-  gap: 0;
+  --week-period-col: 22px;
+  --week-gap: 3px;
+  --week-cell-radius: 8px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 .week-matrix-head,
 .week-matrix-row {
   display: grid;
   grid-template-columns: var(--week-period-col) repeat(5, minmax(0, 1fr));
-  gap: 4px;
+  gap: var(--week-gap);
   align-items: stretch;
 }
 .week-matrix-head {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  margin: 0 0 8px;
-  padding: 0 0 8px;
-  background: linear-gradient(to bottom, var(--card) 70%, color-mix(in srgb, var(--card) 0%, transparent));
+  flex: none;
+  margin: 0 0 6px;
 }
-.week-matrix-corner {
-  display: grid;
-  place-items: center;
-  color: var(--muted-soft);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
+.week-matrix-corner { min-height: 0; }
 .week-matrix-day {
   display: grid;
   place-items: center;
-  min-height: 28px;
-  border-radius: 999px;
+  gap: 4px;
+  min-height: 22px;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 600;
   line-height: 1;
+  letter-spacing: 0.04em;
+}
+.week-matrix-day::after {
+  content: "";
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: transparent;
 }
 .week-matrix-day.is-today {
   color: var(--accent);
-  background: var(--accent-soft);
+  font-weight: 700;
 }
-.week-matrix-body { display: grid; gap: 3px; }
-.week-matrix-row.is-noon { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
-.week-matrix-row.is-dusk { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
+.week-matrix-day.is-today::after {
+  background: var(--accent);
+}
+.week-matrix-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  /* 5 lesson rows · band · 4 lesson rows · band · 1 dusk row */
+  grid-template-rows:
+    repeat(5, minmax(0, 1fr))
+    4px
+    repeat(4, minmax(0, 1fr))
+    4px
+    minmax(0, 1fr);
+  gap: var(--week-gap);
+  overflow: hidden;
+}
+.week-matrix-band-gap {
+  min-height: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--line) 70%, transparent);
+  align-self: center;
+  height: 2px;
+  margin: 0 2px;
+}
+.week-matrix-row { min-height: 0; }
 .week-period-label,
 .week-slot-cell {
-  margin: 0; border: 0; font: inherit; color: inherit;
-  -webkit-tap-highlight-color: transparent; cursor: pointer;
+  margin: 0;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--week-cell-radius);
+  transition: background-color 120ms var(--ease), color 120ms var(--ease), transform 120ms var(--ease);
 }
 .week-period-label {
-  min-height: 44px;
-  padding: 4px 2px;
-  border-radius: 10px;
+  padding: 0;
   background: transparent;
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 650;
-  text-align: center;
-  line-height: 1.25;
-  letter-spacing: -0.02em;
+  color: var(--muted-soft);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
 }
 .week-period-label[data-band="dawn"],
 .week-period-label[data-band="noon"],
 .week-period-label[data-band="dusk"] {
-  color: var(--ink-soft);
-  background: color-mix(in srgb, var(--control) 72%, var(--card));
+  color: var(--muted);
 }
 .week-slot-cell {
   position: relative;
-  min-height: 44px;
-  padding: 5px 3px;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--control) 55%, var(--card));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--line) 80%, transparent);
-  color: var(--disabled);
+  padding: 2px 3px;
+  background: color-mix(in srgb, var(--control) 42%, var(--card));
+  color: transparent;
   font-size: 12px;
   font-weight: 650;
+  line-height: 1.1;
   text-align: center;
-  line-height: 1.2;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
 }
 .week-slot-cell.is-today-col {
-  background: color-mix(in srgb, var(--accent-soft) 42%, var(--card));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 18%, var(--line));
+  background: color-mix(in srgb, var(--accent-soft) 38%, var(--control));
 }
 .week-slot-cell.is-filled {
   color: var(--ink);
-  background: var(--paper);
-  box-shadow: inset 0 0 0 1px var(--line), var(--shadow-card);
+  background: color-mix(in srgb, var(--paper) 55%, var(--card));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--line) 85%, transparent);
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
@@ -258,26 +310,55 @@
   content: "";
   position: absolute;
   left: 3px;
-  top: 10px;
-  bottom: 10px;
-  width: 2px;
-  border-radius: 2px;
+  top: 22%;
+  bottom: 22%;
+  width: 2.5px;
+  border-radius: 999px;
   background: var(--accent);
 }
 .week-slot-cell.is-filled.is-today-col {
-  background: var(--accent-soft);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 28%, var(--line));
   color: var(--ink);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, var(--line));
 }
-.week-slot-cell:active { transform: scale(.97); }
-.week-period-label:active { opacity: .72; }
+/* Highlighted subjects: soft teal wash — quieter than today / accent. */
+.week-slot-cell.is-filled.is-highlight {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--teal) 10%, var(--card));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--teal) 18%, var(--line));
+}
+.week-slot-cell.is-filled.is-highlight::before {
+  background: color-mix(in srgb, var(--teal) 72%, var(--card));
+}
+.week-slot-cell.is-filled.is-highlight.is-today-col {
+  background: color-mix(in srgb, var(--teal) 12%, var(--accent-soft));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--teal) 22%, var(--accent));
+}
+.week-slot-cell.is-filled.is-highlight.is-today-col::before {
+  background: var(--teal);
+}
+.week-slot-cell:active {
+  transform: scale(0.97);
+  background: color-mix(in srgb, var(--control) 62%, var(--card));
+}
+.week-slot-cell.is-filled:active {
+  background: color-mix(in srgb, var(--control) 28%, var(--paper));
+}
+.week-slot-cell.is-filled.is-today-col:active {
+  background: color-mix(in srgb, var(--accent-soft) 70%, var(--control));
+}
+.week-period-label:active { opacity: 0.55; }
 .week-period-label:focus-visible,
 .week-slot-cell:focus-visible,
 .grade-subject-head:focus-visible,
 .grade-score-cell:focus-visible {
-  outline: 2px solid var(--teal); outline-offset: 1px;
+  outline: 2px solid var(--teal);
+  outline-offset: 1px;
+  z-index: 1;
 }
 @media (prefers-reduced-motion: reduce) {
+  .week-period-label,
+  .week-slot-cell { transition: none; }
   .week-slot-cell:active { transform: none; }
 }
 .grade-table { padding: 14px 0 10px; overflow: hidden; }

@@ -70,6 +70,7 @@
 | 节次改名 Sheet | `.course-period-sheet` | 底部 Sheet | 修改固定节次的显示名称。 |
 | 科目编辑 Sheet | `.course-subject-sheet` | 底部 Sheet | 改名或删除科目；至少保留 1 科。 |
 | 课程成绩 Sheet | `.course-grade-sheet` | 底部 Sheet | 录入课程成绩；小字为科目，大字为学生姓名。 |
+| 高亮科目 Sheet | `.course-highlight-sheet` | 底部 Sheet | 配置课表格弱强调关键词；课表「更多」入口。 |
 | 更多菜单 | `.more-menu` | 角弹出 | 顶栏右上角上下文菜单。 |
 | 姓名字号 | `#fontSizePopover.font-size-popover` | 轻量 Popover | 仅网格视图由更多菜单打开的字号控制。 |
 | Toast 提示 | `#toast.toast` | 反馈（非模态） | 顶部短暂提示，不纳入 Sheet 体系。 |
@@ -90,7 +91,7 @@
 | 字号刻度 | `.font-size-popover-scale` | 滑杆两端「小 / 大」。 |
 | 字号持久化键 | `teacher-workbench.student-name-font-size` | 三个受控键之一。 |
 
-关闭栈（高→低）：确认面板 → 课程科目/节次/课表格/成绩 Sheet → 人员编辑/选择 Sheet → 作业名称 → 作业列表 → 学生记录 → 更多菜单 → 姓名字号 → 通用菜单。
+关闭栈（高→低）：确认面板 → 高亮科目 / 课程科目/节次/课表格/成绩 Sheet → 人员编辑/选择 Sheet → 作业名称 → 作业列表 → 学生记录 → 更多菜单 → 姓名字号 → 通用菜单。
 
 ## 6. 座位画布与编辑
 
@@ -118,9 +119,9 @@
 | 行状态 | `.item-status` | 未指派为「未指定」「未排」；已指派显示学生姓名。 |
 | 学生选择 Sheet | `.people-pick-sheet` | 见第 5 节浮层表；从名单指派或清除指派。 |
 | 人员编辑 Sheet | `.people-edit-sheet` | 见第 5 节浮层表；编辑职位/值日文案或删除项。 |
-| 周课表 | `#weekStrip.week-strip` | 周一～周五 × 固定节次的课表矩阵容器。 |
+| 周课表 | `#weekStrip.week-strip` | 周一～周五 × 固定节次的课表矩阵；一屏完整显示、无纵向滚动。 |
 | 课表格 | `.week-slot-cell` | 可轻点编辑的课表格。 |
-| 节次标签 | `.week-period-label` | 可长按改名的节次名。 |
+| 节次标签 | `.week-period-label` | 列上显示缩写（早/1/午/服 等），长按可改完整名称。 |
 | 成绩表 | `#gradeTable.grade-table` | 姓名 + 科目列的成绩矩阵容器。 |
 | 成绩格 | `.grade-score-cell` | 可轻点录入的课程成绩格。 |
 | 科目表头 | `.grade-subject-head` | 可长按编辑的科目列头。 |

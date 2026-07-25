@@ -1,12 +1,13 @@
 /**
  * Sheet / version / course-input diagnostics. Off by default.
  * Enable: 长按左上角菜单约 0.5s  |  连点菜单 3 次  |  ?sheetDebug=1  |  ?courseDebug=1  |  __sheetDebug.toggle()
- * Disable: 再次长按/连点  |  浮层「关」  |  ?sheetDebug=0
+ * Disable: 再次长按/连点  |  条上「×」  |  ?sheetDebug=0
  *
- * courseDebug=1 also expands the log list and tags course-input events for copy/export.
+ * Default UI is a compact top-right chip (build + log count). Tap chip to expand logs.
+ * courseDebug=1 enables tracing but does not force the log list open.
  */
 
-const MAX_ENTRIES = 80;
+const MAX_ENTRIES = 60;
 const MENU_TAP_WINDOW_MS = 1400;
 const MENU_TAP_COUNT = 3;
 const MENU_LONG_PRESS_MS = 520;
@@ -14,11 +15,12 @@ const MENU_LONG_PRESS_MS = 520;
 /** @type {{ t: number, text: string, data?: object }[]} */
 const entries = [];
 let enabled = false;
-let logsOpen = false;
+let expanded = false;
 let panel = null;
+let chipEl = null;
+let bodyEl = null;
 let listEl = null;
 let metaEl = null;
-let logsBtn = null;
 let menuTaps = [];
 let longPressTimer = 0;
 let suppressMenuClick = false;
@@ -54,91 +56,129 @@ function persist(on) {
   }
 }
 
-function metaHtml() {
-  const build = document.documentElement.dataset.twbBuild || '…';
-  return [
-    `<div style="font-size:15px;font-weight:700;letter-spacing:.02em">build ${build}</div>`,
-    `<div style="margin-top:4px;opacity:.85;word-break:break-all">origin ${location.origin}</div>`
-  ].join('');
+function buildId() {
+  return document.documentElement.dataset.twbBuild || '…';
 }
 
-function styleButton(btn, accent = false) {
+function styleChipButton(btn) {
   Object.assign(btn.style, {
     margin: '0',
-    padding: '6px 10px',
+    padding: '4px 8px',
     border: '0',
-    borderRadius: '8px',
-    background: accent ? '#4f7cff' : '#3a465c',
-    color: '#fff',
-    font: '12px/1.2 system-ui, sans-serif',
-    cursor: 'pointer'
+    borderRadius: '999px',
+    background: 'rgba(255,255,255,.12)',
+    color: '#e8eef8',
+    font: '600 11px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+    cursor: 'pointer',
+    pointerEvents: 'auto'
   });
 }
 
 function ensurePanel() {
   if (panel || typeof document === 'undefined') return;
+
   panel = document.createElement('div');
   panel.id = 'sheetDebugPanel';
   panel.setAttribute('aria-live', 'polite');
   panel.innerHTML = [
-    '<div data-hd>',
-    '<strong style="font:600 13px/1.2 system-ui,sans-serif">调试</strong>',
-    '<span data-actions>',
+    '<div data-chip>',
+    '<button type="button" data-act="toggle" data-chip-btn title="展开/收起日志"></button>',
+    '<button type="button" data-act="off" title="关闭调试">×</button>',
+    '</div>',
+    '<div data-body hidden>',
+    '<div data-meta></div>',
+    '<div data-toolbar>',
     '<button type="button" data-act="copy">复制</button>',
     '<button type="button" data-act="clear">清空</button>',
-    '<button type="button" data-act="off">关</button>',
-    '</span>',
     '</div>',
-    '<div data-meta></div>',
-    '<button type="button" data-act="logs" data-logs-btn></button>',
-    '<pre data-list></pre>'
+    '<pre data-list></pre>',
+    '</div>'
   ].join('');
 
   Object.assign(panel.style, {
     position: 'fixed',
-    left: '10px',
-    right: '10px',
-    // Top — bottom sheets / IME actions must stay tappable underneath.
-    top: 'calc(10px + env(safe-area-inset-top, 0px))',
+    top: 'calc(8px + env(safe-area-inset-top, 0px))',
+    right: '8px',
+    left: 'auto',
     bottom: 'auto',
-    maxHeight: '42vh',
     zIndex: '99999',
     display: 'none',
     flexDirection: 'column',
-    gap: '8px',
-    padding: '12px',
-    borderRadius: '14px',
-    background: 'rgba(12, 16, 24, 0.94)',
-    color: '#e8eef8',
-    font: '12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-    boxShadow: '0 10px 32px rgba(0,0,0,.4)',
+    alignItems: 'flex-end',
+    gap: '6px',
+    maxWidth: 'min(320px, calc(100vw - 16px))',
+    pointerEvents: 'none',
+    font: '11px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+    color: '#e8eef8'
+  });
+
+  const chipRow = panel.querySelector('[data-chip]');
+  Object.assign(chipRow.style, {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
     pointerEvents: 'auto'
   });
 
-  const hd = panel.querySelector('[data-hd]');
-  Object.assign(hd.style, {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '8px',
-    flexShrink: '0'
+  chipEl = panel.querySelector('[data-chip-btn]');
+  Object.assign(chipEl.style, {
+    margin: '0',
+    padding: '6px 10px',
+    border: '0',
+    borderRadius: '999px',
+    background: 'rgba(12, 16, 24, 0.88)',
+    color: '#e8eef8',
+    font: '600 11px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+    boxShadow: '0 4px 16px rgba(0,0,0,.28)',
+    cursor: 'pointer',
+    maxWidth: 'min(220px, 70vw)',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap'
   });
 
-  panel.querySelectorAll('[data-actions] button').forEach((btn) => styleButton(btn));
+  const offBtn = panel.querySelector('[data-act="off"]');
+  Object.assign(offBtn.style, {
+    margin: '0',
+    width: '28px',
+    height: '28px',
+    padding: '0',
+    border: '0',
+    borderRadius: '999px',
+    background: 'rgba(12, 16, 24, 0.88)',
+    color: '#e8eef8',
+    font: '600 16px/28px system-ui, sans-serif',
+    boxShadow: '0 4px 16px rgba(0,0,0,.28)',
+    cursor: 'pointer'
+  });
+
+  bodyEl = panel.querySelector('[data-body]');
+  Object.assign(bodyEl.style, {
+    width: 'min(320px, calc(100vw - 16px))',
+    maxHeight: '36vh',
+    display: 'none',
+    flexDirection: 'column',
+    gap: '6px',
+    padding: '8px',
+    borderRadius: '12px',
+    background: 'rgba(12, 16, 24, 0.94)',
+    boxShadow: '0 8px 24px rgba(0,0,0,.35)',
+    pointerEvents: 'auto'
+  });
 
   metaEl = panel.querySelector('[data-meta]');
   Object.assign(metaEl.style, {
-    flexShrink: '0',
-    padding: '10px 12px',
-    borderRadius: '10px',
-    background: 'rgba(79, 124, 255, 0.18)',
-    border: '1px solid rgba(79, 124, 255, 0.35)'
+    opacity: '.85',
+    wordBreak: 'break-all',
+    fontSize: '10px'
   });
-  metaEl.innerHTML = metaHtml();
 
-  logsBtn = panel.querySelector('[data-logs-btn]');
-  styleButton(logsBtn, true);
-  logsBtn.style.width = '100%';
+  const toolbar = panel.querySelector('[data-toolbar]');
+  Object.assign(toolbar.style, {
+    display: 'flex',
+    gap: '6px'
+  });
+  toolbar.querySelectorAll('button').forEach(styleChipButton);
 
   listEl = panel.querySelector('[data-list]');
   Object.assign(listEl.style, {
@@ -148,55 +188,59 @@ function ensurePanel() {
     wordBreak: 'break-word',
     flex: '1',
     minHeight: '0',
-    maxHeight: '28vh',
-    padding: '8px',
-    borderRadius: '10px',
-    background: 'rgba(0,0,0,.25)'
+    maxHeight: '26vh',
+    padding: '6px',
+    borderRadius: '8px',
+    background: 'rgba(0,0,0,.28)',
+    fontSize: '10px'
   });
 
   panel.addEventListener('click', (event) => {
     const act = event.target?.closest?.('[data-act]')?.getAttribute('data-act');
-    if (act === 'clear') {
+    if (act === 'toggle') {
+      expanded = !expanded;
+      render();
+    } else if (act === 'clear') {
       entries.length = 0;
       render();
     } else if (act === 'copy') {
-      const build = document.documentElement.dataset.twbBuild || '';
-      const head = `build ${build}\norigin ${location.origin}\n`;
-      const text = head + entries.map((e) => e.text).join('\n');
-      navigator.clipboard?.writeText(text).catch(() => {});
+      navigator.clipboard?.writeText(dumpText()).catch(() => {});
     } else if (act === 'off') {
       setEnabled(false);
-    } else if (act === 'logs') {
-      logsOpen = !logsOpen;
-      render();
     }
   });
   panel.addEventListener('pointerdown', (event) => event.stopPropagation());
   document.body.appendChild(panel);
 }
 
+function dumpText() {
+  return `build ${buildId()}\norigin ${location.origin}\n` + entries.map((e) => e.text).join('\n');
+}
+
 function refreshMeta() {
   if (!metaEl) return;
-  metaEl.innerHTML = metaHtml();
+  metaEl.textContent = location.origin;
 }
 
 function render() {
-  if (!panel || !listEl || !logsBtn) return;
+  if (!panel || !chipEl || !bodyEl || !listEl) return;
   panel.style.display = enabled ? 'flex' : 'none';
+  chipEl.textContent = `build ${buildId()} · ${entries.length}`;
+  chipEl.title = expanded ? '收起日志' : '展开日志';
   refreshMeta();
-  logsBtn.textContent = logsOpen ? '收起手势日志 ▲' : `手势日志 (${entries.length}) ▼`;
-  listEl.style.display = logsOpen ? 'block' : 'none';
-  if (logsOpen) {
+  bodyEl.style.display = expanded ? 'flex' : 'none';
+  bodyEl.hidden = !expanded;
+  if (expanded) {
     listEl.textContent = entries.length
       ? entries.map((e) => e.text).join('\n')
-      : '（尚无记录：点课表格输入，或打开 Sheet 后轻滑）';
+      : '（尚无记录）';
     listEl.scrollTop = listEl.scrollHeight;
   }
 }
 
 function setEnabled(on) {
   enabled = Boolean(on);
-  if (!enabled) logsOpen = false;
+  if (!enabled) expanded = false;
   persist(enabled);
   ensurePanel();
   render();
@@ -292,10 +336,15 @@ export function logSheetDebug(data) {
   entries.push(entry);
   while (entries.length > MAX_ENTRIES) entries.shift();
   if (data.kind === 'course') {
-    logsOpen = true;
     try { console.info('[course-debug]', data.message || '', data.detail || data); } catch { /* ignore */ }
   }
-  render();
+  // Keep chip count fresh; never auto-expand (covers sheets / IME).
+  if (chipEl) chipEl.textContent = `build ${buildId()} · ${entries.length}`;
+  else render();
+  if (expanded && listEl) {
+    listEl.textContent = entries.map((e) => e.text).join('\n');
+    listEl.scrollTop = listEl.scrollHeight;
+  }
 }
 
 /** Course-input trace: no-op unless debug panel is on. */
@@ -308,14 +357,12 @@ export function initSheetDebug() {
   setEnabled(readBootFlag());
   if (courseBoot) {
     try { globalThis.sessionStorage?.setItem('courseDebug', '1'); } catch { /* ignore */ }
-    logsOpen = true;
-    ensurePanel();
-    render();
-    logCourseDebug('courseDebug boot', 'logs open — tap a schedule cell and type');
+    // Stay collapsed — only enable capture + console.
+    logCourseDebug('courseDebug boot', 'chip only; tap build to open logs');
   }
 
   const observer = new MutationObserver(() => {
-    if (enabled) refreshMeta();
+    if (enabled) render();
   });
   if (typeof document !== 'undefined') {
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-twb-build'] });
@@ -326,19 +373,16 @@ export function initSheetDebug() {
     enable: () => setEnabled(true),
     disable: () => setEnabled(false),
     toggle: () => setEnabled(!enabled),
-    openLogs: () => { logsOpen = true; if (enabled) render(); },
+    openLogs: () => { expanded = true; if (enabled) render(); },
     enableCourse: () => {
       try { globalThis.sessionStorage?.setItem('courseDebug', '1'); } catch { /* ignore */ }
       setEnabled(true);
-      logsOpen = true;
+      expanded = false;
       render();
       logCourseDebug('courseDebug enabled', 'via __sheetDebug.enableCourse()');
     },
     entries: () => entries.slice(),
-    dump: () => {
-      const build = document.documentElement.dataset.twbBuild || '';
-      return `build ${build}\norigin ${location.origin}\n` + entries.map((e) => e.text).join('\n');
-    }
+    dump: dumpText
   };
 
   bindMenuToggle();

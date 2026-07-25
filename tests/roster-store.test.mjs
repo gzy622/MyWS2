@@ -17,7 +17,7 @@ test('默认名单、座位、作业、人员与课程项满足领域不变量',
   assert.ok(state.duties.every((duty) => duty.studentId === null));
   assert.equal(state.periods.length, 10);
   assert.deepEqual(state.periods.map(({ title }) => title), [
-    '早读', '第1节', '第2节', '第3节', '第4节', '午测', '第5节', '第6节', '第7节', '课后服务'
+    '早', '1', '2', '3', '4', '午', '5', '6', '7', '服'
   ]);
   assert.equal(state.scheduleSlots.length, 0);
   assert.equal(state.subjects.length, 3);
@@ -131,7 +131,7 @@ test('恢复默认名单和座位时保留作业，清空全部登记记录并�
   assert.equal(state.duties.length, 3);
   assert.ok(state.roles.every((role) => role.studentId === null));
   assert.ok(state.duties.every((duty) => duty.studentId === null));
-  assert.equal(state.periods[0].title, '早读');
+  assert.equal(state.periods[0].title, '早');
   assert.equal(state.scheduleSlots.length, 0);
   assert.equal(state.subjects.length, 3);
   assert.equal(state.courseGrades.length, 0);

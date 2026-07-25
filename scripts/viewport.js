@@ -10,6 +10,7 @@ const IME_HOST_SELECTOR = [
   '.course-period-sheet',
   '.course-subject-sheet',
   '.course-grade-sheet',
+  '.course-highlight-sheet',
   '.confirm-sheet',
   '.menu-drawer',
   '.more-menu',

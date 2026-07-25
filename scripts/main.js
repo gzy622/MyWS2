@@ -11,6 +11,7 @@ import { initPeopleRenderer } from './people-renderer.js';
 import { initPeopleInteractions } from './people-interactions.js';
 import { initCoursesRenderer } from './courses-renderer.js';
 import { initCoursesInteractions } from './courses-interactions.js';
+import { initHighlightSubjects } from './highlight-subjects.js';
 import { initStudentInteractions } from './student-interactions.js';
 import { initStudentRecord } from './student-record.js';
 import { initAssignments } from './assignments.js';
@@ -32,12 +33,12 @@ initNavigation({ getActiveAssignmentTitle: () => rosterStore.getCurrentAssignmen
 const fontSize = initStudentFontSize();
 initRosterRenderer(rosterStore);
 initPeopleRenderer(rosterStore);
-initCoursesRenderer(rosterStore);
 let studentRecord;
 let assignments;
 let moreSheet;
 let people;
 let courses;
+let highlightSubjects;
 function closeOverlays(except) {
   if (except !== 'people-pick') people?.closePick({ restoreFocus: false });
   if (except !== 'people-edit') people?.closeEdit({ restoreFocus: false });
@@ -45,6 +46,7 @@ function closeOverlays(except) {
   if (except !== 'course-period') courses?.closePeriod({ restoreFocus: false });
   if (except !== 'course-subject') courses?.closeSubject({ restoreFocus: false });
   if (except !== 'course-grade') courses?.closeGrade({ restoreFocus: false });
+  if (except !== 'course-highlight') highlightSubjects?.close({ restoreFocus: false });
   if (except !== 'student-record') studentRecord?.close();
   if (except !== 'assignments') assignments?.close();
   if (except !== 'more') moreSheet?.close({ restoreFocus: false });
@@ -52,6 +54,12 @@ function closeOverlays(except) {
   if (except !== 'font-size') fontSize.close();
   if (except !== 'drawer') closeDrawer({ restoreFocus: false });
 }
+highlightSubjects = initHighlightSubjects({
+  showToast,
+  viewport: appViewport,
+  closeOthers: closeOverlays,
+});
+initCoursesRenderer(rosterStore, highlightSubjects);
 studentRecord = initStudentRecord({ store: rosterStore, showToast, viewport: appViewport, closeOthers: closeOverlays });
 assignments = initAssignments({
   store: rosterStore,
@@ -62,7 +70,15 @@ assignments = initAssignments({
 });
 initStudentInteractions({ store: rosterStore, showToast, openStudentRecord: studentRecord.open });
 export const seatCanvas = initSeatCanvas({ store: rosterStore, showToast, openStudentRecord: studentRecord.open });
-moreSheet = initMoreSheet({ store: rosterStore, showToast, seatCanvas, fontSize, theme, closeOthers: closeOverlays });
+moreSheet = initMoreSheet({
+  store: rosterStore,
+  showToast,
+  seatCanvas,
+  fontSize,
+  theme,
+  closeOthers: closeOverlays,
+  highlightSubjects,
+});
 people = initPeopleInteractions({
   store: rosterStore,
   showToast,
@@ -82,7 +98,7 @@ initHorizontalGestures();
 createSystemBackController({
   closeConfirm: () => moreSheet.closeConfirm(),
   dismissPeople: () => people.dismissBack(),
-  dismissCourses: () => courses.dismissBack(),
+  dismissCourses: () => highlightSubjects.dismissBack() || courses.dismissBack(),
   dismissAssignments: () => assignments.dismissBack(),
   closeStudentRecord: () => studentRecord.close(),
   closeMore: () => moreSheet.close(),

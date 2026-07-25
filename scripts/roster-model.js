@@ -43,17 +43,35 @@ const DEFAULT_DUTIES = [
 ];
 
 const DEFAULT_PERIODS = [
-  { id: 1, title: '早读' },
-  { id: 2, title: '第1节' },
-  { id: 3, title: '第2节' },
-  { id: 4, title: '第3节' },
-  { id: 5, title: '第4节' },
-  { id: 6, title: '午测' },
-  { id: 7, title: '第5节' },
-  { id: 8, title: '第6节' },
-  { id: 9, title: '第7节' },
-  { id: 10, title: '课后服务' }
+  { id: 1, title: '早' },
+  { id: 2, title: '1' },
+  { id: 3, title: '2' },
+  { id: 4, title: '3' },
+  { id: 5, title: '4' },
+  { id: 6, title: '午' },
+  { id: 7, title: '5' },
+  { id: 8, title: '6' },
+  { id: 9, title: '7' },
+  { id: 10, title: '服' }
 ];
+
+/** Compact label for the week-matrix period column (keeps full title in store/sheets). */
+export function formatPeriodColumnLabel(title) {
+  if (typeof title !== 'string') return '';
+  const trimmed = title.trim();
+  const known = {
+    早读: '早',
+    早: '早',
+    午测: '午',
+    午: '午',
+    课后服务: '服',
+    服: '服'
+  };
+  if (known[trimmed]) return known[trimmed];
+  const lesson = trimmed.match(/^第\s*(\d+)\s*节$/);
+  if (lesson) return lesson[1];
+  return trimmed;
+}
 
 const DEFAULT_SUBJECTS = [
   { id: 1, title: '语文' },

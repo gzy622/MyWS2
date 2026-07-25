@@ -20,6 +20,7 @@ const FLICK_MIN_CLOSE_PX = 36;
 /** Top-most first; matches system-back dismiss order for vertical sheets. */
 export const SHEET_STACK_ORDER = [
   'confirm',
+  'course-highlight',
   'course-subject',
   'course-period',
   'course-slot',

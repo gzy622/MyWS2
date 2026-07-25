@@ -67,7 +67,7 @@ export function createSheetGestureBridge() {
     const courseRelated = isInteractiveField(event.target)
       || isCourseControl(event.target)
       || Boolean(event.target.closest?.(
-        '.course-slot-sheet, .course-period-sheet, .course-subject-sheet, .course-grade-sheet, #weekStrip, #gradeTable'
+        '.course-slot-sheet, .course-period-sheet, .course-subject-sheet, .course-grade-sheet, .course-highlight-sheet, #weekStrip, #gradeTable'
       ));
 
     const finish = (result, reason) => {

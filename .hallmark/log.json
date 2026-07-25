@@ -1,6 +1,16 @@
 [
   {
     "date": "2026-07-25",
+    "macrostructure": "Almanac soft-mosaic",
+    "theme": "OriginOS tokens",
+    "enrichment": "none",
+    "brief": "courses week-matrix redesign: soft mosaic cells, band gaps, max one-screen area",
+    "medium": "app-component",
+    "tone": "utilitarian",
+    "genre": "modern-minimal"
+  },
+  {
+    "date": "2026-07-25",
     "macrostructure": "Index-First",
     "theme": "Terminal-like",
     "enrichment": "none",
