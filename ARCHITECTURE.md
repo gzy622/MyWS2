@@ -37,8 +37,11 @@ node lan-server.js
 | `scripts/dom.js` | 固定 DOM 引用与缺失元素检查。 |
 | `scripts/state.js` | UI 瞬时状态来源与状态边界。 |
 | `scripts/navigation.js` | 主页面、子视图和导航渲染及点击。 |
-| `scripts/gestures.js` | 横向拖动与底部导航上滑意图。 |
-| `scripts/drawer.js` | 通用菜单开关与下拉关闭手势。 |
+| `scripts/gestures.js` | 横向切页与纵向 Sheet 手势路由（打开/全屏跟手）。 |
+| `scripts/sheet-drag.js` | 纵向 Sheet 的 progress 控制器与最上层栈。 |
+| `scripts/sheet-gestures.js` | Sheet 纵向跟手与自滚动优先桥接。 |
+| `scripts/focus.js` | 静默焦点与手势后清除顶栏焦点环。 |
+| `scripts/drawer.js` | 通用菜单开关与 Sheet 注册。 |
 | `scripts/toast.js` | 菜单反馈与 Toast 生命周期。 |
 | `scripts/haptics.js` | 统一触觉反馈入口；全部为 `10ms`。Web 使用 `navigator.vibrate`；Capacitor 原生壳使用 `@capacitor/haptics` 的 `vibrate({ duration })`，二者互斥，不双发。 |
 | `scripts/student-font-size.js` | 网格姓名字号控制及字号持久化。 |
@@ -53,21 +56,61 @@ node lan-server.js
 | `scripts/student-record.js` | 学生记录、分数草稿、校验和焦点管理。 |
 | `scripts/assignments.js` | 作业列表及新增、改名、删除流程。 |
 | `scripts/more-sheet.js` | 更多菜单、确认面板与批量操作入口。 |
-| `scripts/viewport.js` | Visual Viewport 与输入法可见区域同步。 |
+| `scripts/viewport.js` | Visual Viewport / 输入法：壳层锁定布局高度，仅当前输入浮层消化键盘 inset。 |
 | `scripts/system-back.js` | 统一处理 Escape 与 Android 系统返回键，按优先级关闭最上层浮层。 |
 | `package.json` / `capacitor.config.json` / `android/` | **可选** Android 打包通道（应用名「教师工作台」、包名 `com.teacherworkbench.app`）。不改变零依赖 LAN Demo 启动方式。 |
 | `scripts/sync-capacitor-www.ps1` | 将 `index.html` / `styles` / `scripts` 同步到 Capacitor `www/`。 |
 | `scripts/deploy-apk.ps1` | 一键同步、打 debug APK，并用 adb 安装到已连接设备。 |
+| `scripts/preview-native.ps1` | 原生壳 Live Reload：启动 LAN 服务并 `cap run android --live-reload`。 |
 | `scripts/main.js` | 初始化编排。 |
 
 ## 可选 Capacitor 打包
 
-日常开发与验收仍以 `node lan-server.js` 为准，无需 npm/Android SDK。需要 APK 时：
+日常开发与验收仍以 `node lan-server.js` 为准，无需 npm/Android SDK。优先用原生壳预览时：
 
-1. 安装 JDK 21+ 与 Android SDK（Platform 35+、Build-Tools），并连接已开启调试的设备。
-2. `npm install`
-3. 一键打包并推送：`npm run deploy:apk`（`scripts/deploy-apk.ps1`：同步 www → `cap sync android` → `assembleDebug` → `adb install -r` → 启动应用）
-4. 仅打包不安装：`npm run build:apk`；产物：`android/app/build/outputs/apk/debug/app-debug.apk`
+1. 安装 JDK 21+、Android SDK，并连接已开启调试的设备；项目根目录执行过 `npm install`。
+2. 双击 `start-native-preview.bat`，或运行 `npm run preview:native`。
+3. 脚本会：同步 `www` → 启动带文件监听的 `lan-server.js` → 用 Live Reload 安装/打开 App；保存 `index.html` / `styles` / `scripts` 后 WebView 应自动刷新。
+4. **无线调试**默认走电脑局域网 IP（跳过常见 VPN 网段，并优先 `192.168.*`）；仅 USB 且要用 `localhost` 时加 `-Usb`。手机与电脑须同一 Wi‑Fi；AndroidManifest 须保留 `android:usesCleartextTraffic="true"`。
+5. 启动时会用 `adb shell curl` 探测 `__health`；失败会黄字警告。完整安装包验收：`npm run deploy:apk`；仅打包：`npm run build:apk`。
+
+### Live Reload 自检
+
+| 检查 | 期望 |
+| --- | --- |
+| 终端打印的地址 | `http://192.168.x.x:8080`（无线）或 `http://localhost:8080`（`-Usb`） |
+| `…/__health` 探测 | `OK: device reached …`；若 WARN 则手机仍可能吃 APK 旧资源 |
+| App 内调试浮层（长按菜单 / 连点菜单 3 次 / `?sheetDebug=1`） | `origin` 与终端 LAN 一致；`build` 与 `npm run code:id` 一致 |
+| 改 `scripts/*.js` 后 | 手机自动刷新；不刷新先看 `__health` / 防火墙 / `-HostAddress` |
+
+### 如何确认手机与电脑代码一致
+
+1. 电脑执行：`npm run code:id`，得到 12 位内容指纹（对 `index.html` + `styles` + `scripts` 哈希）。
+2. 手机打开调试浮层（长按左上角菜单，或连点 3 次，或 `?sheetDebug=1`），看高亮区的 `build`。
+3. **两者相同**即当前 Web 资源与电脑源码一致。
+4. 同时看 `origin=`：局域网地址表示吃 Live Reload；`https://localhost` 一类表示吃 APK 内打包资源（指纹来自上次 `sync:www` / `deploy:apk`）。
+
+LAN 服务也会在启动日志和 `/__health`、`/__build-id` 中返回同一指纹。
+
+仍不稳定时用 `npm run deploy:apk`（把当前源码打进 APK，不依赖局域网加载）。
+
+### 手机同步控制台（推荐日常）
+
+双击根目录 `sync-phone.bat`（或 `npm run sync:phone`）：
+
+1. 启动/复用 LAN 服务；**已安装且手机可达 LAN 时跳过首次打包**（需强制安装用 `-ForceInitialDeploy`）。
+2. 界面顶部显示「下一步」与模式：`LAN 已通` → 按 **`L` 开启热更新**；热更新启动后 **保存即刷新，一般不必按 D**。
+3. 监视 `index.html` / `styles` / `scripts`；日志会按模式提示（热更新 / 需 L / 需 D），不再把「指纹变化」一律说成必须推送。
+4. 快捷键分层：日常 `L` / `H` / `R` / `I` / `Q`；完整安装（较慢）`D` / `A` / `C` / `X` / `S`。
+
+`preview:native` 常用参数（经 npm 传递时写在 `--` 之后）：
+
+- `-Serial <序列号>`：多设备时指定目标
+- `-Lan`：强制用电脑局域网 IP
+- `-Usb`：强制 `localhost` + `adb reverse`
+- `-HostAddress <ip>`：指定 Live Reload 主机地址（多网卡/VPN 时最稳）
+- `-Port <端口>`：默认 `8080`
+- `-NoServer`：假定 LAN 服务已在跑
 
 `deploy:apk` 常用参数（经 npm 传递时写在 `--` 之后）：
 
