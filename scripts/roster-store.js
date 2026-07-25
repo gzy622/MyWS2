@@ -1,9 +1,11 @@
 import {
   cloneRosterState,
+  COURSE_TEXT_MAX_LENGTH,
   createDefaultRosterState,
   isValidRosterState,
   parseScore,
   PEOPLE_TEXT_MAX_LENGTH,
+  SCHEDULE_DAY_COUNT,
   SEAT_COUNT
 } from './roster-model.js';
 
@@ -25,6 +27,13 @@ function cleanNote(value) {
   const note = value.trim();
   if (note.length > PEOPLE_TEXT_MAX_LENGTH) return null;
   return note;
+}
+
+function cleanCourseSubject(value) {
+  if (typeof value !== 'string') return null;
+  const subject = value.trim();
+  if (!subject || subject.length > COURSE_TEXT_MAX_LENGTH) return null;
+  return subject;
 }
 
 function recordKey(assignmentId, studentId) {
@@ -230,7 +239,128 @@ export class RosterStore {
     this.#state.duties = defaults.duties;
     this.#state.nextRoleId = defaults.nextRoleId;
     this.#state.nextDutyId = defaults.nextDutyId;
+    this.#state.periods = defaults.periods;
+    this.#state.scheduleSlots = [];
+    this.#state.subjects = defaults.subjects;
+    this.#state.courseGrades = [];
+    this.#state.nextPeriodId = defaults.nextPeriodId;
+    this.#state.nextSubjectId = defaults.nextSubjectId;
     this.#notify();
+  }
+
+  renamePeriod(periodId, value) {
+    const title = cleanPeopleTitle(value);
+    const period = this.#findPeriod(periodId);
+    if (!period || !title || period.title === title) return false;
+    period.title = title;
+    this.#notify();
+    return true;
+  }
+
+  getScheduleSlot(day, periodId) {
+    if (!this.#isValidScheduleCoord(day, periodId)) return undefined;
+    return this.#state.scheduleSlots.find((slot) => slot.day === day && slot.periodId === periodId)?.subject;
+  }
+
+  setScheduleSlot(day, periodId, value) {
+    if (!this.#isValidScheduleCoord(day, periodId)) return false;
+    const subject = cleanCourseSubject(value);
+    if (!subject) return false;
+    const existing = this.#state.scheduleSlots.find((slot) => slot.day === day && slot.periodId === periodId);
+    if (existing) {
+      if (existing.subject === subject) return true;
+      existing.subject = subject;
+    } else {
+      this.#state.scheduleSlots.push({ day, periodId, subject });
+    }
+    this.#notify();
+    return true;
+  }
+
+  clearScheduleSlot(day, periodId) {
+    if (!this.#isValidScheduleCoord(day, periodId)) return false;
+    const originalLength = this.#state.scheduleSlots.length;
+    this.#state.scheduleSlots = this.#state.scheduleSlots.filter((slot) => (
+      slot.day !== day || slot.periodId !== periodId
+    ));
+    const changed = originalLength !== this.#state.scheduleSlots.length;
+    if (changed) this.#notify();
+    return changed;
+  }
+
+  clearAllScheduleSlots() {
+    if (!this.#state.scheduleSlots.length) return false;
+    this.#state.scheduleSlots = [];
+    this.#notify();
+    return true;
+  }
+
+  getCourseGrade(studentId, subjectId) {
+    if (!this.#hasStudent(studentId) || !this.#findSubject(subjectId)) return undefined;
+    return this.#state.courseGrades.find((grade) => (
+      grade.subjectId === subjectId && grade.studentId === studentId
+    ))?.value;
+  }
+
+  setCourseGrade(studentId, subjectId, value) {
+    if (!this.#hasStudent(studentId) || !this.#findSubject(subjectId)) return 'invalid';
+    const scoreValue = parseScore(value);
+    if (scoreValue === null) return 'invalid';
+    const existing = this.#state.courseGrades.find((grade) => (
+      grade.subjectId === subjectId && grade.studentId === studentId
+    ));
+    if (existing) existing.value = scoreValue;
+    else this.#state.courseGrades.push({ subjectId, studentId, value: scoreValue });
+    this.#notify();
+    return 'saved';
+  }
+
+  clearCourseGrade(studentId, subjectId) {
+    if (!this.#hasStudent(studentId) || !this.#findSubject(subjectId)) return false;
+    const originalLength = this.#state.courseGrades.length;
+    this.#state.courseGrades = this.#state.courseGrades.filter((grade) => (
+      grade.subjectId !== subjectId || grade.studentId !== studentId
+    ));
+    const changed = originalLength !== this.#state.courseGrades.length;
+    if (changed) this.#notify();
+    return changed;
+  }
+
+  clearAllCourseGrades() {
+    if (!this.#state.courseGrades.length) return false;
+    this.#state.courseGrades = [];
+    this.#notify();
+    return true;
+  }
+
+  addSubject(value = '新科目') {
+    const title = cleanPeopleTitle(value);
+    if (!title || this.#state.nextSubjectId >= Number.MAX_SAFE_INTEGER) return null;
+    const id = this.#state.nextSubjectId + 1;
+    const subject = { id, title };
+    this.#state.subjects.push(subject);
+    this.#state.nextSubjectId = id;
+    this.#notify();
+    return { ...subject };
+  }
+
+  renameSubject(subjectId, value) {
+    const title = cleanPeopleTitle(value);
+    const subject = this.#findSubject(subjectId);
+    if (!subject || !title || subject.title === title) return false;
+    subject.title = title;
+    this.#notify();
+    return true;
+  }
+
+  deleteSubject(subjectId) {
+    if (this.#state.subjects.length <= 1) return false;
+    const index = this.#state.subjects.findIndex((subject) => subject.id === subjectId);
+    if (index < 0) return false;
+    this.#state.subjects.splice(index, 1);
+    this.#state.courseGrades = this.#state.courseGrades.filter((grade) => grade.subjectId !== subjectId);
+    this.#notify();
+    return true;
   }
 
   assignRole(roleId, studentId) {
@@ -391,6 +521,23 @@ export class RosterStore {
   #findDuty(dutyId) {
     if (!Number.isSafeInteger(dutyId)) return null;
     return this.#state.duties.find((duty) => duty.id === dutyId) ?? null;
+  }
+
+  #findPeriod(periodId) {
+    if (!Number.isSafeInteger(periodId)) return null;
+    return this.#state.periods.find((period) => period.id === periodId) ?? null;
+  }
+
+  #findSubject(subjectId) {
+    if (!Number.isSafeInteger(subjectId)) return null;
+    return this.#state.subjects.find((subject) => subject.id === subjectId) ?? null;
+  }
+
+  #isValidScheduleCoord(day, periodId) {
+    return Number.isInteger(day)
+      && day >= 0
+      && day < SCHEDULE_DAY_COUNT
+      && Boolean(this.#findPeriod(periodId));
   }
 
   #hasStudent(studentId) {

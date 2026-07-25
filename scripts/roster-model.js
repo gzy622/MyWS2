@@ -1,9 +1,15 @@
-export const ROSTER_SCHEMA_VERSION = 2;
+export const ROSTER_SCHEMA_VERSION = 3;
+export const ROSTER_SCHEMA_VERSION_V2 = 2;
 export const ROSTER_LEGACY_SCHEMA_VERSION = 1;
 export const SEAT_COLUMNS = 13;
 export const SEAT_ROWS = 8;
 export const SEAT_COUNT = SEAT_COLUMNS * SEAT_ROWS;
 export const PEOPLE_TEXT_MAX_LENGTH = 40;
+export const COURSE_TEXT_MAX_LENGTH = PEOPLE_TEXT_MAX_LENGTH;
+export const SCHEDULE_DAY_COUNT = 5;
+export const PERIOD_COUNT = 10;
+
+export const SCHEDULE_DAY_LABELS = ['一', '二', '三', '四', '五'];
 
 const DEFAULT_STUDENT_NAMES = [
   '赵予安', '钱书宁', '孙知远', '李念初', '周星禾', '吴乐言', '郑清晏', '王向晚',
@@ -36,6 +42,25 @@ const DEFAULT_DUTIES = [
   { id: 3, title: '周五', note: '大扫除', studentId: null }
 ];
 
+const DEFAULT_PERIODS = [
+  { id: 1, title: '早读' },
+  { id: 2, title: '第1节' },
+  { id: 3, title: '第2节' },
+  { id: 4, title: '第3节' },
+  { id: 5, title: '第4节' },
+  { id: 6, title: '午测' },
+  { id: 7, title: '第5节' },
+  { id: 8, title: '第6节' },
+  { id: 9, title: '第7节' },
+  { id: 10, title: '课后服务' }
+];
+
+const DEFAULT_SUBJECTS = [
+  { id: 1, title: '语文' },
+  { id: 2, title: '数学' },
+  { id: 3, title: '英语' }
+];
+
 function hasPositiveId(id) {
   return Number.isSafeInteger(id) && id > 0;
 }
@@ -53,6 +78,13 @@ function isValidPeopleNote(note) {
     && note.length <= PEOPLE_TEXT_MAX_LENGTH;
 }
 
+function isValidCourseSubjectText(subject) {
+  return typeof subject === 'string'
+    && subject.trim() === subject
+    && subject
+    && subject.length <= COURSE_TEXT_MAX_LENGTH;
+}
+
 function isValidStudentRef(studentId, studentIdSet) {
   return studentId === null || (hasPositiveId(studentId) && studentIdSet.has(studentId));
 }
@@ -63,6 +95,14 @@ export function createDefaultRoles() {
 
 export function createDefaultDuties() {
   return DEFAULT_DUTIES.map((duty) => ({ ...duty }));
+}
+
+export function createDefaultPeriods() {
+  return DEFAULT_PERIODS.map((period) => ({ ...period }));
+}
+
+export function createDefaultSubjects() {
+  return DEFAULT_SUBJECTS.map((subject) => ({ ...subject }));
 }
 
 export function cloneRosterState(state) {
@@ -78,7 +118,13 @@ export function cloneRosterState(state) {
     roles: state.roles.map((role) => ({ ...role })),
     duties: state.duties.map((duty) => ({ ...duty })),
     nextRoleId: state.nextRoleId,
-    nextDutyId: state.nextDutyId
+    nextDutyId: state.nextDutyId,
+    periods: state.periods.map((period) => ({ ...period })),
+    scheduleSlots: state.scheduleSlots.map((slot) => ({ ...slot })),
+    subjects: state.subjects.map((subject) => ({ ...subject })),
+    courseGrades: state.courseGrades.map((grade) => ({ ...grade })),
+    nextPeriodId: state.nextPeriodId,
+    nextSubjectId: state.nextSubjectId
   };
 }
 
@@ -99,7 +145,13 @@ export function createDefaultRosterState() {
     roles: createDefaultRoles(),
     duties: createDefaultDuties(),
     nextRoleId: 4,
-    nextDutyId: 3
+    nextDutyId: 3,
+    periods: createDefaultPeriods(),
+    scheduleSlots: [],
+    subjects: createDefaultSubjects(),
+    courseGrades: [],
+    nextPeriodId: 10,
+    nextSubjectId: 3
   };
 }
 
@@ -160,17 +212,7 @@ function isValidCoreRosterFields(value) {
     && scores.every((score) => assignmentIdSet.has(score.assignmentId) && studentIdSet.has(score.studentId) && isScoreValue(score.value) && submissionKeySet.has(key(score)));
 }
 
-export function isValidLegacyRosterStateV1(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  if (value.schemaVersion !== ROSTER_LEGACY_SCHEMA_VERSION) return false;
-  return isValidCoreRosterFields(value);
-}
-
-export function isValidRosterState(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  if (value.schemaVersion !== ROSTER_SCHEMA_VERSION) return false;
-  if (!isValidCoreRosterFields(value)) return false;
-
+function isValidPeopleFields(value) {
   const { roles, duties, nextRoleId, nextDutyId, students } = value;
   if (
     !Array.isArray(roles) || !roles.length
@@ -202,15 +244,127 @@ export function isValidRosterState(value) {
     && nextDutyId >= Math.max(...dutyIds);
 }
 
+function isValidCoursesFields(value) {
+  const {
+    periods, scheduleSlots, subjects, courseGrades,
+    nextPeriodId, nextSubjectId, students
+  } = value;
+  if (
+    !Array.isArray(periods) || periods.length !== PERIOD_COUNT
+    || !Array.isArray(scheduleSlots)
+    || !Array.isArray(subjects) || !subjects.length
+    || !Array.isArray(courseGrades)
+    || !Number.isSafeInteger(nextPeriodId) || !Number.isSafeInteger(nextSubjectId)
+  ) return false;
+
+  if (!periods.every((period) => (
+    period
+    && hasPositiveId(period.id)
+    && isValidPeopleTitle(period.title)
+  ))) return false;
+
+  if (!subjects.every((subject) => (
+    subject
+    && hasPositiveId(subject.id)
+    && isValidPeopleTitle(subject.title)
+  ))) return false;
+
+  const periodIds = periods.map(({ id }) => id);
+  const subjectIds = subjects.map(({ id }) => id);
+  const unique = (items) => new Set(items).size === items.length;
+  if (!unique(periodIds) || !unique(subjectIds)) return false;
+  if (nextPeriodId < Math.max(...periodIds) || nextSubjectId < Math.max(...subjectIds)) return false;
+
+  const periodIdSet = new Set(periodIds);
+  const subjectIdSet = new Set(subjectIds);
+  const studentIdSet = new Set(students.map(({ id }) => id));
+  const slotKeys = scheduleSlots.map((slot) => `${slot.day}:${slot.periodId}`);
+  const gradeKeys = courseGrades.map((grade) => `${grade.subjectId}:${grade.studentId}`);
+
+  if (!unique(slotKeys) || !unique(gradeKeys)) return false;
+
+  if (!scheduleSlots.every((slot) => (
+    slot
+    && Number.isInteger(slot.day)
+    && slot.day >= 0
+    && slot.day < SCHEDULE_DAY_COUNT
+    && hasPositiveId(slot.periodId)
+    && periodIdSet.has(slot.periodId)
+    && isValidCourseSubjectText(slot.subject)
+  ))) return false;
+
+  return courseGrades.every((grade) => (
+    grade
+    && hasPositiveId(grade.subjectId)
+    && subjectIdSet.has(grade.subjectId)
+    && hasPositiveId(grade.studentId)
+    && studentIdSet.has(grade.studentId)
+    && isScoreValue(grade.value)
+  ));
+}
+
+export function isValidLegacyRosterStateV1(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  if (value.schemaVersion !== ROSTER_LEGACY_SCHEMA_VERSION) return false;
+  return isValidCoreRosterFields(value);
+}
+
+export function isValidRosterStateV2(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  if (value.schemaVersion !== ROSTER_SCHEMA_VERSION_V2) return false;
+  return isValidCoreRosterFields(value) && isValidPeopleFields(value);
+}
+
+export function isValidRosterState(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  if (value.schemaVersion !== ROSTER_SCHEMA_VERSION) return false;
+  return isValidCoreRosterFields(value)
+    && isValidPeopleFields(value)
+    && isValidCoursesFields(value);
+}
+
+function withCourseDefaults(base) {
+  const defaults = createDefaultRosterState();
+  return {
+    ...base,
+    schemaVersion: ROSTER_SCHEMA_VERSION,
+    periods: defaults.periods.map((period) => ({ ...period })),
+    scheduleSlots: [],
+    subjects: defaults.subjects.map((subject) => ({ ...subject })),
+    courseGrades: [],
+    nextPeriodId: defaults.nextPeriodId,
+    nextSubjectId: defaults.nextSubjectId
+  };
+}
+
 export function migrateRosterStateToCurrent(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+
   if (value.schemaVersion === ROSTER_SCHEMA_VERSION) {
     return isValidRosterState(value) ? cloneRosterState(value) : null;
   }
+
+  if (value.schemaVersion === ROSTER_SCHEMA_VERSION_V2) {
+    if (!isValidRosterStateV2(value)) return null;
+    const migrated = withCourseDefaults({
+      students: value.students.map((student) => ({ ...student })),
+      seats: value.seats.map((seat) => ({ ...seat })),
+      assignments: value.assignments.map((assignment) => ({ ...assignment })),
+      activeAssignmentId: value.activeAssignmentId,
+      submissions: value.submissions.map((submission) => ({ ...submission })),
+      scores: value.scores.map((score) => ({ ...score })),
+      nextAssignmentId: value.nextAssignmentId,
+      roles: value.roles.map((role) => ({ ...role })),
+      duties: value.duties.map((duty) => ({ ...duty })),
+      nextRoleId: value.nextRoleId,
+      nextDutyId: value.nextDutyId
+    });
+    return isValidRosterState(migrated) ? migrated : null;
+  }
+
   if (!isValidLegacyRosterStateV1(value)) return null;
   const defaults = createDefaultRosterState();
-  const migrated = {
-    schemaVersion: ROSTER_SCHEMA_VERSION,
+  const migrated = withCourseDefaults({
     students: value.students.map((student) => ({ ...student })),
     seats: value.seats.map((seat) => ({ ...seat })),
     assignments: value.assignments.map((assignment) => ({ ...assignment })),
@@ -222,6 +376,6 @@ export function migrateRosterStateToCurrent(value) {
     duties: defaults.duties.map((duty) => ({ ...duty })),
     nextRoleId: defaults.nextRoleId,
     nextDutyId: defaults.nextDutyId
-  };
+  });
   return isValidRosterState(migrated) ? migrated : null;
 }
