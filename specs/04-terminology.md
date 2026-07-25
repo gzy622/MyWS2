@@ -16,6 +16,7 @@
 | 主页面 | `.page[data-page]` | 页面轨道中的一个纵向滚动容器。 |
 | 页面内容内层 | `.page-inner` | 单个主页面的内容排版层。 |
 | 子视图切换器 | `.segments` | 人员页和课程页中的两项分段控件；登记页不显示。 |
+| 分段滑块 | `.segment-glider` | 跟随当前子视图移动的白色选中底。 |
 | 子视图按钮 | `.segment[data-sub]` | 切换所属页面子视图的按钮。 |
 | 子视图内容 | `.subview[data-view]` | 每个主页面的两个内容组之一。 |
 
@@ -141,7 +142,7 @@
 | 业务状态 | `roster-store.js` | 学生、座位、作业、提交和分数的唯一可写来源。 |
 | 活动浮层 | `state.activeOverlay` | 当前登记业务浮层（`assignments` / `student-record` / `more` / `confirm`）；与通用菜单互斥且不持久化。 |
 | 座位编辑态 | `state.seatEditing` | 当前会话中座位卡可移动/交换的状态。 |
-| 拖动中 | `.pages.dragging`、`.nav-glider.dragging` 或 `.menu-drawer.dragging` | 手势跟手阶段，临时取消过渡动画。 |
+| 拖动中 | `.pages.dragging`、`.nav-glider.dragging`、`.segment-glider.dragging` 或 `.menu-drawer.dragging` | 手势跟手阶段，临时取消过渡动画。 |
 | 通用菜单打开态 | `state.drawerOpen`、`.app.drawer-open` | 通用菜单已打开（状态字段名保留 `drawerOpen`）。 |
 | Toast 显示态 | `#toast.toast.show` | Toast 正在显示。 |
 | 导航点击抑制态 | `state.suppressNavClick` | 有效拖动结束后的短暂误触保护。 |

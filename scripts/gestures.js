@@ -1,6 +1,12 @@
 import { elements } from './dom.js';
-import { PAGE_COUNT, state, clampPage, setCurrentPage } from './state.js';
-import { renderDrag, renderNavigation, renderNavDrag } from './navigation.js';
+import { PAGE_COUNT, state, clampPage, setCurrentPage, setSubview } from './state.js';
+import {
+  renderDrag,
+  renderNavigation,
+  renderNavDrag,
+  renderSegmentDrag,
+  getSegmentGliderWidth
+} from './navigation.js';
 import { haptic, Haptic } from './haptics.js';
 import { getTopSheet, isAnySheetDragging } from './sheet-drag.js';
 import { createSheetGestureBridge } from './sheet-gestures.js';
@@ -15,6 +21,10 @@ const VELOCITY_WINDOW_MS = 100;
 const VELOCITY_STALE_MS = 80;
 /** Keep click blocked until after the synthetic click from touch/pointerup. */
 const CLICK_SUPPRESS_MS = 450;
+
+function clampSubview(index) {
+  return Math.max(0, Math.min(1, index));
+}
 
 export function initHorizontalGestures() {
   const sheets = createSheetGestureBridge();
@@ -36,6 +46,7 @@ export function initHorizontalGestures() {
   let scrollPage = null;
   let startScrollTop = 0;
   let isNav = false;
+  let isSegments = false;
   let blockGestureClick = false;
   let clickSuppressTimer = 0;
   let lastSegment = 0;
@@ -100,8 +111,9 @@ export function initHorizontalGestures() {
     velocityX = 0;
     velocityY = 0;
     velocityTrail = [{ t: event.timeStamp, x: event.clientX, y: event.clientY }];
-    lastSegment = state.currentPage;
     isNav = Boolean(event.target.closest?.('#nav'));
+    isSegments = !isNav && Boolean(event.target.closest?.('.segments'));
+    lastSegment = isSegments ? state.subviews[state.currentPage] : state.currentPage;
     scrollPage = isNav ? null : elements.pageElements[state.currentPage];
     startScrollTop = scrollPage?.scrollTop || 0;
   });
@@ -152,12 +164,27 @@ export function initHorizontalGestures() {
 
     event.preventDefault();
     let resistedOffset = deltaX;
-    const isPastStart = state.currentPage === 0 && (isNav ? deltaX < 0 : deltaX > 0);
-    const isPastEnd = state.currentPage === PAGE_COUNT - 1 && (isNav ? deltaX > 0 : deltaX < 0);
+    const currentSub = state.subviews[state.currentPage];
+    const isPastStart = isSegments
+      ? currentSub === 0 && deltaX < 0
+      : state.currentPage === 0 && (isNav ? deltaX < 0 : deltaX > 0);
+    const isPastEnd = isSegments
+      ? currentSub === 1 && deltaX > 0
+      : state.currentPage === PAGE_COUNT - 1 && (isNav ? deltaX > 0 : deltaX < 0);
     if (isPastStart || isPastEnd) {
       resistedOffset *= EDGE_RESISTANCE;
     }
-    if (isNav) {
+    if (isSegments) {
+      renderSegmentDrag(resistedOffset);
+      const segmentWidth = getSegmentGliderWidth();
+      if (segmentWidth > 0) {
+        const segment = clampSubview(Math.round(currentSub + resistedOffset / segmentWidth));
+        if (segment !== lastSegment) {
+          lastSegment = segment;
+          haptic(Haptic.light);
+        }
+      }
+    } else if (isNav) {
       renderNavDrag(resistedOffset);
       const navSegmentWidth = elements.glider.offsetWidth || elements.nav.clientWidth / PAGE_COUNT;
       if (navSegmentWidth > 0) {
@@ -193,7 +220,25 @@ export function initHorizontalGestures() {
       const passedDistance = Math.abs(deltaX) > distanceThreshold;
       const passedFlick = Math.abs(deltaX) > SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_VELOCITY;
 
-      if (passedDistance || passedFlick) {
+      if (isSegments) {
+        const pageIndex = state.currentPage;
+        const currentSub = state.subviews[pageIndex];
+        const segmentWidth = getSegmentGliderWidth(pageIndex);
+        let resistedOffset = deltaX;
+        if ((currentSub === 0 && deltaX < 0) || (currentSub === 1 && deltaX > 0)) {
+          resistedOffset *= EDGE_RESISTANCE;
+        }
+        let nextSub = currentSub;
+        if (passedDistance || passedFlick) {
+          const directionDelta = passedDistance ? deltaX : projectedDelta;
+          nextSub = passedDistance
+            ? clampSubview(Math.round(currentSub + resistedOffset / segmentWidth))
+            : clampSubview(currentSub + Math.sign(directionDelta));
+        } else {
+          nextSub = clampSubview(Math.round(currentSub + resistedOffset / segmentWidth));
+        }
+        setSubview(pageIndex, nextSub);
+      } else if (passedDistance || passedFlick) {
         const directionDelta = passedDistance ? deltaX : projectedDelta;
         const navSegmentWidth = elements.glider.offsetWidth || elements.nav.clientWidth / PAGE_COUNT;
         const navPageDelta = passedDistance
@@ -207,6 +252,8 @@ export function initHorizontalGestures() {
       renderNavigation();
     }
 
+    isNav = false;
+    isSegments = false;
     claim = null;
 
     // Suppress the trailing click after touch drag/sheet scrub (do not clear via microtask).

@@ -54,7 +54,7 @@
 以下 selector/属性被脚本依赖，修改结构时必须保留语义和唯一性：
 
 - ID：`#app`、`#viewport`、`#pages`、`#nav`、`#glider`、`#topbarTitle`、`#topbarTitleLabel`、`#fontSizePopover`、`#studentGrid`、`#studentFontSize`、`#studentFontSizeValue`、`#menuDrawer`、`#menuDrawerHandle`、`#menuDrawerBuild`、`#menuButton`、`#moreButton`、`#closeMenuDrawer`、`#scrim`、`#toast`。
-- Class：`.page`、`.nav-btn`、`.segment`、`.subview`、`.student-grid`、`.student-card`、`.subdots i`、`.menu-item`、`.menu-drawer`、`.student-record-sheet`、`.confirm-sheet`、`.assignment-sheet`、`.assignment-name-sheet`、`.more-menu`。
+- Class：`.page`、`.nav-btn`、`.segment`、`.segment-glider`、`.subview`、`.student-grid`、`.student-card`、`.subdots i`、`.menu-item`、`.menu-drawer`、`.student-record-sheet`、`.confirm-sheet`、`.assignment-sheet`、`.assignment-name-sheet`、`.more-menu`。
 - Data：`data-page`、`data-index`、`data-sub`、`data-view`、`data-action`，以及学生格可选的 `data-score`。
 
 索引必须是从 0 开始的连续整数，并保持“页面—导航—状态数组”一一对应。

@@ -1,10 +1,21 @@
 .segments {
+  position: relative;
   width: 100%; height: 40px; border: 0; padding: 2px; border-radius: 999px;
   background: var(--control); display: grid; grid-template-columns: 1fr 1fr; gap: 2px;
   margin-bottom: 20px;
 }
-.segment { border: 0; background: transparent; border-radius: 999px; padding: 0 10px; font-weight: 600; font-size: 15px; cursor: pointer; }
-.segment.active { color: var(--ink); background: var(--card); box-shadow: var(--shadow-soft); }
+.segment-glider {
+  position: absolute; z-index: 0; top: 2px; bottom: 2px; left: 2px;
+  width: calc((100% - 4px) / 2); border-radius: 999px;
+  background: var(--card); box-shadow: var(--shadow-soft);
+  transition: transform .25s var(--ease); will-change: transform; pointer-events: none;
+}
+.segment-glider.dragging { transition: none; }
+.segment {
+  position: relative; z-index: 1; border: 0; background: transparent; border-radius: 999px;
+  padding: 0 10px; font-weight: 600; font-size: 15px; cursor: pointer; color: var(--muted);
+}
+.segment.active { color: var(--ink); }
 .subview { display: none; animation: rise .35s var(--ease); }
 .subview.active { display: block; }
 .page[data-page="1"] .page-inner {

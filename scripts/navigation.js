@@ -16,6 +16,10 @@ function directGliderTransform(offsetPx = 0) {
   return `translate3d(calc(${state.currentPage * 100}% + ${offsetPx}px), 0, 0)`;
 }
 
+function segmentGliderTransform(subIndex, offsetPx = 0) {
+  return `translate3d(calc(${subIndex * 100}% + ${offsetPx}px), 0, 0)`;
+}
+
 export function renderNavigation({ animate = true } = {}) {
   elements.pages.classList.toggle('dragging', !animate);
   elements.glider.classList.toggle('dragging', !animate);
@@ -44,6 +48,11 @@ export function renderNavigation({ animate = true } = {}) {
     page.querySelectorAll('.segment').forEach((segment, index) => {
       segment.classList.toggle('active', index === activeSubview);
     });
+    const segmentGlider = page.querySelector('.segment-glider');
+    if (segmentGlider) {
+      segmentGlider.classList.toggle('dragging', !animate);
+      segmentGlider.style.transform = segmentGliderTransform(activeSubview);
+    }
     page.querySelectorAll('.subview').forEach((view, index) => {
       view.classList.toggle('active', index === activeSubview);
     });
@@ -69,6 +78,22 @@ export function renderNavDrag(offsetPx) {
   elements.glider.classList.add('dragging');
   elements.pages.style.transform = pageTransform(pageOffset);
   elements.glider.style.transform = directGliderTransform(offsetPx);
+}
+
+export function renderSegmentDrag(offsetPx) {
+  const page = elements.pageElements[state.currentPage];
+  const glider = page?.querySelector('.segment-glider');
+  if (!glider) return;
+  glider.classList.add('dragging');
+  glider.style.transform = segmentGliderTransform(state.subviews[state.currentPage], offsetPx);
+}
+
+export function getSegmentGliderWidth(pageIndex = state.currentPage) {
+  const page = elements.pageElements[pageIndex];
+  const glider = page?.querySelector('.segment-glider');
+  if (glider?.offsetWidth) return glider.offsetWidth;
+  const track = page?.querySelector('.segments');
+  return track ? Math.max(1, (track.clientWidth - 4) / 2) : 1;
 }
 
 export function setPage(index) {
