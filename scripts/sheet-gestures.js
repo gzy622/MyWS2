@@ -8,6 +8,7 @@ import {
 } from './sheet-drag.js';
 import { haptic, Haptic } from './haptics.js';
 import { blurIfSheetChrome } from './focus.js';
+import { describeDebugTarget, isSheetDebugEnabled, logCourseDebug } from './sheet-debug.js';
 
 const REGISTER_PAGE_INDEX = 1;
 const GRID_SUBVIEW_INDEX = 0;
@@ -19,7 +20,29 @@ function isRegisterGrid() {
 
 function isInteractiveField(target) {
   if (!(target instanceof Element)) return false;
-  return Boolean(target.closest('input, textarea, select, [contenteditable="true"]'));
+  if (target.closest('input, textarea, select, [contenteditable="true"]')) return true;
+  // Android WebView often hit-tests label / field chrome instead of the <input>.
+  // Claiming those as sheet drags steals the tap and blocks the soft keyboard.
+  const field = target.closest('label, .course-edit-field, .people-edit-field, .assignment-name-field');
+  return Boolean(field?.querySelector('input, textarea, select, [contenteditable="true"]'));
+}
+
+/** Course-page controls that open editors — must not start page/sheet scrub (kills click + IME). */
+function isCourseControl(target) {
+  if (!(target instanceof Element)) return false;
+  return Boolean(target.closest(
+    '.week-slot-cell, .week-period-label, .grade-score-cell, .grade-subject-head'
+  ));
+}
+
+/** Buttons/links inside the presented sheet — scrubbing them swallows the click (Save appears dead). */
+function isSheetActionControl(target, sheet) {
+  if (!(target instanceof Element) || !sheet) return false;
+  const root = sheet.layer || sheet.panel;
+  if (!root?.contains(target)) return false;
+  return Boolean(target.closest(
+    'button, a[href], [role="button"], .student-score-keypad [data-score-key]'
+  ));
 }
 
 /**
@@ -40,10 +63,25 @@ export function createSheetGestureBridge() {
    * @returns {'sheet' | 'blocked' | null}
    */
   function claimPointerDown(event) {
-    if (event.button > 0) return 'blocked';
-    if (state.fontSizePopoverOpen) return 'blocked';
-    if (state.activeOverlay === 'more') return 'blocked';
-    if (isInteractiveField(event.target)) return 'blocked';
+    const hit = describeDebugTarget(event.target);
+    const courseRelated = isInteractiveField(event.target)
+      || isCourseControl(event.target)
+      || Boolean(event.target.closest?.(
+        '.course-slot-sheet, .course-period-sheet, .course-subject-sheet, .course-grade-sheet, #weekStrip, #gradeTable'
+      ));
+
+    const finish = (result, reason) => {
+      if (courseRelated && isSheetDebugEnabled()) {
+        logCourseDebug('gesture claim', `${result ?? 'null'} · ${reason} · hit=${hit} overlay=${state.activeOverlay ?? 'none'}`);
+      }
+      return result;
+    };
+
+    if (event.button > 0) return finish('blocked', 'button>0');
+    if (state.fontSizePopoverOpen) return finish('blocked', 'fontSizePopover');
+    if (state.activeOverlay === 'more') return finish('blocked', 'more');
+    if (isInteractiveField(event.target)) return finish('blocked', 'interactiveField');
+    if (isCourseControl(event.target)) return finish('blocked', 'courseControl');
 
     // Drop any leftover topbar focus ring before a sheet gesture starts.
     if (document.activeElement instanceof HTMLElement
@@ -53,8 +91,14 @@ export function createSheetGestureBridge() {
 
     const top = getTopSheet();
     if (top) {
+      // Save / Cancel / keypad must receive the click; do not start Y-scrub on them.
+      if (isSheetActionControl(event.target, top)) {
+        return finish('blocked', `sheetAction top=${top.id}`);
+      }
       // Native-scroll ports keep browser momentum; do not claim the pointer.
-      if (findScrollPort(event.target, top.getNativeScrollPorts?.() ?? [])) return null;
+      if (findScrollPort(event.target, top.getNativeScrollPorts?.() ?? [])) {
+        return finish(null, `nativeScroll top=${top.id}`);
+      }
 
       const scrollPort = findScrollPort(event.target, top.getScrollPorts());
       session = {
@@ -67,10 +111,10 @@ export function createSheetGestureBridge() {
         sheetLocked: false,
         sheetStartClientY: 0
       };
-      return 'sheet';
+      return finish('sheet', `scrub top=${top.id} scrollPort=${Boolean(scrollPort)}`);
     }
 
-    if (event.target.closest?.('.seat-viewport')) return 'blocked';
+    if (event.target.closest?.('.seat-viewport')) return finish('blocked', 'seatViewport');
 
     if (isRegisterGrid() || event.target.closest?.('#nav')) {
       session = {
@@ -85,10 +129,10 @@ export function createSheetGestureBridge() {
         sheetLocked: false,
         sheetStartClientY: 0
       };
-      return 'sheet';
+      return finish('sheet', 'open-from-grid/nav');
     }
 
-    return null;
+    return finish(null, 'no-claim');
   }
 
   function lockSheet(clientY) {

@@ -66,7 +66,11 @@
 | 作业名称 | `.assignment-name-sheet` | 顶部 Sheet（二级） | 新增或改名共用的名称输入层；小字「作业」，改名大字「修改名称」、新增大字「新增」；不占 `activeOverlay`。 |
 | 学生选择 Sheet | `.people-pick-sheet` | 底部 Sheet | 从名单指派或清除指派；小字「班干」/「值日」，大字为该项标题。 |
 | 人员编辑 Sheet | `.people-edit-sheet` | 底部 Sheet | 编辑职位/值日文案或删除项；小字「班干」/「值日」，大字为该项标题。 |
-| 更多菜单 | `.more-menu` | 角弹出 | 登记页右上角上下文菜单。 |
+| 课表格 Sheet | `.course-slot-sheet` | 底部 Sheet | 编辑某一格科目文案或清除；小字「课表」，大字「周X · 节次」。 |
+| 节次改名 Sheet | `.course-period-sheet` | 底部 Sheet | 修改固定节次的显示名称。 |
+| 科目编辑 Sheet | `.course-subject-sheet` | 底部 Sheet | 改名或删除科目；至少保留 1 科。 |
+| 课程成绩 Sheet | `.course-grade-sheet` | 底部 Sheet | 录入课程成绩；小字为科目，大字为学生姓名。 |
+| 更多菜单 | `.more-menu` | 角弹出 | 顶栏右上角上下文菜单。 |
 | 姓名字号 | `#fontSizePopover.font-size-popover` | 轻量 Popover | 仅网格视图由更多菜单打开的字号控制。 |
 | Toast 提示 | `#toast.toast` | 反馈（非模态） | 顶部短暂提示，不纳入 Sheet 体系。 |
 
@@ -86,7 +90,7 @@
 | 字号刻度 | `.font-size-popover-scale` | 滑杆两端「小 / 大」。 |
 | 字号持久化键 | `teacher-workbench.student-name-font-size` | 三个受控键之一。 |
 
-关闭栈（高→低）：确认面板 → 作业名称 → 作业列表 → 学生记录 → 更多菜单 → 姓名字号 → 通用菜单。
+关闭栈（高→低）：确认面板 → 课程科目/节次/课表格/成绩 Sheet → 人员编辑/选择 Sheet → 作业名称 → 作业列表 → 学生记录 → 更多菜单 → 姓名字号 → 通用菜单。
 
 ## 6. 座位画布与编辑
 
@@ -97,13 +101,13 @@
 | 座位编辑模式 | `state.seatEditing` | 拖到空位移动，拖到占用位置交换。 |
 | 座位画布 transform | `seat-canvas.js` 内存态 | 当前会话的平移和缩放，不持久化。 |
 
-## 7. 人员列表与课程占位组件
+## 7. 人员列表与课程组件
 
-人员页为已接入列表；课程页未接入前仍用差异化空态骨架（单层卡片，无假进度、无色块字图标）：
+人员页与课程页均为 Store 驱动的单层内容卡：
 
 | 沟通名称 | 对应元素 / 标识 | 说明 |
 | --- | --- | --- |
-| 内容区标题 | `.section-title` | 子视图区块标题；课程空态右侧可用「未接入」状态字。 |
+| 内容区标题 | `.section-title` | 子视图区块标题。 |
 | 内容卡片 | `.card` | 当前子视图的唯一信息组容器。 |
 | 班干列表 | `#roleList.role-list` | Store 驱动的班干职位列表。 |
 | 值日列表 | `#dutyList.duty-list` | Store 驱动的值日轮换列表。 |
@@ -114,9 +118,12 @@
 | 行状态 | `.item-status` | 未指派为「未指定」「未排」；已指派显示学生姓名。 |
 | 学生选择 Sheet | `.people-pick-sheet` | 见第 5 节浮层表；从名单指派或清除指派。 |
 | 人员编辑 Sheet | `.people-edit-sheet` | 见第 5 节浮层表；编辑职位/值日文案或删除项。 |
-| 周课表条 | `.week-strip` | 课表视图的一周占位骨架。 |
-| 成绩表 | `.grade-table` | 成绩视图的表头 + `—` 占位行。 |
-| 空态说明 | `.empty-note` | 卡片内短说明，不假装已有业务数据。 |
+| 周课表 | `#weekStrip.week-strip` | 周一～周五 × 固定节次的课表矩阵容器。 |
+| 课表格 | `.week-slot-cell` | 可轻点编辑的课表格。 |
+| 节次标签 | `.week-period-label` | 可长按改名的节次名。 |
+| 成绩表 | `#gradeTable.grade-table` | 姓名 + 科目列的成绩矩阵容器。 |
+| 成绩格 | `.grade-score-cell` | 可轻点录入的课程成绩格。 |
+| 科目表头 | `.grade-subject-head` | 可长按编辑的科目列头。 |
 
 ## 8. 底部导航与手势提示
 
@@ -146,7 +153,7 @@
 | 姓名字号 | `state.studentFontSize` | 取值 14～18，并持久化保存。 |
 | 姓名字号打开态 | `state.fontSizePopoverOpen`、`.font-size-popover.show` | 姓名字号控件当前可见；不持久化。 |
 | 业务状态 | `roster-store.js` | 学生、座位、作业、提交、分数、班干与值日的唯一可写来源。 |
-| 活动浮层 | `state.activeOverlay` | 当前业务浮层（`assignments` / `student-record` / `people-pick` / `people-edit` / `more` / `confirm`）；与通用菜单互斥且不持久化。 |
+| 活动浮层 | `state.activeOverlay` | 当前业务浮层（含 `people-*` / `course-*` / `assignments` / `student-record` / `more` / `confirm`）；与通用菜单互斥且不持久化。 |
 | 座位编辑态 | `state.seatEditing` | 当前会话中座位卡可移动/交换的状态。 |
 | 拖动中 | `.pages.dragging`、`.nav-glider.dragging`、`.segment-glider.dragging` 或 `.menu-drawer.dragging` | 手势跟手阶段，临时取消过渡动画。 |
 | 通用菜单打开态 | `state.drawerOpen`、`.app.drawer-open` | 通用菜单已打开（状态字段名保留 `drawerOpen`）。 |

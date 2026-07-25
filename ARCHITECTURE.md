@@ -47,13 +47,15 @@ node lan-server.js
 | `scripts/student-font-size.js` | 网格姓名字号控制及字号持久化。 |
 | `scripts/seat-geometry.js` | 13×8 座位逻辑几何的唯一常量来源。 |
 | `scripts/seat-canvas.js` | 座位画布的自适应定位、平移、缩放、惯性与编辑拖放手势。 |
-| `scripts/roster-model.js` | 默认学生、座位、作业、班干、值日及领域纯校验函数。 |
+| `scripts/roster-model.js` | 默认学生、座位、作业、班干、值日、课表节次、科目及领域纯校验函数。 |
 | `scripts/roster-store.js` | 唯一业务状态、领域查询、变更与订阅通知。 |
-| `scripts/roster-storage.js` | 业务 Schema 的严格读取、迁移（含 1→2）、回退与写入。 |
+| `scripts/roster-storage.js` | 业务 Schema 的严格读取、迁移（含 1→2→3）、回退与写入。 |
 | `scripts/theme.js` | 浅色/深色主题状态、根主题属性、`theme-color` meta 与 Capacitor StatusBar 外观同步，以及受控主题持久化。 |
 | `scripts/roster-renderer.js` | 基于 Store 同步渲染网格和座位卡。 |
 | `scripts/people-renderer.js` | 基于 Store 同步渲染班干与值日列表。 |
 | `scripts/people-interactions.js` | 人员页轻点指派、长按编辑、选人与编辑 Sheet。 |
+| `scripts/courses-renderer.js` | 基于 Store 同步渲染周课表与成绩表。 |
+| `scripts/courses-interactions.js` | 课程页课表格、节次改名、科目编辑与成绩录入 Sheet。 |
 | `scripts/student-interactions.js` | 学生轻点、长按、右键和点击抑制。 |
 | `scripts/student-record.js` | 学生记录、分数草稿、校验和焦点管理。 |
 | `scripts/assignments.js` | 作业列表及新增、改名、删除流程。 |

@@ -280,6 +280,9 @@
   outline: 0;
   background: var(--control);
   color: var(--ink);
+  touch-action: manipulation;
+  -webkit-user-select: text;
+  user-select: text;
 }
 .assignment-name-field input:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
 .assignment-name-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
@@ -292,6 +295,10 @@
 .student-record-sheet.is-ime-host,
 .people-pick-sheet.is-ime-host,
 .people-edit-sheet.is-ime-host,
+.course-slot-sheet.is-ime-host,
+.course-period-sheet.is-ime-host,
+.course-subject-sheet.is-ime-host,
+.course-grade-sheet.is-ime-host,
 .confirm-sheet.is-ime-host,
 .more-menu.is-ime-host,
 .font-size-popover.is-ime-host {

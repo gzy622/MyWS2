@@ -10,6 +10,7 @@ import {
 import { haptic, Haptic } from './haptics.js';
 import { getTopSheet, isAnySheetDragging } from './sheet-drag.js';
 import { createSheetGestureBridge } from './sheet-gestures.js';
+import { describeDebugTarget, logCourseDebug } from './sheet-debug.js';
 
 const AXIS_LOCK_DISTANCE = 6;
 const EDGE_RESISTANCE = 0.28;
@@ -94,8 +95,15 @@ export function initHorizontalGestures() {
     const topSheet = getTopSheet();
     if (claim !== 'sheet' && topSheet) return;
     if (claim !== 'sheet' && (state.activeOverlay || state.drawerOpen || state.fontSizePopoverOpen)) return;
-    if (claim !== 'sheet' && event.target.closest?.('.seat-viewport')) return;
+    if (claim !== 'sheet' && event.target.closest?.('.seat-viewport, .grade-scroll')) return;
     if (event.button > 0) return;
+
+    const courseHit = event.target.closest?.(
+      '.week-slot-cell, .week-period-label, .course-edit-field, .course-slot-sheet, #weekStrip'
+    );
+    if (courseHit) {
+      logCourseDebug('gesture active start', `claim=${claim ?? 'null'} hit=${describeDebugTarget(event.target)}`);
+    }
 
     clearClickSuppression();
     active = true;
@@ -258,6 +266,12 @@ export function initHorizontalGestures() {
 
     // Suppress the trailing click after touch drag/sheet scrub (do not clear via microtask).
     if (wasGesture || handledSheet) {
+      const courseHit = event.target?.closest?.(
+        '.week-slot-cell, .week-period-label, .course-edit-field, .course-slot-sheet, #weekStrip'
+      );
+      if (courseHit) {
+        logCourseDebug('click suppress armed', `wasGesture=${wasGesture} handledSheet=${handledSheet} claim=${claim ?? 'null'} hit=${describeDebugTarget(event.target)} Δ=${Math.round(Math.hypot(deltaX, deltaY))}`);
+      }
       armClickSuppression();
       event.preventDefault();
     }
@@ -273,6 +287,9 @@ export function initHorizontalGestures() {
   element.addEventListener('keydown', clearClickSuppression, true);
   element.addEventListener('click', (event) => {
     if (!blockGestureClick) return;
+    if (event.target?.closest?.('.week-slot-cell, .week-period-label, .course-edit-field, #weekStrip')) {
+      logCourseDebug('click swallowed by gesture', describeDebugTarget(event.target));
+    }
     clearClickSuppression();
     event.preventDefault();
     event.stopPropagation();

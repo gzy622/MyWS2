@@ -8,15 +8,21 @@ import { blurIfSheetChrome, focusSilently } from './focus.js';
 
 const PEOPLE_PAGE_INDEX = 0;
 const REGISTER_PAGE_INDEX = 1;
+const COURSES_PAGE_INDEX = 2;
 const GRID_SUBVIEW_INDEX = 0;
 const SEAT_SUBVIEW_INDEX = 1;
 const ROLE_SUBVIEW_INDEX = 0;
 const DUTY_SUBVIEW_INDEX = 1;
+const SCHEDULE_SUBVIEW_INDEX = 0;
+const GRADES_SUBVIEW_INDEX = 1;
 
 const REGISTER_ACTIONS = new Set(['clear-assignment', 'font-size', 'seat-edit', 'seat-reset']);
 const PEOPLE_ROLE_ACTIONS = new Set(['add-role', 'clear-roles']);
 const PEOPLE_DUTY_ACTIONS = new Set(['add-duty', 'clear-duties']);
 const PEOPLE_ACTIONS = new Set([...PEOPLE_ROLE_ACTIONS, ...PEOPLE_DUTY_ACTIONS]);
+const COURSES_SCHEDULE_ACTIONS = new Set(['clear-schedule']);
+const COURSES_GRADES_ACTIONS = new Set(['add-subject', 'clear-grades']);
+const COURSES_ACTIONS = new Set([...COURSES_SCHEDULE_ACTIONS, ...COURSES_GRADES_ACTIONS]);
 
 export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, closeOthers }) {
   let trigger = null;
@@ -96,10 +102,13 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
   function render() {
     const onRegister = state.currentPage === REGISTER_PAGE_INDEX;
     const onPeople = state.currentPage === PEOPLE_PAGE_INDEX;
+    const onCourses = state.currentPage === COURSES_PAGE_INDEX;
     const isGrid = state.subviews[REGISTER_PAGE_INDEX] === GRID_SUBVIEW_INDEX;
     const isSeats = state.subviews[REGISTER_PAGE_INDEX] === SEAT_SUBVIEW_INDEX;
     const isRoles = state.subviews[PEOPLE_PAGE_INDEX] === ROLE_SUBVIEW_INDEX;
     const isDuties = state.subviews[PEOPLE_PAGE_INDEX] === DUTY_SUBVIEW_INDEX;
+    const isSchedule = state.subviews[COURSES_PAGE_INDEX] === SCHEDULE_SUBVIEW_INDEX;
+    const isGrades = state.subviews[COURSES_PAGE_INDEX] === GRADES_SUBVIEW_INDEX;
     for (const button of elements.moreActions) {
       const action = button.dataset.moreAction;
       let hidden = false;
@@ -113,6 +122,10 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
         hidden = !onPeople
           || (PEOPLE_ROLE_ACTIONS.has(action) && !isRoles)
           || (PEOPLE_DUTY_ACTIONS.has(action) && !isDuties);
+      } else if (COURSES_ACTIONS.has(action)) {
+        hidden = !onCourses
+          || (COURSES_SCHEDULE_ACTIONS.has(action) && !isSchedule)
+          || (COURSES_GRADES_ACTIONS.has(action) && !isGrades);
       } else {
         hidden = true;
       }
@@ -128,7 +141,11 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
   }
 
   function open() {
-    if (state.currentPage !== REGISTER_PAGE_INDEX && state.currentPage !== PEOPLE_PAGE_INDEX) {
+    if (
+      state.currentPage !== REGISTER_PAGE_INDEX
+      && state.currentPage !== PEOPLE_PAGE_INDEX
+      && state.currentPage !== COURSES_PAGE_INDEX
+    ) {
       showToast('更多功能即将推出');
       return;
     }
@@ -199,7 +216,7 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
     if (action === 'reset-roster') {
       confirm({
         title: '恢复默认数据',
-        message: '将恢复默认名单、座位、班干与值日，并清除所有作业的登记和分数。',
+        message: '将恢复默认名单、座位、班干、值日、课表与科目，并清除所有作业登记、作业分数与课程成绩。',
         action: () => { store.resetRoster(); seatCanvas.reset(); showToast('已恢复默认名单和座位'); },
         returnFocus: elements.menuButton
       });
@@ -272,6 +289,30 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
         title: '清空值日安排',
         message: '将清除所有值日上的学生，值日项本身保留。',
         action: () => showToast(store.clearAllDutyAssignments() ? '已清空值日安排' : '当前没有值日安排'),
+        returnFocus: elements.moreButton
+      });
+      return;
+    }
+    if (action === 'clear-schedule') {
+      confirm({
+        title: '清空本周课表',
+        message: '将清除全部课表格内容，节次名称保留。',
+        action: () => showToast(store.clearAllScheduleSlots() ? '已清空本周课表' : '当前课表为空'),
+        returnFocus: elements.moreButton
+      });
+      return;
+    }
+    if (action === 'add-subject') {
+      close();
+      const subject = store.addSubject();
+      showToast(subject ? `已新增「${subject.title}」` : '无法新增科目');
+      return;
+    }
+    if (action === 'clear-grades') {
+      confirm({
+        title: '清空成绩',
+        message: '将清除全部课程成绩，科目本身保留。',
+        action: () => showToast(store.clearAllCourseGrades() ? '已清空成绩' : '当前没有成绩'),
         returnFocus: elements.moreButton
       });
     }

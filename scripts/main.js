@@ -9,6 +9,8 @@ import { createRosterStore } from './roster-store.js';
 import { initRosterRenderer } from './roster-renderer.js';
 import { initPeopleRenderer } from './people-renderer.js';
 import { initPeopleInteractions } from './people-interactions.js';
+import { initCoursesRenderer } from './courses-renderer.js';
+import { initCoursesInteractions } from './courses-interactions.js';
 import { initStudentInteractions } from './student-interactions.js';
 import { initStudentRecord } from './student-record.js';
 import { initAssignments } from './assignments.js';
@@ -30,13 +32,19 @@ initNavigation({ getActiveAssignmentTitle: () => rosterStore.getCurrentAssignmen
 const fontSize = initStudentFontSize();
 initRosterRenderer(rosterStore);
 initPeopleRenderer(rosterStore);
+initCoursesRenderer(rosterStore);
 let studentRecord;
 let assignments;
 let moreSheet;
 let people;
+let courses;
 function closeOverlays(except) {
   if (except !== 'people-pick') people?.closePick({ restoreFocus: false });
   if (except !== 'people-edit') people?.closeEdit({ restoreFocus: false });
+  if (except !== 'course-slot') courses?.closeSlot({ restoreFocus: false });
+  if (except !== 'course-period') courses?.closePeriod({ restoreFocus: false });
+  if (except !== 'course-subject') courses?.closeSubject({ restoreFocus: false });
+  if (except !== 'course-grade') courses?.closeGrade({ restoreFocus: false });
   if (except !== 'student-record') studentRecord?.close();
   if (except !== 'assignments') assignments?.close();
   if (except !== 'more') moreSheet?.close({ restoreFocus: false });
@@ -62,11 +70,19 @@ people = initPeopleInteractions({
   closeOthers: closeOverlays,
   confirm: (...args) => moreSheet.confirm(...args),
 });
+courses = initCoursesInteractions({
+  store: rosterStore,
+  showToast,
+  viewport: appViewport,
+  closeOthers: closeOverlays,
+  confirm: (...args) => moreSheet.confirm(...args),
+});
 initDrawer({ closeOverlays });
 initHorizontalGestures();
 createSystemBackController({
   closeConfirm: () => moreSheet.closeConfirm(),
   dismissPeople: () => people.dismissBack(),
+  dismissCourses: () => courses.dismissBack(),
   dismissAssignments: () => assignments.dismissBack(),
   closeStudentRecord: () => studentRecord.close(),
   closeMore: () => moreSheet.close(),

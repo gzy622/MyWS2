@@ -28,6 +28,8 @@ export const elements = {
   seatHint: required('#seatHint'),
   roleList: required('#roleList'),
   dutyList: required('#dutyList'),
+  weekStrip: required('#weekStrip'),
+  gradeTable: required('#gradeTable'),
   navButtons: requiredAll('.nav-btn'),
   pageElements: requiredAll('.page'),
   menuDrawer: required('#menuDrawer'),

@@ -178,7 +178,10 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
     editSheet.openInstant();
     requestAnimationFrame(() => {
       titleInput.focus({ preventScroll: true });
-      titleInput.select();
+      // select() breaks CJK IME composition on Android WebView / coarse pointers.
+      const coarse = globalThis.matchMedia?.('(pointer: coarse)')?.matches
+        || globalThis.Capacitor?.isNativePlatform?.();
+      if (!coarse) titleInput.select();
     });
   }
 

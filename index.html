@@ -88,29 +88,12 @@
                 <button class="segment" data-sub="1">成绩</button>
               </div>
               <div class="subview active" data-view="0">
-                <div class="section-title">本周课表 <span>未接入</span></div>
-                <div class="card week-strip" aria-label="一周课表占位">
-                  <div class="week-days" aria-hidden="true">
-                    <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
-                  </div>
-                  <div class="week-slots" aria-hidden="true">
-                    <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-                  </div>
-                  <p class="empty-note">课表与节次安排接入后显示在这里。</p>
-                </div>
+                <div class="section-title">本周课表</div>
+                <div class="card week-strip" id="weekStrip" aria-label="本周课表"></div>
               </div>
               <div class="subview" data-view="1">
-                <div class="section-title">成绩一览 <span>未接入</span></div>
-                <div class="card grade-table" role="table" aria-label="成绩占位">
-                  <div class="grade-head" role="row">
-                    <span role="columnheader">姓名</span>
-                    <span role="columnheader">分数</span>
-                  </div>
-                  <div class="grade-row" role="row"><span role="cell">—</span><span role="cell">—</span></div>
-                  <div class="grade-row" role="row"><span role="cell">—</span><span role="cell">—</span></div>
-                  <div class="grade-row" role="row"><span role="cell">—</span><span role="cell">—</span></div>
-                  <p class="empty-note">成绩录入与查询接入后显示在这里。</p>
-                </div>
+                <div class="section-title">成绩一览</div>
+                <div class="card grade-table" id="gradeTable" role="table" aria-label="成绩一览"></div>
               </div>
             </div>
           </section>
@@ -185,6 +168,9 @@
             <button type="button" role="menuitem" data-more-action="clear-roles">清空班干指派</button>
             <button type="button" role="menuitem" data-more-action="add-duty">新增值日</button>
             <button type="button" role="menuitem" data-more-action="clear-duties">清空值日安排</button>
+            <button type="button" role="menuitem" data-more-action="clear-schedule">清空本周课表</button>
+            <button type="button" role="menuitem" data-more-action="add-subject">新增科目</button>
+            <button type="button" role="menuitem" data-more-action="clear-grades">清空成绩</button>
           </div>
         </div>
       </section>

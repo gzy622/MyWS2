@@ -414,6 +414,9 @@
   outline: 0;
   background: var(--control);
   color: var(--ink);
+  touch-action: manipulation;
+  -webkit-user-select: text;
+  user-select: text;
 }
 .people-edit-field input:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
 .people-edit-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
@@ -441,5 +444,191 @@
 .people-edit-delete:disabled { opacity: .45; cursor: default; color: var(--muted); }
 .people-pick-sheet.is-ime-host,
 .people-edit-sheet.is-ime-host {
+  bottom: var(--ime-inset-bottom, 0px);
+}
+
+.course-slot-sheet,
+.course-period-sheet,
+.course-subject-sheet,
+.course-grade-sheet {
+  position: absolute;
+  z-index: 30;
+  inset: 0;
+  display: grid;
+  place-items: end center;
+  padding: 16px 12px max(16px, env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+.course-period-sheet,
+.course-subject-sheet { z-index: 31; }
+.course-grade-sheet { z-index: 32; }
+.course-slot-sheet::before,
+.course-period-sheet::before,
+.course-subject-sheet::before,
+.course-grade-sheet::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+  opacity: 0;
+  transition: opacity var(--duration-fade) linear;
+}
+/* Text sheets: avoid ancestor touch-action:none (blocks Android IME focus on inputs). */
+.course-slot-sheet.show,
+.course-period-sheet.show,
+.course-subject-sheet.show { pointer-events: auto; touch-action: manipulation; }
+.course-grade-sheet.show { pointer-events: auto; touch-action: none; }
+.course-slot-sheet.show::before,
+.course-period-sheet.show::before,
+.course-subject-sheet.show::before,
+.course-grade-sheet.show::before { opacity: 1; }
+.course-slot-sheet.is-revealing:not(.is-dragging),
+.course-period-sheet.is-revealing:not(.is-dragging),
+.course-subject-sheet.is-revealing:not(.is-dragging),
+.course-grade-sheet.is-revealing:not(.is-dragging) { pointer-events: none; }
+.course-slot-sheet.show.is-dragging,
+.course-slot-sheet.show.is-settling,
+.course-period-sheet.show.is-dragging,
+.course-period-sheet.show.is-settling,
+.course-subject-sheet.show.is-dragging,
+.course-subject-sheet.show.is-settling,
+.course-grade-sheet.show.is-dragging,
+.course-grade-sheet.show.is-settling { pointer-events: auto; }
+.course-slot-sheet.show.is-revealing::before,
+.course-slot-sheet.show.is-settling::before,
+.course-slot-sheet.is-revealing::before,
+.course-slot-sheet.is-settling::before,
+.course-slot-sheet.show.is-dragging::before,
+.course-period-sheet.show.is-revealing::before,
+.course-period-sheet.show.is-settling::before,
+.course-period-sheet.is-revealing::before,
+.course-period-sheet.is-settling::before,
+.course-period-sheet.show.is-dragging::before,
+.course-subject-sheet.show.is-revealing::before,
+.course-subject-sheet.show.is-settling::before,
+.course-subject-sheet.is-revealing::before,
+.course-subject-sheet.is-settling::before,
+.course-subject-sheet.show.is-dragging::before,
+.course-grade-sheet.show.is-revealing::before,
+.course-grade-sheet.show.is-settling::before,
+.course-grade-sheet.is-revealing::before,
+.course-grade-sheet.is-settling::before,
+.course-grade-sheet.show.is-dragging::before {
+  opacity: var(--sheet-reveal-progress, 0);
+}
+.course-slot-sheet.show.is-revealing::before,
+.course-slot-sheet.is-revealing::before,
+.course-slot-sheet.show.is-dragging::before,
+.course-period-sheet.show.is-revealing::before,
+.course-period-sheet.is-revealing::before,
+.course-period-sheet.show.is-dragging::before,
+.course-subject-sheet.show.is-revealing::before,
+.course-subject-sheet.is-revealing::before,
+.course-subject-sheet.show.is-dragging::before,
+.course-grade-sheet.show.is-revealing::before,
+.course-grade-sheet.is-revealing::before,
+.course-grade-sheet.show.is-dragging::before {
+  transition: opacity var(--duration-scrim-track) linear;
+}
+.course-slot-sheet.show.is-settling::before,
+.course-slot-sheet.is-settling::before,
+.course-period-sheet.show.is-settling::before,
+.course-period-sheet.is-settling::before,
+.course-subject-sheet.show.is-settling::before,
+.course-subject-sheet.is-settling::before,
+.course-grade-sheet.show.is-settling::before,
+.course-grade-sheet.is-settling::before {
+  transition: opacity var(--duration-sheet) var(--ease);
+}
+.course-slot-sheet-panel,
+.course-period-sheet-panel,
+.course-subject-sheet-panel,
+.course-grade-panel {
+  width: min(100%, 420px);
+  max-height: min(72vh, 100%);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 18px 18px;
+  visibility: hidden;
+  transform: translateY(calc(100% + 72px));
+  transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet);
+}
+.course-slot-sheet-panel,
+.course-period-sheet-panel,
+.course-subject-sheet-panel { touch-action: pan-y; }
+.course-grade-panel { touch-action: none; }
+.course-slot-sheet .sheet-handle-zone,
+.course-period-sheet .sheet-handle-zone,
+.course-subject-sheet .sheet-handle-zone { touch-action: none; }
+.course-slot-sheet.show .course-slot-sheet-panel,
+.course-period-sheet.show .course-period-sheet-panel,
+.course-subject-sheet.show .course-subject-sheet-panel,
+.course-grade-sheet.show .course-grade-panel {
+  visibility: visible;
+  transform: translateY(0);
+  transition-delay: 0s;
+}
+.course-slot-sheet-panel.dragging,
+.course-period-sheet-panel.dragging,
+.course-subject-sheet-panel.dragging,
+.course-grade-panel.dragging {
+  transition: none;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+.course-edit-hint { margin: 6px 0 16px; color: var(--muted); font-size: 13px; }
+.course-edit-field { display: block; margin-bottom: 12px; }
+.course-edit-field span { display: block; margin: 0 2px 7px; color: var(--muted); font-size: 12px; font-weight: 600; }
+.course-edit-field input {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  outline: 0;
+  background: var(--control);
+  color: var(--ink);
+  touch-action: manipulation;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.course-edit-field input:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.course-edit-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+.course-edit-actions button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--control);
+  color: var(--ink);
+  cursor: pointer;
+  font-weight: 600;
+}
+.course-edit-actions .primary { color: white; background: var(--accent); }
+.course-edit-clear,
+.course-edit-delete {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--control);
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+}
+.course-edit-delete:disabled { opacity: .45; cursor: default; color: var(--muted); }
+.course-grade-panel .student-score-display { margin-top: 4px; }
+.course-grade-panel #courseGradeError { min-height: 18px; margin: 8px 2px 0; color: var(--accent); font-size: 12px; }
+.course-grade-panel .student-record-actions button {
+  min-height: 48px; border: 0; border-radius: 14px; background: var(--control); color: var(--ink); cursor: pointer;
+}
+.course-grade-panel .student-record-actions [data-action="clear"] { color: var(--muted); }
+.course-grade-panel .student-record-actions [data-action="save"] {
+  color: var(--on-accent); background: var(--accent); font-weight: 650;
+}
+.course-slot-sheet.is-ime-host,
+.course-period-sheet.is-ime-host,
+.course-subject-sheet.is-ime-host,
+.course-grade-sheet.is-ime-host {
   bottom: var(--ime-inset-bottom, 0px);
 }

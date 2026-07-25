@@ -33,9 +33,21 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
 
   function active() { return store.getCurrentAssignment(); }
   function title() {
-    elements.topbarTitleLabel.textContent = active().name;
-    elements.topbarTitle.classList.toggle('is-assignment', state.currentPage === 1);
-    elements.topbarTitle.setAttribute('aria-label', `当前作业：${active().name}，点击管理作业`);
+    // Store notifies on any domain change (incl. course schedule). Only the
+    // register page owns the assignment topbar title; elsewhere restore page label.
+    if (state.currentPage !== 1) {
+      elements.topbarTitle.classList.remove('is-assignment');
+      const pageTitle = elements.pageElements[state.currentPage]?.getAttribute('aria-label');
+      if (pageTitle != null) {
+        elements.topbarTitleLabel.textContent = pageTitle;
+        elements.topbarTitle.setAttribute('aria-label', pageTitle);
+      }
+      return;
+    }
+    const name = active().name;
+    elements.topbarTitleLabel.textContent = name;
+    elements.topbarTitle.classList.add('is-assignment');
+    elements.topbarTitle.setAttribute('aria-label', `当前作业：${name}，点击管理作业`);
   }
 
   function setListScrimProgress(progress, mode = 'drag') {
@@ -114,7 +126,10 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
     nameSheet.openInstant();
     requestAnimationFrame(() => {
       nameInput.focus({ preventScroll: true });
-      if (mode === 'rename') nameInput.select();
+      // select() breaks CJK IME composition on Android WebView / coarse pointers.
+      const coarse = globalThis.matchMedia?.('(pointer: coarse)')?.matches
+        || globalThis.Capacitor?.isNativePlatform?.();
+      if (mode === 'rename' && !coarse) nameInput.select();
     });
   }
 

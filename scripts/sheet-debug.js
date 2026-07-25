@@ -1,10 +1,12 @@
 /**
- * Sheet / version diagnostics. Off by default.
- * Enable: 长按左上角菜单约 0.5s  |  连点菜单 3 次  |  ?sheetDebug=1  |  __sheetDebug.toggle()
+ * Sheet / version / course-input diagnostics. Off by default.
+ * Enable: 长按左上角菜单约 0.5s  |  连点菜单 3 次  |  ?sheetDebug=1  |  ?courseDebug=1  |  __sheetDebug.toggle()
  * Disable: 再次长按/连点  |  浮层「关」  |  ?sheetDebug=0
+ *
+ * courseDebug=1 also expands the log list and tags course-input events for copy/export.
  */
 
-const MAX_ENTRIES = 40;
+const MAX_ENTRIES = 80;
 const MENU_TAP_WINDOW_MS = 1400;
 const MENU_TAP_COUNT = 3;
 const MENU_LONG_PRESS_MS = 520;
@@ -24,9 +26,20 @@ let suppressMenuClick = false;
 function readBootFlag() {
   try {
     const params = new URLSearchParams(globalThis.location?.search || '');
-    if (params.get('sheetDebug') === '1') return true;
     if (params.get('sheetDebug') === '0') return false;
+    if (params.get('courseDebug') === '1') return true;
+    if (params.get('sheetDebug') === '1') return true;
     return globalThis.sessionStorage?.getItem('sheetDebug') === '1';
+  } catch {
+    return false;
+  }
+}
+
+function readCourseDebugBoot() {
+  try {
+    const params = new URLSearchParams(globalThis.location?.search || '');
+    if (params.get('courseDebug') === '1') return true;
+    return globalThis.sessionStorage?.getItem('courseDebug') === '1';
   } catch {
     return false;
   }
@@ -85,8 +98,10 @@ function ensurePanel() {
     position: 'fixed',
     left: '10px',
     right: '10px',
-    bottom: 'calc(64px + env(safe-area-inset-bottom, 0px))',
-    maxHeight: '48vh',
+    // Top — bottom sheets / IME actions must stay tappable underneath.
+    top: 'calc(10px + env(safe-area-inset-top, 0px))',
+    bottom: 'auto',
+    maxHeight: '42vh',
     zIndex: '99999',
     display: 'none',
     flexDirection: 'column',
@@ -174,7 +189,7 @@ function render() {
   if (logsOpen) {
     listEl.textContent = entries.length
       ? entries.map((e) => e.text).join('\n')
-      : '（尚无记录：打开 Sheet 后轻滑松手）';
+      : '（尚无记录：点课表格输入，或打开 Sheet 后轻滑）';
     listEl.scrollTop = listEl.scrollHeight;
   }
 }
@@ -203,6 +218,10 @@ function formatEntry(data) {
       `  vY=${Number(data.velocityY).toFixed(3)} openV=${Number(data.openVelocity).toFixed(3)} closeV=${Number(data.closeVelocity ?? 0).toFixed(3)} travel=${Math.round(data.travel)}`,
       `  projected=${Number(data.projected).toFixed(3)} projClosed=${Math.round(data.projectedClosedPx ?? 0)} openPx=${Math.round(data.openPx)} cancelled=${data.cancelled}`
     ].join('\n');
+  }
+  if (data.kind === 'course') {
+    const extra = data.detail ? ` · ${data.detail}` : '';
+    return `${stamp} COURSE ${data.message || ''}${extra}`;
   }
   return `${stamp} ${data.message || JSON.stringify(data)}`;
 }
@@ -257,17 +276,43 @@ export function isSheetDebugEnabled() {
   return enabled;
 }
 
+export function describeDebugTarget(target) {
+  if (!(target instanceof Element)) return String(target ?? 'null');
+  const id = target.id ? `#${target.id}` : '';
+  const cls = typeof target.className === 'string' && target.className.trim()
+    ? `.${target.className.trim().split(/\s+/).slice(0, 4).join('.')}`
+    : '';
+  return `${target.tagName.toLowerCase()}${id}${cls}`;
+}
+
 export function logSheetDebug(data) {
   if (!enabled) return;
   ensurePanel();
   const entry = { t: Date.now(), data, text: formatEntry({ ...data, t: Date.now() }) };
   entries.push(entry);
   while (entries.length > MAX_ENTRIES) entries.shift();
+  if (data.kind === 'course') {
+    logsOpen = true;
+    try { console.info('[course-debug]', data.message || '', data.detail || data); } catch { /* ignore */ }
+  }
   render();
 }
 
+/** Course-input trace: no-op unless debug panel is on. */
+export function logCourseDebug(message, detail = '') {
+  logSheetDebug({ kind: 'course', message, detail });
+}
+
 export function initSheetDebug() {
+  const courseBoot = readCourseDebugBoot();
   setEnabled(readBootFlag());
+  if (courseBoot) {
+    try { globalThis.sessionStorage?.setItem('courseDebug', '1'); } catch { /* ignore */ }
+    logsOpen = true;
+    ensurePanel();
+    render();
+    logCourseDebug('courseDebug boot', 'logs open — tap a schedule cell and type');
+  }
 
   const observer = new MutationObserver(() => {
     if (enabled) refreshMeta();
@@ -282,6 +327,13 @@ export function initSheetDebug() {
     disable: () => setEnabled(false),
     toggle: () => setEnabled(!enabled),
     openLogs: () => { logsOpen = true; if (enabled) render(); },
+    enableCourse: () => {
+      try { globalThis.sessionStorage?.setItem('courseDebug', '1'); } catch { /* ignore */ }
+      setEnabled(true);
+      logsOpen = true;
+      render();
+      logCourseDebug('courseDebug enabled', 'via __sheetDebug.enableCourse()');
+    },
     entries: () => entries.slice(),
     dump: () => {
       const build = document.documentElement.dataset.twbBuild || '';
