@@ -20,7 +20,7 @@ h1 { margin: 0; font-size: clamp(32px, 8.5vw, 36px); font-weight: 720; line-heig
 }
 .page[data-page="1"] .subview.active { flex: 1; min-height: 0; }
 .student-grid {
-  --student-grid-line: color-mix(in srgb, var(--line) 70%, var(--card));
+  --student-grid-line: var(--line);
   position: relative;
   display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: repeat(10, minmax(0, 1fr));
   height: var(--student-grid-locked-height, 100%); flex: none; overflow: hidden;
@@ -39,8 +39,8 @@ h1 { margin: 0; font-size: clamp(32px, 8.5vw, 36px); font-weight: 720; line-heig
 }
 .student-card.is-completed {
   color: var(--muted);
-  font-weight: 400;
-  background: var(--paper);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--paper) 40%, var(--card));
   box-shadow: inset -.5px 0 var(--student-grid-line), inset 0 -.5px var(--student-grid-line);
 }
 .student-card.is-completed:not([data-score])::before {
@@ -91,10 +91,10 @@ h1 { margin: 0; font-size: clamp(32px, 8.5vw, 36px); font-weight: 720; line-heig
 .seat-stage.is-edit-mode .seat-card { cursor: grab; }
 .seat-card.is-completed {
   color: var(--muted);
-  font-weight: 400;
-  background: var(--paper);
-  border-color: transparent;
-  box-shadow: none;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--paper) 40%, var(--card));
+  border-color: var(--line);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .04);
 }
 .seat-card.is-completed:not([data-score])::before {
   content: "✓"; position: absolute; top: 4px; right: 4px;

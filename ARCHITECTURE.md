@@ -81,7 +81,12 @@ node lan-server.js
 | 终端打印的地址 | `http://192.168.x.x:8080`（无线）或 `http://localhost:8080`（`-Usb`） |
 | `…/__health` 探测 | `OK: device reached …`；若 WARN 则手机仍可能吃 APK 旧资源 |
 | App 内调试浮层（长按菜单 / 连点菜单 3 次 / `?sheetDebug=1`） | `origin` 与终端 LAN 一致；`build` 与 `npm run code:id` 一致 |
-| 改 `scripts/*.js` 后 | 手机自动刷新；不刷新先看 `__health` / 防火墙 / `-HostAddress` |
+| 按 `L` 后 | 控制台应出现「热更新已接通 · clients≥1」；若一直 `clients=0`，看弹出的热更新窗口报错 |
+| 按 `D` 后 | 会断开热更新会话（包内 APK 无 `server.url`）；要继续热更新须再按 `L` |
+| 无线调试 | mDNS 序列号常含空格，`native-run`/`cap run` 看不见；脚本会经 `adb mdns services` 映射为 `IP:端口` 再 `adb connect` |
+| 改 `scripts/*.js` 后 | 仅在「已接通」时手机自动刷新；不刷新先看 `__health` / 防火墙 / `-HostAddress` |
+
+无线调试序列号示例：`adb-XXXX (2)._adb-tls-connect._tcp` → 热更新实际使用 `192.168.x.x:port`。
 
 ### 如何确认手机与电脑代码一致
 
@@ -99,9 +104,9 @@ LAN 服务也会在启动日志和 `/__health`、`/__build-id` 中返回同一�
 双击根目录 `sync-phone.bat`（或 `npm run sync:phone`）：
 
 1. 启动/复用 LAN 服务；**已安装且手机可达 LAN 时跳过首次打包**（需强制安装用 `-ForceInitialDeploy`）。
-2. 界面顶部显示「下一步」与模式：`LAN 已通` → 按 **`L` 开启热更新**；热更新启动后 **保存即刷新，一般不必按 D**。
+2. 界面顶部显示「下一步」与模式：`LAN 已通` → 按 **`L` 开启热更新**；仅当 `__health` 的 `clients>0` 才算真正接通（保存即刷新）。**按 `S` 只同步电脑 `www`，不会改手机画面。**
 3. 监视 `index.html` / `styles` / `scripts`；日志会按模式提示（热更新 / 需 L / 需 D），不再把「指纹变化」一律说成必须推送。
-4. 快捷键分层：日常 `L` / `H` / `R` / `I` / `Q`；完整安装（较慢）`D` / `A` / `C` / `X` / `S`。
+4. 快捷键分层：日常 `L` / `H` / `R` / `I` / `Q`；完整安装（较慢）`D` / `A` / `C` / `X`；`S` 仅同步 www（不到手机）。
 
 `preview:native` 常用参数（经 npm 传递时写在 `--` 之后）：
 

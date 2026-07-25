@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
   [string]$Serial = '',
   [string]$HostAddress = '',
@@ -101,21 +101,95 @@ function Test-PhoneCanReachUrl([string]$Device, [string]$Url) {
 }
 
 function Get-AdbDeviceList {
-  $raw = & adb devices
-  if (-not $?) { throw 'adb devices failed' }
+  # Windows PowerShell 5.1 + Stop treats adb stderr (daemon startup) as terminating.
+  $prev = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try {
+    $raw = & adb devices 2>&1
+  } finally {
+    $ErrorActionPreference = $prev
+  }
+  if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) {
+    throw 'adb devices failed'
+  }
 
   $list = New-Object System.Collections.Generic.List[string]
   foreach ($line in @($raw)) {
-    $text = [string]$line
-    if ($text -match '^\s*(\S+)\s+device\s*$') {
-      [void]$list.Add($Matches[1])
+    if ($line -is [System.Management.Automation.ErrorRecord]) { continue }
+    $text = ([string]$line).Trim()
+    if (-not $text -or $text -match 'List of devices') { continue }
+    # Wireless mdns serials may contain spaces, e.g. "adb-XXXX (2)._adb-tls-connect._tcp"
+    if ($text -match '^(.*?)\s+device$') {
+      [void]$list.Add($Matches[1].Trim())
     }
   }
   return [string[]]$list.ToArray()
 }
 
 function Test-IsWirelessAdb([string]$Id) {
-  return $Id -match 'adb-tls|_tcp|wireless|\.\d+\.\d+\.\d+\.\d+:\d+$'
+  return $Id -match 'adb-tls|_tcp|wireless|\d+\.\d+\.\d+\.\d+:\d+$'
+}
+
+function Invoke-AdbRaw([string[]]$AdbArgs) {
+  $prev = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try {
+    return @(& adb @AdbArgs 2>&1)
+  } finally {
+    $ErrorActionPreference = $prev
+  }
+}
+
+function Get-MdnsTlsEndpoints {
+  # adb mdns services lines look like:
+  # adb-XXXX (2)	_adb-tls-connect._tcp	192.168.1.123:42701
+  $map = @{}
+  foreach ($line in @(Invoke-AdbRaw @('mdns', 'services'))) {
+    if ($line -is [System.Management.Automation.ErrorRecord]) { continue }
+    $text = ([string]$line).Trim()
+    if (-not $text -or $text -match '^List of') { continue }
+    if ($text -match '^(.*?)\s+_adb-tls-connect\._tcp\s+(\d+\.\d+\.\d+\.\d+:\d+)\s*$') {
+      $map[$Matches[1].Trim()] = $Matches[2]
+    }
+  }
+  return $map
+}
+
+function Resolve-NativeRunSerial([string]$Serial) {
+  # native-run / `cap run` cannot see wireless mdns ids that contain spaces.
+  # Map "adb-XXXX (2)._adb-tls-connect._tcp" → "192.168.x.x:port" via mdns + adb connect.
+  if (-not $Serial) { return $Serial }
+  if ($Serial -match '^\d+\.\d+\.\d+\.\d+:\d+$') { return $Serial }
+  if ($Serial -notmatch '_adb-tls-connect\._tcp$') {
+    return $Serial
+  }
+
+  $serviceName = $Serial
+  if ($Serial -match '^(.*)\._adb-tls-connect\._tcp$') {
+    $serviceName = $Matches[1].Trim()
+  }
+
+  $endpoints = Get-MdnsTlsEndpoints
+  $endpoint = $null
+  if ($endpoints.ContainsKey($serviceName)) {
+    $endpoint = [string]$endpoints[$serviceName]
+  } elseif ($endpoints.Count -eq 1) {
+    $endpoint = [string]@($endpoints.Values)[0]
+    Write-Host ("mdns exact name miss; using sole endpoint {0}" -f $endpoint) -ForegroundColor Yellow
+  } else {
+    $names = [string]::Join(', ', @($endpoints.Keys))
+    throw ("Cannot map wireless serial to IP:port via adb mdns services. Serial={0}; services={1}" -f $Serial, $names)
+  }
+
+  Write-Host ("Wireless mdns serial → native-run target {0}" -f $endpoint) -ForegroundColor Cyan
+  $connectOut = [string]::Join(' ', @(Invoke-AdbRaw @('connect', $endpoint)))
+  Write-Host ("adb connect: {0}" -f $connectOut.Trim())
+
+  $devices = @(Get-AdbDeviceList)
+  if ($devices -notcontains $endpoint) {
+    throw ("adb connect {0} did not appear in adb devices. Output: {1}" -f $endpoint, $connectOut)
+  }
+  return $endpoint
 }
 
 function Resolve-TargetSerial([string]$Preferred) {
@@ -224,6 +298,7 @@ Write-Step 'Syncing www web assets'
 if (-not $?) { throw 'sync-capacitor-www.ps1 failed' }
 
 $serial = Resolve-TargetSerial $Serial
+$serial = Resolve-NativeRunSerial $serial
 Write-Step ("Target device: {0}" -f $serial)
 
 if ($NoServer) {

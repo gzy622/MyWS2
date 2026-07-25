@@ -204,7 +204,7 @@
           <p class="student-record-status" id="studentRecordStatus"></p>
           <div class="student-score-display">
             <label for="studentScoreInput">本次得分</label>
-            <div><input id="studentScoreInput" inputmode="none" autocomplete="off" placeholder="—" readonly aria-describedby="studentScoreError" /><span>/ 100</span></div>
+            <div><input id="studentScoreInput" inputmode="none" autocomplete="off" readonly aria-describedby="studentScoreError" /><span>/ 100</span></div>
           </div>
           <div class="student-score-keypad" id="studentScoreControls" role="group" aria-label="数字键盘">
             <button type="button" data-score-key="1">1</button><button type="button" data-score-key="2">2</button><button type="button" data-score-key="3">3</button>
@@ -262,7 +262,7 @@
             <button class="menu-item" data-action="reset-roster"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.7L4 8.5M4 4v4.5h4.5" /></svg></span><span class="menu-copy"><b>恢复默认名单</b><small>重置名单、座位与登记记录</small></span><span class="menu-chevron" aria-hidden="true">›</span></button>
           </div>
         </section>
-        <div class="menu-drawer-foot">批量操作仅作用于当前作业</div>
+        <div class="menu-drawer-foot" id="menuDrawerBuild" aria-label="版本指纹">版本 —</div>
       </aside>
       <div class="toast" id="toast" role="status"></div>
     </main>

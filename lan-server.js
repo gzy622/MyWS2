@@ -90,6 +90,18 @@ function injectLiveReload(htmlBuffer) {
   return Buffer.from(`${html}\n<script src="/__livereload.js"></script>\n`, 'utf8');
 }
 
+function injectBuildStamp(htmlBuffer) {
+  const id = getContentId();
+  if (!id) return htmlBuffer;
+  const html = htmlBuffer.toString('utf8');
+  if (!html.includes('id="menuDrawerBuild"')) return htmlBuffer;
+  const next = html.replace(
+    /(<div\b[^>]*\bid="menuDrawerBuild"[^>]*>)[\s\S]*?(<\/div>)/i,
+    `$1版本 ${id}$2`
+  );
+  return Buffer.from(next, 'utf8');
+}
+
 function startWatchers() {
   const targets = ['index.html', 'styles', 'scripts', 'tests']
     .map((name) => path.join(root, name))
@@ -175,7 +187,10 @@ const server = http.createServer((request, response) => {
       }
       const ext = path.extname(target).toLowerCase();
       let body = content;
-      if (liveReload && ext === '.html') body = injectLiveReload(content);
+      if (ext === '.html') {
+        body = injectBuildStamp(body);
+        if (liveReload) body = injectLiveReload(body);
+      }
       sendHeaders(response, 200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });
       response.end(body);
     });

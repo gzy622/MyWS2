@@ -2,6 +2,7 @@ import { elements } from './dom.js';
 import { setDrawerOpen } from './state.js';
 import { createSheetController } from './sheet-drag.js';
 import { blurIfSheetChrome, focusSilently } from './focus.js';
+import { refreshBuildId } from './build-id.js';
 
 let closeBusinessOverlays = () => {};
 let drawerTrigger = null;
@@ -84,6 +85,7 @@ export function initDrawer({ closeOverlays } = {}) {
     isOpen: () => elements.app.classList.contains('drawer-open') && !sheet?.isActive(),
     onPrepare({ source } = {}) {
       closeBusinessOverlays('drawer');
+      refreshBuildId();
       if (source === 'gesture') {
         drawerTrigger = null;
       } else if (!drawerTrigger) {

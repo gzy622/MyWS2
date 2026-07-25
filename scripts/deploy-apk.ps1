@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
   [string]$Serial = '',
   [switch]$Fresh,
@@ -78,16 +78,26 @@ function Resolve-AndroidHome {
 }
 
 function Get-AdbDeviceList {
-  $raw = & adb devices
-  if (-not $?) {
+  # Windows PowerShell 5.1 + Stop treats adb stderr (daemon startup) as terminating.
+  $prev = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try {
+    $raw = & adb devices 2>&1
+  } finally {
+    $ErrorActionPreference = $prev
+  }
+  if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) {
     throw 'adb devices failed'
   }
 
   $list = New-Object System.Collections.Generic.List[string]
   foreach ($line in @($raw)) {
-    $text = [string]$line
-    if ($text -match '^\s*(\S+)\s+device\s*$') {
-      [void]$list.Add($Matches[1])
+    if ($line -is [System.Management.Automation.ErrorRecord]) { continue }
+    $text = ([string]$line).Trim()
+    if (-not $text -or $text -match 'List of devices') { continue }
+    # Wireless mdns serials may contain spaces, e.g. "adb-XXXX (2)._adb-tls-connect._tcp"
+    if ($text -match '^(.*?)\s+device$') {
+      [void]$list.Add($Matches[1].Trim())
     }
   }
   return [string[]]$list.ToArray()
