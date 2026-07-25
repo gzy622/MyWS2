@@ -41,7 +41,7 @@ $script:liveReloadProcess = $null
 $script:liveReloadClients = 0
 $script:startedServerPid = 0
 $script:logLines = New-Object System.Collections.Generic.List[string]
-$script:logMax = 4
+$script:logMax = 3
 $script:dashboardShown = $false
 $script:feedbackInput = [pscustomobject]@{ Key = ''; Label = ''; At = $null }
 $script:feedbackAction = [pscustomobject]@{ Text = '控制台已就绪'; Phase = 'idle'; At = $null }
@@ -480,112 +480,109 @@ function Get-NextStep {
   return @{ Text = '手机访问不到 LAN，改动需按 D 推送；修好网络后可按 L'; Color = 'Yellow' }
 }
 
+function Get-ModeShortLabel([string]$Mode) {
+  switch ($Mode) {
+    'hot' { return @{ Text = ("热更新 · clients={0}" -f $script:liveReloadClients); Color = 'Green' } }
+    'hot-wait' { return @{ Text = '等待WebView'; Color = 'Yellow' } }
+    'ready' { return @{ Text = 'LAN就绪'; Color = 'Cyan' } }
+    default { return @{ Text = '包内资源'; Color = 'Yellow' } }
+  }
+}
+
 function Show-Dashboard {
+  # Hallmark · macrostructure: Index-First · tone: utilitarian · genre: modern-minimal
+  # medium: console-tui · theme: Terminal-like · designed-as: sync-phone dashboard
   Clear-Host
   $script:dashboardShown = $true
   $changeText = if ($script:lastChangeAt) { $script:lastChangeAt.ToString('HH:mm:ss') } else { '-' }
-  $deployText = if ($script:lastDeployId) {
-    '{0} @ {1}' -f $script:lastDeployId, $script:lastDeployAt.ToString('HH:mm:ss')
-  } else { '本会话尚未推送' }
   $autoText = if ($script:autoDeploy) { '开' } else { '关' }
   $mode = Get-PreviewMode
+  $modeLabel = Get-ModeShortLabel $mode
   $next = Get-NextStep
   $idMatch = ($script:phoneLanId -and $script:contentId -and $script:phoneLanId -eq $script:contentId)
+  $idMismatch = ($script:serverReachable -and $script:phoneLanId -and $script:contentId -and -not $idMatch)
   $phaseMeta = Get-FeedbackPhaseMeta $script:feedbackAction.Phase
+  $showDetail = (
+    $script:feedbackAction.Phase -eq 'busy' -or
+    $script:feedbackAction.Phase -eq 'fail' -or
+    $idMismatch -or
+    (-not $script:appInstalled)
+  )
 
   Write-Host ''
-  Write-Host '  教师工作台 · 手机同步' -ForegroundColor Cyan
-  Write-Host ''
+  Write-Host '  Phone Sync · ' -NoNewline -ForegroundColor DarkGray
+  Write-Host $modeLabel.Text -ForegroundColor $modeLabel.Color
+  Write-Host '  ─────────────────────────────────────' -ForegroundColor DarkGray
 
-  Write-Host '  状态' -ForegroundColor White
-  switch ($mode) {
-    'hot' {
-      Write-Host '    模式   ' -NoNewline -ForegroundColor DarkGray
-      Write-Host ("热更新已连接 · clients={0}" -f $script:liveReloadClients) -ForegroundColor Green
-      Write-Host '           保存 index / styles / scripts 后手机自动刷新' -ForegroundColor DarkGray
-    }
-    'hot-wait' {
-      Write-Host '    模式   ' -NoNewline -ForegroundColor DarkGray
-      Write-Host '热更新窗口已开 · WebView 未连上' -ForegroundColor Yellow
-      Write-Host '           手机此刻仍吃 APK 包内资源；回前台或按 H / D' -ForegroundColor DarkGray
-    }
-    'ready' {
-      Write-Host '    模式   ' -NoNewline -ForegroundColor DarkGray
-      Write-Host 'LAN 已通 · 未开热更新' -ForegroundColor Cyan
-      Write-Host '           按 L 才会热更新；按 S 只同步电脑 www，手机不变' -ForegroundColor DarkGray
-    }
-    default {
-      Write-Host '    模式   ' -NoNewline -ForegroundColor DarkGray
-      Write-Host '包内资源' -ForegroundColor Yellow
-      Write-Host '           手机连不上电脑局域网，只能打包推送' -ForegroundColor DarkGray
-    }
-  }
+  Write-Host '  →  ' -NoNewline -ForegroundColor White
+  Write-Host $next.Text -ForegroundColor $next.Color
+  Write-Host '  ─────────────────────────────────────' -ForegroundColor DarkGray
 
-  Write-Host '    连接   ' -NoNewline -ForegroundColor DarkGray
+  # Status strip (one line)
+  Write-Host '  ' -NoNewline
   if ($script:serverReachable) {
     if ($idMatch) {
-      Write-Host '手机可达 · 指纹一致' -ForegroundColor Green
+      Write-Host '手机可达' -NoNewline -ForegroundColor Green
     } elseif ($script:phoneLanId) {
-      Write-Host ("手机可达 · 指纹 {0}" -f $script:phoneLanId) -ForegroundColor Yellow
+      Write-Host ("手机可达 · 指纹 {0}" -f $script:phoneLanId) -NoNewline -ForegroundColor Yellow
     } else {
-      Write-Host '手机可达' -ForegroundColor Green
+      Write-Host '手机可达' -NoNewline -ForegroundColor Green
     }
   } else {
-    Write-Host '手机不可达' -ForegroundColor Yellow
+    Write-Host '手机不可达' -NoNewline -ForegroundColor Yellow
   }
-  Write-Host ('    地址   {0}' -f $script:lanUrl) -ForegroundColor DarkGray
-  Write-Host ('    设备   {0}' -f (Get-ShortDevice $script:deviceSerial)) -ForegroundColor DarkGray
-  Write-Host '    内容   ' -NoNewline -ForegroundColor DarkGray
-  Write-Host ($(if ($script:contentId) { $script:contentId } else { '计算失败' })) -NoNewline -ForegroundColor Yellow
-  Write-Host ("  · 更新 {0}" -f $changeText) -ForegroundColor DarkGray
-  Write-Host '    安装   ' -NoNewline -ForegroundColor DarkGray
+  Write-Host ' · ' -NoNewline -ForegroundColor DarkGray
   Write-Host ($(if ($script:appInstalled) { '已安装' } else { '未安装' })) -NoNewline -ForegroundColor $(if ($script:appInstalled) { 'Green' } else { 'Yellow' })
-  Write-Host ("  · 上次 APK {0}" -f $deployText) -ForegroundColor DarkGray
-
-  Write-Host '    改动   ' -NoNewline -ForegroundColor DarkGray
+  Write-Host ' · ' -NoNewline -ForegroundColor DarkGray
+  Write-Host (Get-ShortDevice $script:deviceSerial) -NoNewline -ForegroundColor DarkGray
+  Write-Host ' · ' -NoNewline -ForegroundColor DarkGray
   if ($script:pendingDeploy) {
-    if ($mode -eq 'hot' -or $mode -eq 'ready' -or $mode -eq 'hot-wait') {
-      Write-Host '本地已更新（热更新接通后通常不用推送）' -NoNewline -ForegroundColor DarkGray
+    if ($mode -eq 'apk') {
+      Write-Host '有未推送改动' -NoNewline -ForegroundColor Yellow
     } else {
-      Write-Host '有未推送改动 → 按 D' -NoNewline -ForegroundColor Yellow
+      Write-Host '本地已更新' -NoNewline -ForegroundColor DarkGray
     }
   } else {
-    Write-Host '与监视起点一致' -NoNewline -ForegroundColor DarkGray
+    Write-Host '无待推送' -NoNewline -ForegroundColor DarkGray
   }
-  Write-Host ("  · 自动推送 {0}" -f $autoText) -ForegroundColor DarkGray
-
-  Write-Host ''
-  Write-Host '  下一步' -ForegroundColor White
-  Write-Host ('    {0}' -f $next.Text) -ForegroundColor $next.Color
-
-  Write-Host ''
-  Write-Host '  反馈' -ForegroundColor White
-  Write-Host '    指令   ' -NoNewline -ForegroundColor DarkGray
-  if ($script:feedbackInput.At) {
-    Write-Host '已收到' -NoNewline -ForegroundColor Green
-    Write-Host ('  [{0}] {1}' -f $script:feedbackInput.Key, $script:feedbackInput.Label) -NoNewline -ForegroundColor Cyan
-    Write-Host ('  · {0}' -f $script:feedbackInput.At.ToString('HH:mm:ss')) -ForegroundColor DarkGray
+  if ($script:autoDeploy) {
+    Write-Host (" · 自动推送 {0}" -f $autoText) -ForegroundColor DarkGray
   } else {
-    Write-Host '等待按键…' -ForegroundColor DarkGray
+    Write-Host ''
   }
 
-  Write-Host '    结果   ' -NoNewline -ForegroundColor DarkGray
+  if ($showDetail) {
+    $detailParts = New-Object System.Collections.Generic.List[string]
+    if ($script:lanUrl) { [void]$detailParts.Add($script:lanUrl) }
+    if ($script:contentId) { [void]$detailParts.Add(('内容 {0}' -f $script:contentId)) }
+    else { [void]$detailParts.Add('内容 计算失败') }
+    [void]$detailParts.Add(('更新 {0}' -f $changeText))
+    if ($script:lastDeployId) {
+      [void]$detailParts.Add(('上次 APK {0} @ {1}' -f $script:lastDeployId, $script:lastDeployAt.ToString('HH:mm:ss')))
+    }
+    Write-Host ('  {0}' -f ($detailParts.ToArray() -join ' · ')) -ForegroundColor DarkGray
+  }
+
+  # Feedback (single line)
+  Write-Host '  [' -NoNewline -ForegroundColor DarkGray
   Write-Host $phaseMeta.Mark -NoNewline -ForegroundColor $phaseMeta.Color
-  $actionAt = if ($script:feedbackAction.At) { '  · ' + $script:feedbackAction.At.ToString('HH:mm:ss') } else { '' }
-  Write-Host ('  {0}{1}' -f $script:feedbackAction.Text, $actionAt) -ForegroundColor $phaseMeta.Color
+  Write-Host '] ' -NoNewline -ForegroundColor DarkGray
+  if ($script:feedbackInput.At -and $script:feedbackInput.Key) {
+    Write-Host ('[{0}] ' -f $script:feedbackInput.Key) -NoNewline -ForegroundColor Cyan
+  }
+  $actionAt = if ($script:feedbackAction.At) { ' · ' + $script:feedbackAction.At.ToString('HH:mm:ss') } else { '' }
+  Write-Host ('{0}{1}' -f $script:feedbackAction.Text, $actionAt) -ForegroundColor $phaseMeta.Color
+  Write-Host '  ─────────────────────────────────────' -ForegroundColor DarkGray
 
-  Write-Host ''
-  Write-Host '  按键' -ForegroundColor White
-  Write-Host '    日常   [L]热更新  [H]检测  [R]重启  [I]指纹  [Q]退出' -ForegroundColor Gray
-  Write-Host '    安装   [D]推送APK [A]自动  [C]清缓存 [X]清数据 [S]仅www(不到手机)' -ForegroundColor DarkGray
+  Write-Host '  L 热更新   D 推送   H 检测   Q 退出' -ForegroundColor Gray
+  Write-Host '  A 自动  R 重启  I 指纹  C 清缓存  X 清数据  S 仅www' -ForegroundColor DarkGray
+  Write-Host '  ─────────────────────────────────────' -ForegroundColor DarkGray
 
-  Write-Host ''
-  Write-Host '  近期' -ForegroundColor DarkGray
   if ($script:logLines.Count -eq 0) {
-    Write-Host '    （暂无）' -ForegroundColor DarkGray
+    Write-Host '  （暂无近期日志）' -ForegroundColor DarkGray
   } else {
     foreach ($line in $script:logLines) {
-      Write-Host ('    {0}' -f $line) -ForegroundColor DarkGray
+      Write-Host ('  {0}' -f $line) -ForegroundColor DarkGray
     }
   }
   Write-Host ''

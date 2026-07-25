@@ -22,7 +22,7 @@ if not exist "%~dp0node_modules\@capacitor\cli\" (
 )
 
 echo Starting phone sync console...
-echo Tip: press L for live reload (save to refresh). D is full APK install only.
+echo Tip: L = live reload (save to refresh). D = full APK only.
 echo.
 powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\sync-phone.ps1" %*
 set "EXIT_CODE=%ERRORLEVEL%"
