@@ -34,7 +34,7 @@
 .assignment-sheet.show.is-revealing::before,
 .assignment-sheet.is-revealing::before,
 .assignment-sheet.show.is-dragging::before {
-  transition: none;
+  transition: opacity var(--duration-scrim-track) linear;
 }
 .assignment-sheet.show.is-settling::before,
 .assignment-sheet.is-settling::before {
@@ -212,11 +212,12 @@
   pointer-events: none;
 }
 
+/* 名称编辑始终叠在作业列表遮罩之上，用二级色避免叠加后整屏骤暗。 */
 .assignment-name-sheet::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: var(--scrim);
+  background: var(--scrim-stacked);
   opacity: 0;
   transition: opacity var(--duration-fade) linear;
 }
@@ -236,7 +237,7 @@
 .assignment-name-sheet.show.is-revealing::before,
 .assignment-name-sheet.is-revealing::before,
 .assignment-name-sheet.show.is-dragging::before {
-  transition: none;
+  transition: opacity var(--duration-scrim-track) linear;
 }
 .assignment-name-sheet.show.is-settling::before,
 .assignment-name-sheet.is-settling::before {

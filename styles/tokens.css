@@ -33,8 +33,12 @@
   --shadow-sheet-down: 0 16px 40px rgba(0, 0, 0, .18);
   --shadow-phone: 0 24px 72px rgba(0, 0, 0, .16);
   --scrim: rgba(0, 0, 0, .32);
+  /* 二级浮层叠在一级遮罩之上，叠加后约等于 .40，避免整屏亮度突跳 */
+  --scrim-stacked: rgba(0, 0, 0, .12);
   --duration-sheet: 300ms;
   --duration-fade: 240ms;
+  /* 跟手期遮罩的追赶时长：面板仍 1:1，遮罩用极短过渡吸收不连续值 */
+  --duration-scrim-track: 90ms;
   --ease: cubic-bezier(.2, 0, 0, 1);
   --ease-accelerate: cubic-bezier(.4, 0, 1, 1);
   --ease-overshoot: cubic-bezier(.2, 1.18, .32, 1);

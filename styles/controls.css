@@ -42,7 +42,7 @@
 .app.drawer-revealing .scrim {
   opacity: var(--sheet-reveal-progress, 0);
   pointer-events: none;
-  transition: none;
+  transition: opacity var(--duration-scrim-track) linear;
 }
 .app.drawer-open.drawer-settling .scrim,
 .app.drawer-settling .scrim {
@@ -96,7 +96,7 @@
 .student-record-sheet.show.is-revealing::before,
 .student-record-sheet.is-revealing::before,
 .student-record-sheet.show.is-dragging::before {
-  transition: none;
+  transition: opacity var(--duration-scrim-track) linear;
 }
 .student-record-sheet.show.is-settling::before,
 .student-record-sheet.is-settling::before {
@@ -229,7 +229,7 @@
 .confirm-sheet.show.is-revealing::before,
 .confirm-sheet.is-revealing::before,
 .confirm-sheet.show.is-dragging::before {
-  transition: none;
+  transition: opacity var(--duration-scrim-track) linear;
 }
 .confirm-sheet.show.is-settling::before,
 .confirm-sheet.is-settling::before {

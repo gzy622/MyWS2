@@ -90,6 +90,22 @@ export function createSheetController({
     return (Math.round(value * 1000) / 1000).toFixed(3);
   }
 
+  /**
+   * Bind the scrim to a progress value before any forced reflow. Without this
+   * the `.show` fallback (opacity: 1) can win for one style recalculation and
+   * the scrim visibly jumps when a scrub starts.
+   */
+  function pinScrimToProgress(value) {
+    const p = clamp01(value);
+    if (useShowClass && layer) {
+      layer.style.setProperty('--sheet-reveal-progress', progressToken(p));
+      layer.classList.add('is-revealing');
+      layer.classList.remove('is-settling');
+      return;
+    }
+    setScrimProgress?.(p, 'drag');
+  }
+
   function applyTransform(nextProgress) {
     const offset = direction === 'from-top'
       ? -travel * (1 - nextProgress)
@@ -197,7 +213,7 @@ export function createSheetController({
     progress = visual;
     paintedProgress = NaN;
     paintedScrimToken = '';
-    if (useShowClass && layer) layer.classList.remove('is-settling');
+    pinScrimToProgress(visual);
     paint(progress, 'drag');
   }
 
@@ -260,8 +276,9 @@ export function createSheetController({
       progress = dragOriginProgress;
     }
 
+    // Pin before enterPresented / ensureTravel — both can force a reflow.
+    pinScrimToProgress(progress);
     enterPresented({ source: openSource ?? (startingFromClosed ? 'gesture' : 'control') });
-    ensureTravel({ force: true });
     dragging = true;
     setDraggingClass(true);
     if (useShowClass && layer) {
@@ -270,6 +287,7 @@ export function createSheetController({
       layer.inert = false;
     }
     panel.style.visibility = 'visible';
+    ensureTravel({ force: true });
     paintedProgress = NaN;
     paintedScrimToken = '';
     paint(progress, 'drag');
@@ -297,6 +315,7 @@ export function createSheetController({
   }
 
   function setProgress(nextProgress, mode = 'drag') {
+    if (mode === 'drag') pinScrimToProgress(nextProgress);
     enterPresented();
     ensureTravel({ force: mode !== 'drag' });
     if (mode === 'drag') {
