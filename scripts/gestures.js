@@ -11,6 +11,7 @@ import { haptic, Haptic } from './haptics.js';
 import { getTopSheet, isAnySheetDragging } from './sheet-drag.js';
 import { createSheetGestureBridge } from './sheet-gestures.js';
 import { describeDebugTarget, logCourseDebug } from './sheet-debug.js';
+import { setLetterIndexPageDragging, syncLetterIndexPageVisibility } from './letter-index.js';
 
 const AXIS_LOCK_DISTANCE = 6;
 const EDGE_RESISTANCE = 0.28;
@@ -95,7 +96,7 @@ export function initHorizontalGestures() {
     const topSheet = getTopSheet();
     if (claim !== 'sheet' && topSheet) return;
     if (claim !== 'sheet' && (state.activeOverlay || state.drawerOpen || state.fontSizePopoverOpen)) return;
-    if (claim !== 'sheet' && event.target.closest?.('.seat-viewport, .grade-scroll')) return;
+    if (claim !== 'sheet' && event.target.closest?.('.seat-viewport, .grade-scroll, .letter-index')) return;
     if (event.button > 0) return;
 
     const courseHit = event.target.closest?.(
@@ -141,6 +142,9 @@ export function initHorizontalGestures() {
     if (!axis && Math.hypot(deltaX, deltaY) > AXIS_LOCK_DISTANCE) {
       axis = Math.abs(deltaX) >= Math.abs(deltaY) ? 'x' : 'y';
       element.setPointerCapture?.(pointerId);
+      if (axis === 'x' && !isSegments && claim !== 'sheet') {
+        setLetterIndexPageDragging(true);
+      }
     }
 
     if (axis === 'y') {
@@ -256,8 +260,12 @@ export function initHorizontalGestures() {
         setCurrentPage(clampPage(state.currentPage + pageDelta));
       }
       renderNavigation();
+      syncLetterIndexPageVisibility();
     } else if (!handledSheet) {
       renderNavigation();
+      syncLetterIndexPageVisibility();
+    } else {
+      syncLetterIndexPageVisibility();
     }
 
     isNav = false;

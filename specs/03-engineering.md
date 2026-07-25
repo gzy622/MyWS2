@@ -25,6 +25,8 @@
 | 业务 Store、变更和订阅 | `scripts/roster-store.js` |
 | 业务存储 Schema、迁移与回退 | `scripts/roster-storage.js` |
 | 网格与座位共享渲染 | `scripts/roster-renderer.js` |
+| 姓名首字母（姓氏拼音映射） | `scripts/name-initial.js` |
+| 登记页侧边字母索引与命中高亮 | `scripts/letter-index.js` |
 | 人员页班干/值日列表渲染 | `scripts/people-renderer.js` |
 | 人员页指派、编辑与 Sheet | `scripts/people-interactions.js` |
 | 课程页课表/成绩列表渲染 | `scripts/courses-renderer.js` |
@@ -58,8 +60,8 @@
 
 以下 selector/属性被脚本依赖，修改结构时必须保留语义和唯一性：
 
-- ID：`#app`、`#viewport`、`#pages`、`#nav`、`#glider`、`#topbarTitle`、`#topbarTitleLabel`、`#fontSizePopover`、`#studentGrid`、`#studentFontSize`、`#studentFontSizeValue`、`#roleList`、`#dutyList`、`#weekStrip`、`#gradeTable`、`#menuDrawer`、`#menuDrawerHandle`、`#menuDrawerBuild`、`#menuButton`、`#moreButton`、`#closeMenuDrawer`、`#scrim`、`#toast`。
-- Class：`.page`、`.nav-btn`、`.segment`、`.segment-glider`、`.subview`、`.student-grid`、`.student-card`、`.people-row`、`.week-slot-cell`、`.week-period-label`、`.grade-score-cell`、`.grade-subject-head`、`.subdots i`、`.menu-item`、`.menu-drawer`、`.student-record-sheet`、`.people-pick-sheet`、`.people-edit-sheet`、`.course-slot-sheet`、`.course-period-sheet`、`.course-subject-sheet`、`.course-grade-sheet`、`.confirm-sheet`、`.assignment-sheet`、`.assignment-name-sheet`、`.more-menu`。
+- ID：`#app`、`#viewport`、`#pages`、`#nav`、`#glider`、`#topbarTitle`、`#topbarTitleLabel`、`#fontSizePopover`、`#studentGrid`、`#gridLetterIndex`、`#studentFontSize`、`#studentFontSizeValue`、`#roleList`、`#dutyList`、`#weekStrip`、`#gradeTable`、`#seatLetterIndex`、`#menuDrawer`、`#menuDrawerHandle`、`#menuDrawerBuild`、`#menuButton`、`#moreButton`、`#closeMenuDrawer`、`#scrim`、`#toast`。
+- Class：`.page`、`.nav-btn`、`.segment`、`.segment-glider`、`.subview`、`.student-grid`、`.student-card`、`.letter-index`、`.letter-index-item`、`.letter-index-badge`、`.people-row`、`.week-slot-cell`、`.week-period-label`、`.grade-score-cell`、`.grade-subject-head`、`.subdots i`、`.menu-item`、`.menu-drawer`、`.student-record-sheet`、`.people-pick-sheet`、`.people-edit-sheet`、`.course-slot-sheet`、`.course-period-sheet`、`.course-subject-sheet`、`.course-grade-sheet`、`.confirm-sheet`、`.assignment-sheet`、`.assignment-name-sheet`、`.more-menu`。
 - Data：`data-page`、`data-index`、`data-sub`、`data-view`、`data-action`，以及学生格可选的 `data-score`。
 
 索引必须是从 0 开始的连续整数，并保持“页面—导航—状态数组”一一对应。

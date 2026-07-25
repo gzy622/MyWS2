@@ -44,6 +44,10 @@
 | 学生姓名 | `.student-card` 的文本内容 | Demo 占位姓名，默认字号 16px。 |
 | 分数角标 | `.student-card[data-score]::after` | 仅存在 `data-score` 时显示的右上角文字，无背景和边框。 |
 | 姓名字号变量 | `--student-name-size` | 由字号状态渲染到学生网格，控制全部学生姓名。 |
+| 网格字母索引 | `#gridLetterIndex.letter-index` | 网格视图右侧 `A–Z` 首字母条；仅登记页稳定时可见。 |
+| 字母项 | `.letter-index-item[data-letter]` | 索引条上的单个字母；无匹配为 `.is-empty`，按住当前为 `.is-active`。 |
+| 字母命中高亮 | `.student-card.is-letter-hit` / `.seat-card.is-letter-hit` | 按住字母时匹配学生的临时弱强调，松手后清除。 |
+| 字母徽标 | `.letter-index-badge` | 按住时显示的大号当前字母提示。 |
 
 ## 4. 作业与学生记录
 
@@ -97,6 +101,7 @@
 
 | 沟通名称 | 对应元素 / 标识 | 说明 |
 | --- | --- | --- |
+| 座位字母索引 | `#seatLetterIndex.letter-index` | 座位视图右侧首字母条（在 `#seatViewport` 外），行为与网格字母索引相同。 |
 | 座位逻辑位置 | `.seat-cell[data-seat-index]` | 13×8 网格中的一个位置，共 104 个。 |
 | 座位卡 | `.seat-card[data-student-id]` | 已安排学生的座位表呈现，与网格共享完成与分数状态。 |
 | 座位编辑模式 | `state.seatEditing` | 拖到空位移动，拖到占用位置交换。 |

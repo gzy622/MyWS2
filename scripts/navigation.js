@@ -1,6 +1,7 @@
 import { elements } from './dom.js';
 import { state, setCurrentPage, setSubview, toggleSubview } from './state.js';
 import { haptic, Haptic } from './haptics.js';
+import { syncLetterIndexPageVisibility } from './letter-index.js';
 
 let getRegistrationTitle = () => '登记';
 
@@ -60,6 +61,7 @@ export function renderNavigation({ animate = true } = {}) {
       dot.classList.toggle('on', index === activeSubview);
     });
   });
+  syncLetterIndexPageVisibility();
 }
 
 export function renderDrag(offsetPx) {

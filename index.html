@@ -64,7 +64,10 @@
           <section class="page" data-page="1" aria-label="登记">
             <div class="page-inner">
               <div class="subview active" data-view="0">
-                <div class="student-grid" id="studentGrid" role="list" aria-label="学生名单"></div>
+                <div class="roster-grid-shell">
+                  <div class="student-grid" id="studentGrid" role="list" aria-label="学生名单"></div>
+                  <nav class="letter-index" id="gridLetterIndex" aria-label="姓名首字母" aria-hidden="true"></nav>
+                </div>
               </div>
               <div class="subview seat-subview" data-view="1">
                 <section class="seat-view" aria-label="座位表">
@@ -75,6 +78,7 @@
                     </div>
                     <p class="seat-hint" id="seatHint">查看模式 · 轻点登记 · 长按打分 · 拖动画布 · 双指缩放</p>
                   </div>
+                  <nav class="letter-index" id="seatLetterIndex" aria-label="姓名首字母" aria-hidden="true"></nav>
                 </section>
               </div>
             </div>

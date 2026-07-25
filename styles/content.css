@@ -39,10 +39,16 @@
   overflow-y: auto;
   overscroll-behavior-y: contain;
 }
+.roster-grid-shell {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+}
 .student-grid {
   --student-grid-line: var(--line);
   position: relative;
   display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: repeat(10, minmax(0, 1fr));
+  width: calc(100% - 2px); margin-inline: 1px;
   height: var(--student-grid-locked-height, 100%); flex: none; overflow: hidden;
   border: 0; border-radius: var(--radius-card);
   background-color: var(--card);
@@ -73,12 +79,62 @@
   content: attr(data-score); position: absolute; top: 4px; right: 4px; color: var(--muted);
   font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1;
 }
+/* Letter hit: same soft teal wash as week-slot .is-highlight */
+.student-card.is-letter-hit {
+  z-index: 1;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--teal) 10%, var(--card));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--teal) 18%, var(--line));
+}
+.student-card.is-letter-hit.is-completed {
+  color: var(--ink-soft);
+  background: color-mix(in srgb, var(--teal) 10%, color-mix(in srgb, var(--paper) 40%, var(--card)));
+  box-shadow:
+    inset -.5px 0 var(--student-grid-line),
+    inset 0 -.5px var(--student-grid-line),
+    inset 0 0 0 1px color-mix(in srgb, var(--teal) 18%, var(--line));
+}
+.letter-index {
+  /* Visual column ~12px at the right; padding-left widens the touch target toward the grid. */
+  position: absolute; z-index: 2; top: 0; bottom: 0; right: -11px;
+  display: flex; flex-direction: column; justify-content: space-between; align-items: stretch;
+  box-sizing: border-box; width: 32px; padding: 2px 0 2px 20px; touch-action: none; user-select: none;
+  opacity: 0; pointer-events: none;
+  transition: opacity 140ms var(--ease-accelerate);
+}
+.letter-index.is-visible {
+  opacity: 1; pointer-events: auto;
+  transition: opacity var(--duration-fade) var(--ease);
+}
+.letter-index-item {
+  flex: 1 1 0; display: grid; place-items: center; min-height: 0;
+  width: 100%; color: var(--muted-soft); font-size: 8px; font-weight: 600; line-height: 1;
+}
+.letter-index-item.is-empty { color: var(--disabled); opacity: .4; }
+.letter-index-item.is-active { color: var(--teal); }
+.letter-index-badge {
+  position: absolute; z-index: 12; left: 50%; top: 42%;
+  width: 72px; height: 72px; margin: 0; border-radius: 18px;
+  display: grid; place-items: center;
+  color: var(--on-accent); background: color-mix(in srgb, var(--ink) 78%, transparent);
+  font-size: 36px; font-weight: 700; line-height: 1;
+  transform: translate(-50%, -50%) scale(.92);
+  opacity: 0; pointer-events: none;
+  transition: opacity 120ms var(--ease-accelerate), transform 120ms var(--ease);
+}
+.letter-index-badge.is-shown {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
 .page[data-page="1"] { position: relative; }
 .page[data-page="1"] .seat-subview.active {
   position: absolute; inset: calc(var(--topbar-h) + env(safe-area-inset-top)) 0 0;
 }
 .seat-view, .seat-viewport { width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; }
-.seat-view { background: var(--paper); }
+.seat-view { position: relative; background: var(--paper); }
+.seat-view > .letter-index {
+  top: 6px; bottom: max(48px, calc(env(safe-area-inset-bottom) + 36px)); right: -9px;
+}
 .seat-viewport {
   position: relative; background: var(--paper); cursor: grab; touch-action: none; user-select: none;
 }
@@ -126,6 +182,18 @@
 }
 .seat-card.is-pressing { transform: scale(.96); box-shadow: var(--shadow-press); }
 .seat-card.is-dragging { z-index: 3; cursor: grabbing; box-shadow: var(--shadow-drag); transition: none; }
+.seat-card.is-letter-hit {
+  z-index: 2;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--teal) 10%, var(--card));
+  border-color: color-mix(in srgb, var(--teal) 18%, var(--line));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--teal) 18%, var(--line));
+}
+.seat-card.is-letter-hit.is-completed {
+  color: var(--ink-soft);
+  background: color-mix(in srgb, var(--teal) 10%, color-mix(in srgb, var(--paper) 40%, var(--card)));
+  border-color: color-mix(in srgb, var(--teal) 18%, var(--line));
+}
 .podium {
   position: absolute; top: calc(var(--seat-grid-height) + 10px); left: 50%; width: 454px; height: 96px; display: grid; place-items: center;
   color: var(--muted); background: var(--control); border: 0; border-radius: 14px;

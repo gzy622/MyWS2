@@ -52,6 +52,8 @@ node lan-server.js
 | `scripts/roster-storage.js` | 业务 Schema 的严格读取、迁移（含 1→2→3）、回退与写入。 |
 | `scripts/theme.js` | 浅色/深色主题状态、根主题属性、`theme-color` meta 与 Capacitor StatusBar 外观同步，以及受控主题持久化。 |
 | `scripts/roster-renderer.js` | 基于 Store 同步渲染网格和座位卡。 |
+| `scripts/name-initial.js` | 姓名姓氏拼音首字母纯函数（无第三方拼音库）。 |
+| `scripts/letter-index.js` | 登记页侧边字母索引、命中高亮、页稳定显隐与主页面横滑渐隐。 |
 | `scripts/people-renderer.js` | 基于 Store 同步渲染班干与值日列表。 |
 | `scripts/people-interactions.js` | 人员页轻点指派、长按编辑、选人与编辑 Sheet。 |
 | `scripts/courses-renderer.js` | 基于 Store 同步渲染周课表与成绩表。 |

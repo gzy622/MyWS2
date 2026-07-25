@@ -22,6 +22,7 @@ import { initViewport } from './viewport.js';
 import { createSystemBackController } from './system-back.js';
 import { initSheetDebug } from './sheet-debug.js';
 import { initBuildId } from './build-id.js';
+import { initLetterIndex } from './letter-index.js';
 
 export const rosterStore = createRosterStore(loadRosterState(), saveRosterState);
 const theme = initTheme();
@@ -32,6 +33,7 @@ initSheetDebug();
 initNavigation({ getActiveAssignmentTitle: () => rosterStore.getCurrentAssignment().name });
 const fontSize = initStudentFontSize();
 initRosterRenderer(rosterStore);
+initLetterIndex(rosterStore);
 initPeopleRenderer(rosterStore);
 let studentRecord;
 let assignments;
