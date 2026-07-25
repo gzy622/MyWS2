@@ -1,25 +1,91 @@
-export function resolveViewportMetrics(innerHeight, visualViewport, previousInnerHeight = innerHeight) {
-  const height = innerHeight !== previousInnerHeight
-    ? innerHeight
-    : (visualViewport?.height ?? innerHeight);
+const IME_INSET_THRESHOLD = 80;
+
+const IME_HOST_SELECTOR = [
+  '.assignment-name-sheet',
+  '.assignment-sheet',
+  '.student-record-sheet',
+  '.confirm-sheet',
+  '.menu-drawer',
+  '.more-menu',
+  '.font-size-popover'
+].join(',');
+
+function isTextEntry(element) {
+  if (!(element instanceof HTMLElement)) return false;
+  if ('disabled' in element && element.disabled) return false;
+  if (element instanceof HTMLTextAreaElement) return !element.readOnly;
+  if (element instanceof HTMLInputElement) {
+    if (element.readOnly) return false;
+    if ((element.inputMode || '').toLowerCase() === 'none') return false;
+    const type = (element.type || 'text').toLowerCase();
+    return !['button', 'checkbox', 'radio', 'range', 'color', 'file', 'submit', 'reset', 'image', 'hidden'].includes(type);
+  }
+  return Boolean(element.isContentEditable);
+}
+
+/**
+ * Shell keeps a stable layout height while a text field is focused.
+ * Only the focused overlay (via --ime-inset-bottom) yields to the keyboard.
+ */
+export function resolveViewportMetrics(
+  layoutHeight,
+  visualViewport,
+  baselineHeight = layoutHeight,
+  { textEntryFocused = false } = {}
+) {
+  const vvHeight = visualViewport?.height ?? layoutHeight;
+  const vvOffsetTop = Math.max(0, visualViewport?.offsetTop ?? 0);
+  const nextBaseline = textEntryFocused ? Math.max(baselineHeight, layoutHeight) : layoutHeight;
+  const imeInsetBottom = textEntryFocused
+    ? Math.max(0, nextBaseline - vvOffsetTop - vvHeight, nextBaseline - layoutHeight)
+    : 0;
+
   return {
-    height: Math.max(0, height),
-    offsetTop: Math.max(0, visualViewport?.offsetTop ?? 0)
+    height: nextBaseline,
+    offsetTop: textEntryFocused ? 0 : vvOffsetTop,
+    imeInsetBottom,
+    imeOpen: textEntryFocused && imeInsetBottom >= IME_INSET_THRESHOLD,
+    baselineHeight: nextBaseline
   };
 }
 
 export function initViewport({ app, studentGrid }) {
   let frame;
   let unlockFrame;
-  let previousInnerHeight = window.innerHeight;
+  let baselineHeight = window.innerHeight;
+  let imeHost = null;
+
+  function clearImeHost() {
+    if (!imeHost) return;
+    imeHost.classList.remove('is-ime-host');
+    imeHost = null;
+  }
+
+  function syncImeHost(target) {
+    const next = isTextEntry(target) ? target.closest(IME_HOST_SELECTOR) : null;
+    if (next === imeHost) return;
+    clearImeHost();
+    if (!next) return;
+    imeHost = next;
+    imeHost.classList.add('is-ime-host');
+  }
 
   function apply() {
     frame = undefined;
-    const innerHeight = window.innerHeight;
-    const metrics = resolveViewportMetrics(innerHeight, window.visualViewport, previousInnerHeight);
-    previousInnerHeight = innerHeight;
+    const focused = isTextEntry(document.activeElement);
+    const metrics = resolveViewportMetrics(
+      window.innerHeight,
+      window.visualViewport,
+      baselineHeight,
+      { textEntryFocused: focused }
+    );
+    baselineHeight = metrics.baselineHeight;
     app.style.setProperty('--app-viewport-height', `${metrics.height}px`);
     app.style.setProperty('--app-viewport-offset-top', `${metrics.offsetTop}px`);
+    app.style.setProperty('--ime-inset-bottom', `${metrics.imeInsetBottom}px`);
+    app.classList.toggle('ime-open', metrics.imeOpen);
+    if (focused) syncImeHost(document.activeElement);
+    else clearImeHost();
   }
 
   function schedule() {
@@ -41,11 +107,25 @@ export function initViewport({ app, studentGrid }) {
     });
   }
 
+  function onFocusIn(event) {
+    syncImeHost(event.target);
+    schedule();
+  }
+
+  function onFocusOut() {
+    requestAnimationFrame(() => {
+      syncImeHost(document.activeElement);
+      schedule();
+    });
+  }
+
   apply();
   window.addEventListener('resize', schedule);
   window.addEventListener('orientationchange', schedule);
   window.visualViewport?.addEventListener('resize', schedule);
   window.visualViewport?.addEventListener('scroll', schedule);
+  document.addEventListener('focusin', onFocusIn);
+  document.addEventListener('focusout', onFocusOut);
 
   return { lockStudentGrid, unlockStudentGrid };
 }
