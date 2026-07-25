@@ -28,16 +28,24 @@
 | 学生轻点、长按和右键 | `scripts/student-interactions.js` |
 | 学生记录 | `scripts/student-record.js` |
 | 作业列表与作业名称 | `scripts/assignments.js` |
-| Sheet 把手拖动关闭 | `scripts/sheet-drag.js` |
+| Sheet progress 控制器与栈 | `scripts/sheet-drag.js` |
+| Sheet 纵向跟手桥接 | `scripts/sheet-gestures.js` |
+| 调试浮层（长按菜单 / 连点 3 次 / `?sheetDebug=1`；默认展示 build/origin） | `scripts/sheet-debug.js` |
+| 内容指纹（`npm run code:id` / `/__build-id` / `build-id.json`） | `scripts/content-id.cjs`、`scripts/build-id.js` |
+| 静默焦点（避免手势后焦点环） | `scripts/focus.js` |
 | 座位逻辑几何 | `scripts/seat-geometry.js` |
 | 更多菜单与确认面板 | `scripts/more-sheet.js` |
 | Visual Viewport 同步 | `scripts/viewport.js` |
 | 主/子导航和渲染 | `scripts/navigation.js` |
 | 姓名字号与持久化 | `scripts/student-font-size.js` |
-| 页面、导航手势 | `scripts/gestures.js` |
+| 页面、导航与 Sheet 手势路由 | `scripts/gestures.js` |
 | 通用菜单行为 | `scripts/drawer.js` |
 | Toast 生命周期与临时反馈 | `scripts/toast.js` |
 | 初始化和依赖注入 | `scripts/main.js` |
+| 原生壳 Live Reload 预览 | `scripts/preview-native.ps1`、`start-native-preview.bat` |
+| 手机同步控制台（热更新优先；完整安装备选） | `scripts/sync-phone.ps1`、`sync-phone.bat` |
+
+双击用的 `.bat` 必须是 **纯 ASCII + CRLF**（中文提示放在 `.ps1`）；相关 `.ps1` 使用 **UTF-8 BOM + CRLF**，避免 `cmd` 按系统代码页误读导致“语法不正确”后立刻退出。
 
 不得为了“小改动方便”把 CSS 或 JS 塞回 `index.html`。只有新增了清晰、独立的职责时才创建新模块。
 
@@ -45,7 +53,7 @@
 
 以下 selector/属性被脚本依赖，修改结构时必须保留语义和唯一性：
 
-- ID：`#app`、`#viewport`、`#pages`、`#nav`、`#glider`、`#topbarTitle`、`#topbarTitleLabel`、`#fontSizePopover`、`#studentGrid`、`#studentFontSize`、`#studentFontSizeValue`、`#menuDrawer`、`#menuDrawerHandle`、`#gestureTip`、`#menuButton`、`#moreButton`、`#closeMenuDrawer`、`#scrim`、`#toast`。
+- ID：`#app`、`#viewport`、`#pages`、`#nav`、`#glider`、`#topbarTitle`、`#topbarTitleLabel`、`#fontSizePopover`、`#studentGrid`、`#studentFontSize`、`#studentFontSizeValue`、`#menuDrawer`、`#menuDrawerHandle`、`#menuButton`、`#moreButton`、`#closeMenuDrawer`、`#scrim`、`#toast`。
 - Class：`.page`、`.nav-btn`、`.segment`、`.subview`、`.student-grid`、`.student-card`、`.subdots i`、`.menu-item`、`.menu-drawer`、`.student-record-sheet`、`.confirm-sheet`、`.assignment-sheet`、`.assignment-name-sheet`、`.more-menu`。
 - Data：`data-page`、`data-index`、`data-sub`、`data-view`、`data-action`，以及学生格可选的 `data-score`。
 

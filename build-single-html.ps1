@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
   [string]$InputPath = 'index.html',
   [string]$OutputPath = 'dist\teacher-workbench.single.html'
