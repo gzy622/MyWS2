@@ -2,7 +2,7 @@
 html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
 body {
   font-family: "vivo Sans", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-  color: var(--ink); background: #d9d9dd; display: grid; place-items: center;
+  color: var(--ink); background: var(--desktop-chrome); display: grid; place-items: center;
   font-synthesis: none;
   -webkit-user-select: none;
   user-select: none;

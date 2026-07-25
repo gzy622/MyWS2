@@ -1,7 +1,7 @@
 .app {
   position: relative; width: min(100%, 430px); height: min(100%, var(--app-viewport-height, 100dvh)); max-height: 920px;
   overflow: hidden; background: var(--paper); isolation: isolate;
-  box-shadow: 0 24px 72px rgba(0, 0, 0, .16);
+  box-shadow: var(--shadow-phone);
 }
 .topbar {
   position: absolute; z-index: 4; inset: 0 0 auto; height: calc(var(--topbar-h) + env(safe-area-inset-top));
