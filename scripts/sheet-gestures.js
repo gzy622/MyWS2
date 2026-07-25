@@ -27,7 +27,11 @@ function isInteractiveField(target) {
   return Boolean(field?.querySelector('input, textarea, select, [contenteditable="true"]'));
 }
 
-/** Course-page controls that open editors — must not start page/sheet scrub (kills click + IME). */
+/**
+ * Course-page controls that open editors.
+ * Must not claim Sheet Y-scrub (that swallowed taps / IME), but must NOT return
+ * `blocked` either — otherwise horizontal page swipe never starts on the matrix.
+ */
 function isCourseControl(target) {
   if (!(target instanceof Element)) return false;
   return Boolean(target.closest(
@@ -81,7 +85,8 @@ export function createSheetGestureBridge() {
     if (state.fontSizePopoverOpen) return finish('blocked', 'fontSizePopover');
     if (state.activeOverlay === 'more') return finish('blocked', 'more');
     if (isInteractiveField(event.target)) return finish('blocked', 'interactiveField');
-    if (isCourseControl(event.target)) return finish('blocked', 'courseControl');
+    // No sheet claim — leave the pointer to the page gesture router (horizontal swipe).
+    if (isCourseControl(event.target)) return finish(null, 'courseControl');
 
     // Drop any leftover topbar focus ring before a sheet gesture starts.
     if (document.activeElement instanceof HTMLElement

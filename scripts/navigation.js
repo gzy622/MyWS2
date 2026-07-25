@@ -1,7 +1,7 @@
 import { elements } from './dom.js';
 import { state, setCurrentPage, setSubview, toggleSubview } from './state.js';
 import { haptic, Haptic } from './haptics.js';
-import { syncLetterIndexPageVisibility } from './letter-index.js';
+import { setLetterIndexPageDragging, syncLetterIndexPageVisibility } from './letter-index.js';
 
 let getRegistrationTitle = () => '登记';
 
@@ -61,10 +61,11 @@ export function renderNavigation({ animate = true } = {}) {
       dot.classList.toggle('on', index === activeSubview);
     });
   });
-  syncLetterIndexPageVisibility();
+  syncLetterIndexPageVisibility({ animate });
 }
 
 export function renderDrag(offsetPx) {
+  setLetterIndexPageDragging(true);
   elements.pages.classList.add('dragging');
   elements.glider.classList.add('dragging');
   elements.pages.style.transform = pageTransform(offsetPx);
@@ -72,6 +73,7 @@ export function renderDrag(offsetPx) {
 }
 
 export function renderNavDrag(offsetPx) {
+  setLetterIndexPageDragging(true);
   const segmentWidth = elements.glider.offsetWidth || elements.nav.clientWidth / elements.navButtons.length;
   const pageOffset = segmentWidth > 0
     ? -offsetPx * elements.viewport.clientWidth / segmentWidth

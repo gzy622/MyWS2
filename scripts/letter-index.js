@@ -4,9 +4,15 @@ import { haptic, Haptic } from './haptics.js';
 import { getNameInitial, listAlphabetLetters } from './name-initial.js';
 
 const CLEAR_HIGHLIGHT_MS = 400;
+/** Match `.pages` transform transition in shell.css */
+const PAGE_SETTLE_MS = 420;
+const INSTANT_SETTLE_MS = 32;
 const LETTERS = listAlphabetLetters();
 
 let pageDragging = false;
+/** True only after the main page has finished settling on 登记. */
+let pageSettled = false;
+let settleTimer = 0;
 let activeLetter = null;
 let activePointerId = null;
 let clearTimer = 0;
@@ -59,8 +65,15 @@ function refreshPresentLetters(students) {
   }
 }
 
+function clearSettleTimer() {
+  if (!settleTimer) return;
+  window.clearTimeout(settleTimer);
+  settleTimer = 0;
+}
+
 function applyVisibility() {
-  const visible = !pageDragging && state.currentPage === 1;
+  // Default hidden; only after roster page is settled and not mid horizontal move.
+  const visible = pageSettled && !pageDragging && state.currentPage === 1;
   for (const rail of rails) {
     rail.classList.toggle('is-visible', visible);
     rail.setAttribute('aria-hidden', visible ? 'false' : 'true');
@@ -70,14 +83,49 @@ function applyVisibility() {
   }
 }
 
+/** Call as soon as the page track starts moving horizontally — hide immediately. */
 export function setLetterIndexPageDragging(dragging) {
-  pageDragging = Boolean(dragging);
+  const next = Boolean(dragging);
+  if (next) {
+    clearSettleTimer();
+    pageDragging = true;
+    pageSettled = false;
+    applyVisibility();
+    return;
+  }
+  pageDragging = false;
   applyVisibility();
 }
 
-export function syncLetterIndexPageVisibility() {
+/**
+ * After navigation settles (or cancel). Schedules a fade-in only when landing on 登记.
+ * @param {{ animate?: boolean }} [options]
+ */
+export function syncLetterIndexPageVisibility({ animate = true } = {}) {
   pageDragging = false;
+  clearSettleTimer();
+
+  if (state.currentPage !== 1) {
+    pageSettled = false;
+    applyVisibility();
+    return;
+  }
+
+  // Already stable on roster (e.g. grid ↔ seat) — keep visible, no blink.
+  if (pageSettled) {
+    applyVisibility();
+    return;
+  }
+
+  pageSettled = false;
   applyVisibility();
+  const delay = animate ? PAGE_SETTLE_MS : INSTANT_SETTLE_MS;
+  settleTimer = window.setTimeout(() => {
+    settleTimer = 0;
+    if (pageDragging || state.currentPage !== 1) return;
+    pageSettled = true;
+    applyVisibility();
+  }, delay);
 }
 
 function clearHighlights() {
@@ -209,6 +257,9 @@ export function initLetterIndex(store) {
   }
   ensureBadge();
   refreshPresentLetters(store.getSnapshot().students);
+  // Stay hidden until syncLetterIndexPageVisibility after navigation settles.
+  pageSettled = false;
+  pageDragging = false;
   applyVisibility();
   return {
     unsubscribe: store.subscribe((snapshot) => {
