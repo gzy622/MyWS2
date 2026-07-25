@@ -38,8 +38,8 @@ h1 { margin: 0; font-size: clamp(32px, 8.5vw, 36px); font-weight: 720; line-heig
   font-size: var(--student-name-size, 16px); font-weight: 600; line-height: 1.15; text-align: center; white-space: nowrap;
 }
 .student-card.is-completed {
-  color: var(--accent);
-  background: var(--accent-soft);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--accent) 8%, var(--card));
   box-shadow: inset -.5px 0 var(--student-grid-line), inset 0 -.5px var(--student-grid-line);
 }
 .student-card.is-completed:not([data-score])::before {
@@ -89,8 +89,8 @@ h1 { margin: 0; font-size: clamp(32px, 8.5vw, 36px); font-weight: 720; line-heig
 .seat-stage.is-view-mode .seat-card { top: 6px; }
 .seat-stage.is-edit-mode .seat-card { cursor: grab; }
 .seat-card.is-completed {
-  color: var(--accent);
-  background: var(--accent-soft);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--accent) 8%, var(--card));
   border-color: var(--line);
 }
 .seat-card.is-completed:not([data-score])::before {
