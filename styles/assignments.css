@@ -17,8 +17,29 @@
   transition: opacity var(--duration-fade) linear;
 }
 
-.assignment-sheet.show { pointer-events: auto; }
+.assignment-sheet.show { pointer-events: auto; touch-action: none; }
 .assignment-sheet.show::before { opacity: 1; }
+/* Revealing without an active scrub lets the page keep receiving the captured gesture. */
+.assignment-sheet.is-revealing:not(.is-dragging) { pointer-events: none; }
+/* Scrub + settle must keep hit-testing so clicks do not fall through mid-animation. */
+.assignment-sheet.show.is-dragging,
+.assignment-sheet.show.is-settling { pointer-events: auto; }
+.assignment-sheet.show.is-revealing::before,
+.assignment-sheet.show.is-settling::before,
+.assignment-sheet.is-revealing::before,
+.assignment-sheet.is-settling::before,
+.assignment-sheet.show.is-dragging::before {
+  opacity: var(--sheet-reveal-progress, 0);
+}
+.assignment-sheet.show.is-revealing::before,
+.assignment-sheet.is-revealing::before,
+.assignment-sheet.show.is-dragging::before {
+  transition: none;
+}
+.assignment-sheet.show.is-settling::before,
+.assignment-sheet.is-settling::before {
+  transition: opacity var(--duration-sheet) var(--ease);
+}
 
 .assignment-panel {
   display: flex;
@@ -29,6 +50,7 @@
   visibility: hidden;
   transform: translateY(calc(-100% - 72px));
   transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet);
+  touch-action: none;
 }
 
 .assignment-sheet.show .assignment-panel {
@@ -39,6 +61,8 @@
 
 .assignment-panel.dragging {
   transition: none;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .assignment-panel .sheet-head {
@@ -61,11 +85,11 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow-x: hidden;
-  overflow-y: scroll;
+  overflow-y: auto;
   overscroll-behavior: contain;
+  touch-action: none;
   border-radius: 16px;
   background: var(--paper);
-  scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: var(--disabled) color-mix(in srgb, var(--line) 70%, transparent);
 }
@@ -197,14 +221,34 @@
   transition: opacity var(--duration-fade) linear;
 }
 
-.assignment-name-sheet.show { pointer-events: auto; }
+.assignment-name-sheet.show { pointer-events: auto; touch-action: none; }
 .assignment-name-sheet.show::before { opacity: 1; }
+.assignment-name-sheet.is-revealing:not(.is-dragging) { pointer-events: none; }
+.assignment-name-sheet.show.is-dragging,
+.assignment-name-sheet.show.is-settling { pointer-events: auto; }
+.assignment-name-sheet.show.is-revealing::before,
+.assignment-name-sheet.show.is-settling::before,
+.assignment-name-sheet.is-revealing::before,
+.assignment-name-sheet.is-settling::before,
+.assignment-name-sheet.show.is-dragging::before {
+  opacity: var(--sheet-reveal-progress, 0);
+}
+.assignment-name-sheet.show.is-revealing::before,
+.assignment-name-sheet.is-revealing::before,
+.assignment-name-sheet.show.is-dragging::before {
+  transition: none;
+}
+.assignment-name-sheet.show.is-settling::before,
+.assignment-name-sheet.is-settling::before {
+  transition: opacity var(--duration-sheet) var(--ease);
+}
 
 .assignment-name-panel {
   padding: 20px 20px 0;
   visibility: hidden;
   transform: translateY(calc(-100% - 72px));
   transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet);
+  touch-action: none;
 }
 
 .assignment-name-sheet.show .assignment-name-panel {
@@ -215,6 +259,8 @@
 
 .assignment-name-panel.dragging {
   transition: none;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .assignment-name-panel .sheet-title {
@@ -238,3 +284,17 @@
 .assignment-name-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
 .assignment-name-actions button { min-height: 44px; border: 0; border-radius: 12px; background: var(--control); color: var(--ink); cursor: pointer; font-weight: 600; }
 .assignment-name-actions .primary { color: white; background: var(--accent); }
+
+/* IME: only the focused overlay yields to the keyboard; shell stays full height. */
+.assignment-name-sheet.is-ime-host,
+.assignment-sheet.is-ime-host,
+.student-record-sheet.is-ime-host,
+.confirm-sheet.is-ime-host,
+.more-menu.is-ime-host,
+.font-size-popover.is-ime-host {
+  bottom: var(--ime-inset-bottom, 0px);
+}
+
+.menu-drawer.is-ime-host {
+  bottom: max(16px, env(safe-area-inset-bottom), var(--ime-inset-bottom, 0px));
+}

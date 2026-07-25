@@ -3,6 +3,8 @@ import { closeDrawer } from './drawer.js';
 import { setPage, setSub } from './navigation.js';
 import { state, setActiveOverlay } from './state.js';
 import { haptic, Haptic } from './haptics.js';
+import { createSheetController } from './sheet-drag.js';
+import { blurIfSheetChrome, focusSilently } from './focus.js';
 
 const REGISTER_PAGE_INDEX = 1;
 const GRID_SUBVIEW_INDEX = 0;
@@ -12,6 +14,7 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
   let trigger = null;
   let confirmAction = null;
   let confirmReturnFocus = null;
+  let confirmSheet;
 
   function close({ restoreFocus = true } = {}) {
     if (!elements.moreMenu.classList.contains('show')) return;
@@ -20,20 +23,55 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
     elements.moreMenu.inert = true;
     elements.moreButton.setAttribute('aria-expanded', 'false');
     setActiveOverlay(null);
-    if (restoreFocus) trigger?.focus({ preventScroll: true });
+    if (restoreFocus) focusSilently(trigger);
     trigger = null;
   }
 
   function closeConfirm({ restoreFocus = true } = {}) {
-    if (!elements.confirmSheet.classList.contains('show')) return;
-    elements.confirmSheet.classList.remove('show');
-    elements.confirmSheet.setAttribute('aria-hidden', 'true');
-    elements.confirmSheet.inert = true;
-    setActiveOverlay(null);
-    if (restoreFocus) confirmReturnFocus?.focus({ preventScroll: true });
-    confirmAction = null;
-    confirmReturnFocus = null;
+    if (!confirmSheet?.isPresented() && !elements.confirmSheet.classList.contains('show')) return;
+    if (!restoreFocus) confirmReturnFocus = null;
+    if (confirmSheet?.isPresented()) confirmSheet.closeInstant();
+    else {
+      elements.confirmSheet.classList.remove('show');
+      elements.confirmSheet.setAttribute('aria-hidden', 'true');
+      elements.confirmSheet.inert = true;
+      setActiveOverlay(null);
+      const focus = confirmReturnFocus;
+      confirmAction = null;
+      confirmReturnFocus = null;
+      if (restoreFocus && focus) focusSilently(focus);
+      else blurIfSheetChrome();
+    }
   }
+
+  const confirmPanel = elements.confirmSheet.querySelector('.confirm-panel');
+
+  confirmSheet = createSheetController({
+    id: 'confirm',
+    layer: elements.confirmSheet,
+    panel: confirmPanel,
+    direction: 'from-bottom',
+    scrollPorts: [confirmPanel],
+    isOpen: () => elements.confirmSheet.classList.contains('show') && !confirmSheet?.isActive(),
+    onPrepare() {
+      setActiveOverlay('confirm');
+      elements.confirmSheet.setAttribute('aria-hidden', 'false');
+    },
+    onOpened() {
+      setActiveOverlay('confirm');
+      elements.confirmSheet.setAttribute('aria-hidden', 'false');
+      elements.confirmSheet.inert = false;
+    },
+    onClosed() {
+      elements.confirmSheet.setAttribute('aria-hidden', 'true');
+      setActiveOverlay(null);
+      confirmAction = null;
+      const focus = confirmReturnFocus;
+      confirmReturnFocus = null;
+      if (focus) focusSilently(focus);
+      else blurIfSheetChrome();
+    }
+  });
 
   function confirm({ title, message, action, returnFocus }) {
     close({ restoreFocus: false });
@@ -43,11 +81,8 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
     elements.confirmMessage.textContent = message;
     confirmAction = action;
     confirmReturnFocus = returnFocus;
-    setActiveOverlay('confirm');
-    elements.confirmSheet.classList.add('show');
-    elements.confirmSheet.setAttribute('aria-hidden', 'false');
-    elements.confirmSheet.inert = false;
-    elements.cancelConfirmButton.focus({ preventScroll: true });
+    confirmSheet.openInstant();
+    focusSilently(elements.cancelConfirmButton);
   }
 
   function render() {
@@ -87,7 +122,7 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
     elements.moreMenu.inert = false;
     elements.moreButton.setAttribute('aria-expanded', 'true');
     const firstAction = [...elements.moreActions].find((button) => !button.hidden);
-    firstAction?.focus({ preventScroll: true });
+    focusSilently(firstAction);
   }
 
   async function copyMissingStudents() {
@@ -95,7 +130,7 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
     closeDrawer({ restoreFocus: false });
     if (!missing.length) {
       showToast('全部已交，无需复制');
-      elements.menuButton.focus({ preventScroll: true });
+      focusSilently(elements.menuButton);
       return;
     }
     try {
@@ -104,7 +139,7 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
     } catch {
       showToast('复制失败，请检查剪贴板权限');
     }
-    elements.menuButton.focus({ preventScroll: true });
+    focusSilently(elements.menuButton);
   }
 
   function handleMenuAction(button) {
@@ -119,7 +154,7 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
     if (action === 'mark-all') {
       closeDrawer({ restoreFocus: false });
       showToast(store.markAllCompleted() ? '已全部标记完成' : '当前作业已全部完成');
-      elements.menuButton.focus({ preventScroll: true });
+      focusSilently(elements.menuButton);
       return;
     }
     if (action === 'clear-all') {
@@ -192,9 +227,11 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
     closeConfirm({ restoreFocus: false });
     haptic(Haptic.medium);
     action?.();
-    returnFocus?.focus({ preventScroll: true });
+    if (returnFocus) focusSilently(returnFocus);
   });
-  elements.confirmSheet.addEventListener('click', (event) => { if (event.target === elements.confirmSheet) closeConfirm(); });
+  elements.confirmSheet.addEventListener('click', (event) => {
+    if (event.target === elements.confirmSheet && !confirmSheet.isActive()) closeConfirm();
+  });
 
-  return { open, close, closeConfirm, confirm, render };
+  return { open, close, closeConfirm, confirm, render, confirmSheet };
 }

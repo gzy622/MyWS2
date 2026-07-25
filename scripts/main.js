@@ -1,7 +1,7 @@
 import { elements } from './dom.js';
 import { initNavigation, renderNavigation } from './navigation.js';
 import { initHorizontalGestures } from './gestures.js';
-import { closeDrawer, initDrawer, openDrawer } from './drawer.js';
+import { closeDrawer, initDrawer } from './drawer.js';
 import { showToast } from './toast.js';
 import { initStudentFontSize } from './student-font-size.js';
 import { initSeatCanvas } from './seat-canvas.js';
@@ -15,10 +15,14 @@ import { loadRosterState, saveRosterState } from './roster-storage.js';
 import { initTheme } from './theme.js';
 import { initViewport } from './viewport.js';
 import { createSystemBackController } from './system-back.js';
+import { initSheetDebug } from './sheet-debug.js';
+import { initBuildId } from './build-id.js';
 
 export const rosterStore = createRosterStore(loadRosterState(), saveRosterState);
 const theme = initTheme();
 const appViewport = initViewport({ app: elements.app, studentGrid: elements.studentGrid });
+initBuildId();
+initSheetDebug();
 
 initNavigation({ getActiveAssignmentTitle: () => rosterStore.getCurrentAssignment().name });
 const fontSize = initStudentFontSize();
@@ -46,7 +50,7 @@ initStudentInteractions({ store: rosterStore, showToast, openStudentRecord: stud
 export const seatCanvas = initSeatCanvas({ store: rosterStore, showToast, openStudentRecord: studentRecord.open });
 moreSheet = initMoreSheet({ store: rosterStore, showToast, seatCanvas, fontSize, theme, closeOthers: closeOverlays });
 initDrawer({ closeOverlays });
-initHorizontalGestures({ openDrawer });
+initHorizontalGestures();
 createSystemBackController({
   closeConfirm: () => moreSheet.closeConfirm(),
   dismissAssignments: () => assignments.dismissBack(),

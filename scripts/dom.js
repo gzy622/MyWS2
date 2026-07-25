@@ -30,7 +30,6 @@ export const elements = {
   pageElements: requiredAll('.page'),
   menuDrawer: required('#menuDrawer'),
   menuDrawerHandle: required('#menuDrawerHandle'),
-  gestureTip: required('#gestureTip'),
   menuButton: required('#menuButton'),
   moreButton: required('#moreButton'),
   closeMenuDrawerButton: required('#closeMenuDrawer'),

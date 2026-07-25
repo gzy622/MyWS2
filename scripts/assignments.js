@@ -1,6 +1,7 @@
 import { elements } from './dom.js';
 import { state, setActiveOverlay } from './state.js';
-import { bindSheetHandleDrag } from './sheet-drag.js';
+import { createSheetController } from './sheet-drag.js';
+import { blurIfSheetChrome, focusSilently } from './focus.js';
 
 export function initAssignments({ store, showToast, viewport, closeOthers, confirm }) {
   const layer = document.createElement('div');
@@ -12,7 +13,6 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
   const list = layer.querySelector('.assignment-list');
   const addButton = layer.querySelector('.assignment-add');
   const listPanel = layer.querySelector('.assignment-panel');
-  const listHandle = layer.querySelector('.sheet-handle-zone');
   const nameLayer = document.createElement('div');
   nameLayer.className = 'assignment-name-sheet';
   nameLayer.inert = true;
@@ -23,14 +23,13 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
   const nameInput = nameLayer.querySelector('input');
   const nameSave = nameLayer.querySelector('[data-action="save"]');
   const namePanel = nameLayer.querySelector('.assignment-name-panel');
-  const nameHandle = nameLayer.querySelector('.sheet-handle-zone');
 
   let returnFocus = null;
   let nameMode = null;
   let renameTarget = null;
   let nameReturnFocus = null;
-  let listDrag;
-  let nameDrag;
+  let listSheet;
+  let nameSheet;
 
   function active() { return store.getCurrentAssignment(); }
   function title() {
@@ -39,27 +38,61 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
     elements.topbarTitle.setAttribute('aria-label', `当前作业：${active().name}，点击管理作业`);
   }
 
+  function setListScrimProgress(progress, mode = 'drag') {
+    if (mode === 'clear' || (progress == null && mode !== 'settle')) {
+      layer.classList.remove('is-revealing', 'is-settling', 'is-dragging');
+      layer.style.removeProperty('--sheet-reveal-progress');
+      return;
+    }
+    if (mode === 'settle') {
+      if (!layer.classList.contains('is-settling')) {
+        layer.classList.remove('is-revealing');
+        layer.classList.add('is-settling');
+      }
+    } else if (!layer.classList.contains('is-revealing')) {
+      layer.classList.add('is-revealing');
+      layer.classList.remove('is-settling');
+    }
+    if (progress != null) {
+      const token = (Math.round(progress * 1000) / 1000).toFixed(3);
+      if (layer.style.getPropertyValue('--sheet-reveal-progress') !== token) {
+        layer.style.setProperty('--sheet-reveal-progress', token);
+      }
+    }
+  }
+
   function closeNameEditor({ restoreFocus = true } = {}) {
-    if (!nameLayer.classList.contains('show')) return;
-    nameDrag?.reset();
-    nameLayer.classList.remove('show');
-    nameLayer.inert = true;
-    viewport.unlockStudentGrid();
-    if (restoreFocus) nameReturnFocus?.focus({ preventScroll: true });
-    nameMode = null;
-    renameTarget = null;
-    nameReturnFocus = null;
+    if (!nameSheet?.isPresented() && !nameLayer.classList.contains('show')) return;
+    if (!restoreFocus) nameReturnFocus = null;
+    if (nameSheet?.isPresented()) nameSheet.closeInstant();
+    else {
+      nameLayer.classList.remove('show');
+      nameLayer.inert = true;
+      viewport.unlockStudentGrid();
+      const focus = nameReturnFocus;
+      nameMode = null;
+      renameTarget = null;
+      nameReturnFocus = null;
+      if (restoreFocus) focusSilently(focus);
+    }
   }
 
   function close() {
-    if (!layer.classList.contains('show')) return;
+    if (!listSheet?.isPresented() && !layer.classList.contains('show')) return;
     closeNameEditor({ restoreFocus: false });
-    listDrag?.reset();
-    layer.classList.remove('show');
-    layer.inert = true;
-    setActiveOverlay(null);
-    returnFocus?.focus({ preventScroll: true });
-    returnFocus = null;
+    if (listSheet?.isPresented()) listSheet.closeInstant();
+    else {
+      layer.classList.remove('show', 'is-revealing', 'is-settling');
+      layer.inert = true;
+      listPanel.style.transform = '';
+      listPanel.style.visibility = '';
+      setListScrimProgress(null, 'clear');
+      setActiveOverlay(null);
+      const focus = returnFocus;
+      returnFocus = null;
+      if (focus) focusSilently(focus);
+      else blurIfSheetChrome();
+    }
   }
 
   function openNameEditor({ mode, assignment = null, trigger }) {
@@ -77,10 +110,8 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
       nameSave.textContent = '添加';
       nameInput.value = '';
     }
-    nameDrag?.reset();
     viewport.lockStudentGrid();
-    nameLayer.inert = false;
-    nameLayer.classList.add('show');
+    nameSheet.openInstant();
     requestAnimationFrame(() => {
       nameInput.focus({ preventScroll: true });
       if (mode === 'rename') nameInput.select();
@@ -138,7 +169,7 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
   nameLayer.querySelector('[data-action="cancel"]').addEventListener('click', () => closeNameEditor());
   nameSave.addEventListener('click', saveNameEditor);
   nameLayer.addEventListener('click', (event) => {
-    if (event.target === nameLayer) closeNameEditor();
+    if (event.target === nameLayer && !nameSheet?.isActive()) closeNameEditor();
   });
   nameInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
@@ -148,47 +179,108 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
   });
 
   layer.querySelector('[data-action="close"]').addEventListener('click', close);
-  layer.addEventListener('click', (event) => { if (event.target === layer) close(); });
+  layer.addEventListener('click', (event) => {
+    if (event.target === layer && !listSheet?.isActive()) close();
+  });
   addButton.addEventListener('click', () => {
     openNameEditor({ mode: 'add', trigger: addButton });
   });
-  listDrag = bindSheetHandleDrag({
-    handle: listHandle,
+
+  listSheet = createSheetController({
+    id: 'assignments',
+    layer,
     panel: listPanel,
-    direction: 'up',
-    onClose: close,
+    direction: 'from-top',
+    scrollPorts: [list],
+    isOpen: () => layer.classList.contains('show') && !listSheet?.isActive(),
+    onPrepare({ source } = {}) {
+      closeOthers?.('assignments');
+      // Gesture opens must not adopt the topbar title as return focus (avoids focus ring).
+      if (source === 'gesture') returnFocus = null;
+      else returnFocus = returnFocus ?? elements.topbarTitle;
+      render();
+      setActiveOverlay('assignments');
+    },
+    onOpened({ source } = {}) {
+      setActiveOverlay('assignments');
+      setListScrimProgress(null, 'clear');
+      if (source === 'control') {
+        focusSilently(layer.querySelector('.assignment-select'));
+      }
+    },
+    onClosed() {
+      setActiveOverlay(null);
+      const focus = returnFocus;
+      returnFocus = null;
+      if (focus) focusSilently(focus);
+      else blurIfSheetChrome();
+    },
+    setScrimProgress: setListScrimProgress
   });
-  nameDrag = bindSheetHandleDrag({
-    handle: nameHandle,
+
+  nameSheet = createSheetController({
+    id: 'assignment-name',
+    layer: nameLayer,
     panel: namePanel,
-    direction: 'up',
-    onClose: () => closeNameEditor(),
+    direction: 'from-top',
+    scrollPorts: [namePanel],
+    isOpen: () => nameLayer.classList.contains('show') && !nameSheet?.isActive(),
+    onPrepare() {
+      nameLayer.inert = false;
+      nameLayer.classList.add('show');
+    },
+    onOpened() {
+      nameLayer.inert = false;
+      nameLayer.classList.add('show');
+    },
+    onClosed() {
+      nameLayer.classList.remove('show');
+      nameLayer.inert = true;
+      namePanel.style.transform = '';
+      namePanel.style.visibility = '';
+      viewport.unlockStudentGrid();
+      const focus = nameReturnFocus;
+      nameMode = null;
+      renameTarget = null;
+      nameReturnFocus = null;
+      if (focus) focusSilently(focus);
+      else blurIfSheetChrome();
+    }
   });
+
+  function open({ returnFocus: focusEl } = {}) {
+    if (listSheet.isOpen() || listSheet.isActive()) return;
+    returnFocus = focusEl ?? elements.topbarTitle;
+    render();
+    listSheet.openInstant();
+  }
+
   elements.topbarTitle.addEventListener('click', () => {
     if (state.currentPage !== 1) return;
-    closeOthers?.('assignments');
-    returnFocus = elements.topbarTitle;
-    render();
-    listDrag?.reset();
-    layer.inert = false;
-    layer.classList.add('show');
-    setActiveOverlay('assignments');
-    layer.querySelector('.assignment-select')?.focus({ preventScroll: true });
+    open({ returnFocus: elements.topbarTitle });
   });
   store.subscribe(render);
   title();
 
   function dismissBack() {
-    if (nameLayer.classList.contains('show')) {
+    if (nameSheet.isPresented()) {
       closeNameEditor();
       return true;
     }
-    if (layer.classList.contains('show')) {
+    if (listSheet.isPresented()) {
       close();
       return true;
     }
     return false;
   }
 
-  return { close, render, dismissBack };
+  return {
+    close,
+    open,
+    reveal: listSheet,
+    sheet: listSheet,
+    nameSheet,
+    render,
+    dismissBack
+  };
 }

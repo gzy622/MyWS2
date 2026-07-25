@@ -1,27 +1,35 @@
 import { elements } from './dom.js';
 import { setActiveOverlay } from './state.js';
 import { haptic, Haptic } from './haptics.js';
-import { bindSheetHandleDrag } from './sheet-drag.js';
+import { createSheetController } from './sheet-drag.js';
+import { blurIfSheetChrome, focusSilently } from './focus.js';
 
 export function initStudentRecord({ store, showToast, viewport, closeOthers }) {
   let studentId = null;
   let trigger = null;
-  let handleDrag;
+  let sheet;
 
-  function close() {
-    if (!elements.studentRecordSheet.classList.contains('show')) return;
+  function restoreRecordFocus() {
     const triggerSelector = trigger?.classList.contains('seat-card') ? '.seat-card' : '.student-card';
     const restoreTarget = trigger?.isConnected
       ? trigger
       : elements.app.querySelector(`${triggerSelector}[data-student-id="${studentId}"]`);
-    handleDrag?.reset();
-    elements.studentRecordSheet.classList.remove('show');
-    elements.studentRecordSheet.setAttribute('aria-hidden', 'true');
-    elements.studentRecordSheet.inert = true;
-    setActiveOverlay(null);
-    viewport.unlockStudentGrid();
-    restoreTarget?.focus({ preventScroll: true });
+    if (restoreTarget) focusSilently(restoreTarget);
+    else blurIfSheetChrome();
     trigger = null;
+  }
+
+  function close() {
+    if (!sheet?.isPresented() && !elements.studentRecordSheet.classList.contains('show')) return;
+    if (sheet?.isPresented()) sheet.closeInstant();
+    else {
+      elements.studentRecordSheet.classList.remove('show');
+      elements.studentRecordSheet.setAttribute('aria-hidden', 'true');
+      elements.studentRecordSheet.inert = true;
+      setActiveOverlay(null);
+      viewport.unlockStudentGrid();
+      restoreRecordFocus();
+    }
   }
 
   function updateScoreDraft(key) {
@@ -38,36 +46,62 @@ export function initStudentRecord({ store, showToast, viewport, closeOthers }) {
     elements.studentScoreError.textContent = '';
   }
 
+  sheet = createSheetController({
+    id: 'student-record',
+    layer: elements.studentRecordSheet,
+    panel: elements.studentRecordPanel,
+    direction: 'from-bottom',
+    scrollPorts: [elements.studentRecordPanel],
+    isOpen: () => elements.studentRecordSheet.classList.contains('show') && !sheet?.isActive(),
+    onPrepare() {
+      setActiveOverlay('student-record');
+      elements.studentRecordSheet.setAttribute('aria-hidden', 'false');
+    },
+    onOpened() {
+      setActiveOverlay('student-record');
+      elements.studentRecordSheet.setAttribute('aria-hidden', 'false');
+      elements.studentRecordSheet.inert = false;
+    },
+    onClosed() {
+      elements.studentRecordSheet.setAttribute('aria-hidden', 'true');
+      setActiveOverlay(null);
+      viewport.unlockStudentGrid();
+      restoreRecordFocus();
+    }
+  });
+
   function open(nextStudentId, source) {
-    const state = store.getSnapshot();
-    const student = state.students.find(({ id }) => id === nextStudentId);
+    const snapshot = store.getSnapshot();
+    const student = snapshot.students.find(({ id }) => id === nextStudentId);
     if (!student) return;
     closeOthers?.('student-record');
     viewport.lockStudentGrid();
-    handleDrag?.reset();
-    studentId = nextStudentId; trigger = source;
+    studentId = nextStudentId;
+    trigger = source;
     elements.studentRecordTitle.textContent = student.name;
     const score = store.getScore(studentId);
     const completed = store.getCompletedStudentIds().has(studentId);
-    elements.studentRecordStatus.textContent = score !== undefined ? `已计分 · ${score} 分` : (completed ? '已提交 · 尚未计分' : '未提交');
+    elements.studentRecordStatus.textContent = score !== undefined
+      ? `已计分 · ${score} 分`
+      : (completed ? '已提交 · 尚未计分' : '未提交');
     elements.studentScoreInput.value = score === undefined ? '' : String(score);
     elements.studentScoreError.textContent = '';
-    setActiveOverlay('student-record');
-    elements.studentRecordSheet.classList.add('show'); elements.studentRecordSheet.setAttribute('aria-hidden', 'false');
-    elements.studentRecordSheet.inert = false;
+    sheet.openInstant();
     elements.studentScoreInput.focus({ preventScroll: true });
   }
 
   elements.closeStudentRecordButton.addEventListener('click', close);
-  elements.studentRecordSheet.addEventListener('click', (event) => { if (event.target === elements.studentRecordSheet) close(); });
-  handleDrag = bindSheetHandleDrag({
-    handle: elements.studentRecordHandle,
-    panel: elements.studentRecordPanel,
-    direction: 'down',
-    onClose: close,
+  elements.studentRecordSheet.addEventListener('click', (event) => {
+    if (event.target === elements.studentRecordSheet && !sheet.isActive()) close();
   });
-  elements.studentScoreControls.addEventListener('click', (event) => { const key = event.target.closest('[data-score-key]')?.dataset.scoreKey; if (key) updateScoreDraft(key); });
-  elements.clearStudentRecordButton.addEventListener('click', () => { if (store.clearStudentRecord(studentId)) showToast('已清除记录'); close(); });
+  elements.studentScoreControls.addEventListener('click', (event) => {
+    const key = event.target.closest('[data-score-key]')?.dataset.scoreKey;
+    if (key) updateScoreDraft(key);
+  });
+  elements.clearStudentRecordButton.addEventListener('click', () => {
+    if (store.clearStudentRecord(studentId)) showToast('已清除记录');
+    close();
+  });
   elements.saveStudentRecordButton.addEventListener('click', () => {
     const result = store.setScore(studentId, elements.studentScoreInput.value);
     if (result === 'invalid') {
@@ -79,5 +113,6 @@ export function initStudentRecord({ store, showToast, viewport, closeOthers }) {
     showToast('分数已保存');
     close();
   });
-  return { open, close };
+
+  return { open, close, sheet };
 }

@@ -1,5 +1,10 @@
 /* Shared sheet primitives — concrete panels compose these tokens / classes */
 
+.sheet-panel.dragging {
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
 .sheet-overlay {
   position: absolute;
   inset: 0;
@@ -16,7 +21,7 @@
   transition: opacity var(--duration-fade) linear;
 }
 
-.sheet-overlay.show { pointer-events: auto; }
+.sheet-overlay.show { pointer-events: auto; touch-action: none; }
 .sheet-overlay.show::before { opacity: 1; }
 
 .sheet-panel {
@@ -26,6 +31,7 @@
   border: 0;
   border-radius: var(--radius-sheet);
   background: var(--card);
+  touch-action: none;
 }
 
 .sheet-panel--bottom {
@@ -85,7 +91,6 @@
   display: flex;
   justify-content: center;
   flex: none;
-  touch-action: none;
   cursor: grab;
 }
 
@@ -107,6 +112,7 @@
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+  touch-action: none;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
