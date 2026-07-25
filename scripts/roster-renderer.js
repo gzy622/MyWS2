@@ -41,26 +41,42 @@ export function initRosterRenderer(store) {
     return cell;
   });
   elements.seatGrid.replaceChildren(...seatCells);
+  const studentCardsById = new Map();
+
+  function updateStudentCard(card, student, completed, score) {
+    card.dataset.studentId = String(student.id);
+    card.setAttribute('aria-pressed', String(completed));
+    card.setAttribute('aria-label', describeStudent(student, completed, score));
+    card.classList.toggle('is-completed', completed);
+    if (score === undefined) delete card.dataset.score;
+    else card.dataset.score = String(score);
+    if (card.textContent !== student.name) card.textContent = student.name;
+  }
 
   function render(state = store.getSnapshot()) {
     const completedStudentIds = store.getCompletedStudentIds();
+    const nextStudentIds = new Set(state.students.map((student) => student.id));
+    for (const studentId of studentCardsById.keys()) {
+      if (!nextStudentIds.has(studentId)) studentCardsById.delete(studentId);
+    }
     const cards = state.students.map((student) => {
       const completed = completedStudentIds.has(student.id);
       const score = store.getScore(student.id);
-      const card = document.createElement('button');
-      card.type = 'button';
-      card.className = 'student-card';
-      card.dataset.studentId = String(student.id);
-      card.setAttribute('role', 'listitem');
-      card.setAttribute('aria-pressed', String(completed));
-      card.setAttribute('aria-label', describeStudent(student, completed, score));
-      card.classList.toggle('is-completed', completed);
-      if (score === undefined) delete card.dataset.score;
-      else card.dataset.score = String(score);
-      card.textContent = student.name;
+      let card = studentCardsById.get(student.id);
+      if (!card) {
+        card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'student-card';
+        card.setAttribute('role', 'listitem');
+        studentCardsById.set(student.id, card);
+      }
+      updateStudentCard(card, student, completed, score);
       return card;
     });
-    elements.studentGrid.replaceChildren(...cards);
+    const currentCards = elements.studentGrid.children;
+    const sameChildren = currentCards.length === cards.length
+      && cards.every((card, index) => currentCards[index] === card);
+    if (!sameChildren) elements.studentGrid.replaceChildren(...cards);
     const studentById = new Map(state.students.map((student) => [student.id, student]));
     const seatByIndex = new Map(state.seats.map((seat) => [seat.seatIndex, seat]));
     const occupiedColumns = new Set(state.seats.map(({ seatIndex }) => seatIndex % SEAT_COLUMNS));
@@ -93,7 +109,7 @@ export function initRosterRenderer(store) {
       card.classList.toggle('is-completed', completed);
       if (score === undefined) delete card.dataset.score;
       else card.dataset.score = String(score);
-      card.textContent = student.name;
+      if (card.textContent !== student.name) card.textContent = student.name;
     });
   }
 

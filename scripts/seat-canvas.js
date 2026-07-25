@@ -24,6 +24,7 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
   const transform = { x: 0, y: 0, scale: 1 };
   let gesture = null;
   let dropTarget = null;
+  let seatCellCache = null;
   let initialized = false;
   let hintTimer;
   let inertiaFrame;
@@ -84,8 +85,21 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
     dropTarget = null;
   }
 
+  function cacheSeatCells() {
+    const cells = [...elements.seatGrid.querySelectorAll('.seat-cell')];
+    seatCellCache = {
+      cells,
+      rects: cells.map((cell) => cell.getBoundingClientRect())
+    };
+  }
+
+  function clearSeatCellCache() {
+    seatCellCache = null;
+  }
+
   function showDropTarget(seatIndex) {
-    const target = elements.seatGrid.querySelector(`.seat-cell[data-seat-index="${seatIndex}"]`);
+    const target = seatCellCache?.cells[seatIndex]
+      ?? elements.seatGrid.querySelector(`.seat-cell[data-seat-index="${seatIndex}"]`);
     if (target === dropTarget) return;
     clearDropTarget();
     dropTarget = target;
@@ -93,14 +107,15 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
   }
 
   function closestSeatToCard(card) {
-    const cells = [...elements.seatGrid.querySelectorAll('.seat-cell')];
+    if (!seatCellCache) cacheSeatCells();
+    const { cells, rects } = seatCellCache;
     const cardRect = card.getBoundingClientRect();
     const centreX = cardRect.left + cardRect.width / 2;
     const centreY = cardRect.top + cardRect.height / 2;
     let closestRow = 0;
     let rowDistance = Infinity;
     for (let row = 0; row < SEAT_ROWS; row += 1) {
-      const rect = cells[row * SEAT_COLUMNS].getBoundingClientRect();
+      const rect = rects[row * SEAT_COLUMNS];
       const nextDistance = Math.abs(centreY - rect.top - rect.height / 2);
       if (nextDistance < rowDistance) {
         rowDistance = nextDistance;
@@ -110,12 +125,12 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
     let closestSeat = Number(card.dataset.seatIndex);
     let columnDistance = Infinity;
     for (let column = 0; column < SEAT_COLUMNS; column += 1) {
-      const cell = cells[closestRow * SEAT_COLUMNS + column];
-      const rect = cell.getBoundingClientRect();
+      const seatIndex = closestRow * SEAT_COLUMNS + column;
+      const rect = rects[seatIndex];
       const nextDistance = Math.abs(centreX - rect.left - rect.width / 2);
       if (nextDistance < columnDistance) {
         columnDistance = nextDistance;
-        closestSeat = Number(cell.dataset.seatIndex);
+        closestSeat = Number(cells[seatIndex].dataset.seatIndex);
       }
     }
     return closestSeat;
@@ -127,6 +142,7 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
     gesture.card.classList.remove('is-pressing', 'is-dragging');
     gesture.card.style.transform = '';
     clearDropTarget();
+    clearSeatCellCache();
   }
 
   function beginPinch() {
@@ -283,6 +299,7 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
       }
       gesture.moved = true;
       gesture.card.classList.add('is-dragging');
+      cacheSeatCells();
       showDropTarget(gesture.originalSeat);
     }
     if (!gesture.moved) return;
@@ -314,6 +331,7 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
       cardGesture.card.classList.remove('is-pressing', 'is-dragging');
       cardGesture.card.style.transform = '';
       clearDropTarget();
+      clearSeatCellCache();
       gesture = null;
       applyPendingResizeConstraint();
       if (cancelled || cardGesture.longPressed) return;
