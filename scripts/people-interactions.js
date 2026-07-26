@@ -8,18 +8,52 @@ import { PEOPLE_TEXT_MAX_LENGTH } from './roster-model.js';
 const MOVE_CANCEL_DISTANCE = 9;
 const LONG_PRESS_MS = 480;
 const CLICK_SUPPRESSION_MS = 250;
+const IME_ACTION_DEDUP_MS = 500;
+
+/**
+ * Android WebView + IME: tapping a Sheet action blurs the field, --ime-inset-bottom
+ * drops, the panel jumps, and the synthetic click misses (needs a second tap).
+ * Run on pointerdown (capture), preventDefault to keep focus until action runs,
+ * then ignore the trailing click — including retargets onto the confirm scrim /
+ * Cancel (which looked like “delete closed the sheet and did nothing”).
+ */
+function bindImmediateAction(button, action, armGhostClickSuppress) {
+  if (!(button instanceof HTMLElement)) return;
+  let ranAt = 0;
+  button.addEventListener('pointerdown', (event) => {
+    if (event.button > 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    ranAt = performance.now();
+    armGhostClickSuppress?.(IME_ACTION_DEDUP_MS);
+    action(event);
+  }, { capture: true });
+  button.addEventListener('click', (event) => {
+    if (performance.now() - ranAt < IME_ACTION_DEDUP_MS) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    armGhostClickSuppress?.(IME_ACTION_DEDUP_MS);
+    action(event);
+  });
+}
 
 export function initPeopleInteractions({ store, showToast, viewport, closeOthers, confirm }) {
   const pickLayer = document.createElement('div');
   pickLayer.className = 'people-pick-sheet';
   pickLayer.inert = true;
   pickLayer.innerHTML = [
-    '<section class="people-pick-panel sheet-panel sheet-panel--bottom" role="dialog" aria-modal="true" aria-labelledby="peoplePickTitle">',
+    '<section class="people-pick-panel sheet-panel sheet-panel--bottom" role="dialog" aria-modal="true" aria-labelledby="peoplePickTitle" aria-describedby="peoplePickCount">',
     '<div class="sheet-handle-zone sheet-handle-zone--top" aria-hidden="true"><div class="sheet-handle"></div></div>',
-    '<header class="sheet-head"><div class="sheet-title"><span data-field="eyebrow">班干</span><h2 id="peoplePickTitle">指派</h2></div>',
+    '<header class="sheet-head"><div class="sheet-title"><span data-field="eyebrow">班干</span><h2 id="peoplePickTitle">指派</h2>',
+    '<p class="people-pick-count" id="peoplePickCount" data-field="count">未选择</p></div>',
     '<button type="button" class="sheet-close" data-action="close" aria-label="关闭">×</button></header>',
-    '<div class="people-pick-list" role="listbox"></div>',
-    '<button type="button" class="people-pick-clear" data-action="clear">清除指派</button>',
+    '<div class="people-pick-list" role="listbox" aria-multiselectable="true"></div>',
+    '<div class="people-pick-actions">',
+    '<button type="button" data-action="clear">清除</button>',
+    '<button type="button" class="primary" data-action="confirm">确认</button>',
+    '</div>',
     '</section>'
   ].join('');
   elements.app.append(pickLayer);
@@ -49,7 +83,9 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
   const pickList = pickLayer.querySelector('.people-pick-list');
   const pickEyebrow = pickLayer.querySelector('[data-field="eyebrow"]');
   const pickTitle = pickLayer.querySelector('#peoplePickTitle');
+  const pickCount = pickLayer.querySelector('[data-field="count"]');
   const pickClear = pickLayer.querySelector('[data-action="clear"]');
+  const pickConfirm = pickLayer.querySelector('[data-action="confirm"]');
   const editPanel = editLayer.querySelector('.people-edit-panel');
   const editEyebrow = editLayer.querySelector('[data-field="eyebrow"]');
   const editTitle = editLayer.querySelector('#peopleEditTitle');
@@ -64,10 +100,38 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
   let editSheet;
   let pickTarget = null;
   let pickReturnFocus = null;
+  /** Draft selection while pick sheet is open; committed only on confirm. */
+  let pickDraftIds = [];
   let editTarget = null;
   let editReturnFocus = null;
   const presses = new Map();
   let suppressClickUntil = 0;
+  let ghostGuard = null;
+
+  /** Swallow the click that follows an IME-safe pointerdown action. */
+  function armGhostClickSuppress(ms = IME_ACTION_DEDUP_MS) {
+    if (ghostGuard) {
+      document.removeEventListener('click', ghostGuard, true);
+      ghostGuard = null;
+    }
+    suppressClickUntil = performance.now() + ms;
+    const until = suppressClickUntil;
+    ghostGuard = (event) => {
+      if (performance.now() >= until) {
+        document.removeEventListener('click', ghostGuard, true);
+        ghostGuard = null;
+        return;
+      }
+      const hit = event.target;
+      if (!(hit instanceof Element)) return;
+      // Confirm opened from delete; trailing click otherwise hits scrim / 取消.
+      if (hit.closest('.confirm-sheet, .people-row, .people-edit-sheet')) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    };
+    document.addEventListener('click', ghostGuard, true);
+  }
 
   function closePick({ restoreFocus = true } = {}) {
     if (!pickSheet?.isPresented() && !pickLayer.classList.contains('show')) return;
@@ -79,6 +143,7 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
       setActiveOverlay(null);
       const focus = pickReturnFocus;
       pickTarget = null;
+      pickDraftIds = [];
       pickReturnFocus = null;
       if (restoreFocus && focus) focusSilently(focus);
       else blurIfSheetChrome();
@@ -102,36 +167,65 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
     }
   }
 
+  function selectedIdsForTarget(snapshot) {
+    if (!pickTarget) return [];
+    const item = pickTarget.kind === 'role'
+      ? snapshot.roles.find((role) => role.id === pickTarget.id)
+      : snapshot.duties.find((duty) => duty.id === pickTarget.id);
+    return item?.studentIds ? [...item.studentIds] : [];
+  }
+
+  function updatePickCount(count) {
+    pickCount.textContent = count > 0 ? `已选 ${count} 人` : '未选择';
+  }
+
+  function toggleDraftStudent(studentId) {
+    const index = pickDraftIds.indexOf(studentId);
+    if (index >= 0) pickDraftIds.splice(index, 1);
+    else pickDraftIds.push(studentId);
+  }
+
   function renderPickList() {
     if (!pickTarget) return;
     const snapshot = store.getSnapshot();
-    const selectedId = pickTarget.kind === 'role'
-      ? snapshot.roles.find((role) => role.id === pickTarget.id)?.studentId
-      : snapshot.duties.find((duty) => duty.id === pickTarget.id)?.studentId;
-    pickClear.disabled = selectedId == null;
+    const selectedSet = new Set(pickDraftIds);
+    pickClear.disabled = pickDraftIds.length === 0;
+    updatePickCount(pickDraftIds.length);
     pickList.replaceChildren(...snapshot.students.map((student) => {
       const option = document.createElement('button');
       option.type = 'button';
       option.className = 'people-pick-option';
       option.setAttribute('role', 'option');
       option.dataset.studentId = String(student.id);
-      option.setAttribute('aria-selected', String(student.id === selectedId));
+      const selected = selectedSet.has(student.id);
+      option.setAttribute('aria-selected', String(selected));
       option.textContent = student.name;
-      if (student.id === selectedId) option.classList.add('is-selected');
+      if (selected) option.classList.add('is-selected');
       option.addEventListener('click', () => {
-        const ok = pickTarget.kind === 'role'
-          ? store.assignRole(pickTarget.id, student.id)
-          : store.assignDuty(pickTarget.id, student.id);
-        if (!ok) {
-          showToast('无法指派该学生');
+        if (!store.getSnapshot().students.some((entry) => entry.id === student.id)) {
+          showToast('无法更新指派');
           return;
         }
+        toggleDraftStudent(student.id);
         haptic(Haptic.light);
-        showToast(`已指派 ${student.name}`);
-        closePick();
+        renderPickList();
       });
       return option;
     }));
+  }
+
+  function confirmPick() {
+    if (!pickTarget) return;
+    const ok = pickTarget.kind === 'role'
+      ? store.setRoleStudents(pickTarget.id, pickDraftIds)
+      : store.setDutyStudents(pickTarget.id, pickDraftIds);
+    if (!ok) {
+      showToast('无法更新指派');
+      return;
+    }
+    haptic(Haptic.medium);
+    showToast(pickDraftIds.length > 0 ? `已指派 ${pickDraftIds.length} 人` : '已清除指派');
+    closePick();
   }
 
   function openPick(kind, id, trigger) {
@@ -143,6 +237,7 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
     closeOthers?.('people-pick');
     pickTarget = { kind, id };
     pickReturnFocus = trigger;
+    pickDraftIds = selectedIdsForTarget(snapshot);
     pickEyebrow.textContent = kind === 'role' ? '班干' : '值日';
     pickTitle.textContent = item.title;
     renderPickList();
@@ -253,6 +348,7 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
       setActiveOverlay(null);
       const focus = pickReturnFocus;
       pickTarget = null;
+      pickDraftIds = [];
       pickReturnFocus = null;
       if (focus) focusSilently(focus);
       else blurIfSheetChrome();
@@ -342,24 +438,28 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
   pickLayer.querySelector('[data-action="close"]').addEventListener('click', () => closePick());
   pickClear.addEventListener('click', () => {
     if (!pickTarget) return;
-    const ok = pickTarget.kind === 'role'
-      ? store.clearRole(pickTarget.id)
-      : store.clearDuty(pickTarget.id);
-    if (!ok) {
+    if (pickDraftIds.length === 0) {
       showToast('当前没有指派');
       return;
     }
+    pickDraftIds = [];
     haptic(Haptic.light);
-    showToast('已清除指派');
-    closePick();
+    renderPickList();
   });
+  pickConfirm.addEventListener('click', confirmPick);
   pickLayer.addEventListener('click', (event) => {
     if (event.target === pickLayer && !pickSheet.isActive()) closePick();
   });
 
-  editLayer.querySelector('[data-action="cancel"]').addEventListener('click', () => closeEdit());
-  editLayer.querySelector('[data-action="save"]').addEventListener('click', saveEdit);
-  deleteButton.addEventListener('click', deleteCurrent);
+  bindImmediateAction(editLayer.querySelector('[data-action="cancel"]'), () => {
+    closeEdit();
+  }, armGhostClickSuppress);
+  bindImmediateAction(editLayer.querySelector('[data-action="save"]'), () => {
+    saveEdit();
+  }, armGhostClickSuppress);
+  bindImmediateAction(deleteButton, () => {
+    deleteCurrent();
+  }, armGhostClickSuppress);
   editLayer.addEventListener('click', (event) => {
     if (event.target === editLayer && !editSheet.isActive()) closeEdit();
   });

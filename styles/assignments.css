@@ -74,11 +74,14 @@
 .assignment-panel .assignment-add {
   min-height: 40px;
   border: 0;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.assignment-panel .assignment-add {
   border-radius: 12px;
   background: var(--control);
   padding: 9px 11px;
-  cursor: pointer;
-  color: var(--ink);
 }
 
 .assignment-list {
@@ -121,11 +124,11 @@
 
 .assignment-item {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 8px;
-  min-height: 56px;
-  padding: 10px 12px;
+  gap: 0;
+  min-height: 48px;
+  padding: 0 4px 0 2px;
 }
 
 .assignment-item + .assignment-item {
@@ -134,34 +137,37 @@
 
 .assignment-select {
   min-width: 0;
+  min-height: 48px;
+  padding: 10px 12px;
+  border-radius: 0;
+  background: transparent;
   text-align: left;
-  font-size: 14px;
-  font-weight: 620;
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .assignment-select[aria-pressed="true"] {
   color: var(--accent);
-  background: var(--accent-soft);
 }
 
 .assignment-item small {
   display: block;
-  margin-top: 3px;
+  margin-top: 2px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 450;
 }
 
 .assignment-panel .assignment-action {
-  width: 38px;
-  height: 38px;
-  min-height: 38px;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
   padding: 0;
   display: grid;
   place-items: center;
-  border-radius: 11px;
-  background: var(--card);
-  color: var(--ink);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
 }
 
 .assignment-panel .assignment-action:disabled {
@@ -170,11 +176,11 @@
 }
 
 .assignment-action svg {
-  width: 21px;
-  height: 21px;
+  width: 18px;
+  height: 18px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.8;
+  stroke-width: 1.7;
   stroke-linecap: round;
   stroke-linejoin: round;
 }

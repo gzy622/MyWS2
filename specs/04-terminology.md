@@ -68,12 +68,12 @@
 | 确认面板 | `.confirm-sheet` | 底部 Sheet | 危险操作确认；小字固定「确认」，大字不加问号（含删除作业、恢复默认数据等）。 |
 | 作业列表 | `.assignment-sheet` | 顶部 Sheet | 显示作业、已交人数，管理选择、新增、改名和删除；UI 标题为小字「登记」+ 大字「作业」。 |
 | 作业名称 | `.assignment-name-sheet` | 顶部 Sheet（二级） | 新增或改名共用的名称输入层；小字「作业」，改名大字「修改名称」、新增大字「新增」；不占 `activeOverlay`。 |
-| 学生选择 Sheet | `.people-pick-sheet` | 底部 Sheet | 从名单指派或清除指派；小字「班干」/「值日」，大字为该项标题。 |
+| 学生选择 Sheet | `.people-pick-sheet` | 底部 Sheet | 从名单多选草稿指派；小字「班干」/「值日」，大字为该项标题；提示已选人数；「清除」清空草稿，「确认」提交并关闭。 |
 | 人员编辑 Sheet | `.people-edit-sheet` | 底部 Sheet | 编辑职位/值日文案或删除项；小字「班干」/「值日」，大字为该项标题。 |
 | 课表格 Sheet | `.course-slot-sheet` | 底部 Sheet | 编辑某一格科目文案或清除；小字「课表」，大字「周X · 节次」。 |
 | 节次改名 Sheet | `.course-period-sheet` | 底部 Sheet | 修改固定节次的显示名称。 |
 | 科目编辑 Sheet | `.course-subject-sheet` | 底部 Sheet | 改名或删除科目；至少保留 1 科。 |
-| 课程成绩 Sheet | `.course-grade-sheet` | 底部 Sheet | 录入课程成绩；小字为科目，大字为学生姓名。 |
+| 课程成绩 Sheet | `.course-grade-sheet` | 底部 Sheet | 录入课程成绩；版式对齐学生记录计分；小字为科目，大字为学生姓名；状态为「已计分 · N 分」或「未计分」。 |
 | 高亮科目 Sheet | `.course-highlight-sheet` | 底部 Sheet | 配置课表格弱强调关键词；课表「更多」入口。 |
 | 更多菜单 | `.more-menu` | 角弹出 | 顶栏右上角上下文菜单。 |
 | 姓名字号 | `#fontSizePopover.font-size-popover` | 轻量 Popover | 仅网格视图由更多菜单打开的字号控制。 |
@@ -115,14 +115,17 @@
 | --- | --- | --- |
 | 内容区标题 | `.section-title` | 子视图区块标题。 |
 | 内容卡片 | `.card` | 当前子视图的唯一信息组容器。 |
-| 班干列表 | `#roleList.role-list` | Store 驱动的班干职位列表。 |
-| 值日列表 | `#dutyList.duty-list` | Store 驱动的值日轮换列表。 |
-| 人员行 | `.people-row` | 可轻点指派、长按编辑的班干 / 值日行。 |
+| 班干列表 | `#roleList.role-list.people-stack` | Store 驱动的班干职位列表容器；每项独立卡片纵向排列。 |
+| 值日列表 | `#dutyList.duty-list.people-stack` | Store 驱动的值日轮换列表容器；每项独立卡片纵向排列。 |
+| 人员行 | `.people-row.card` | 可轻点指派、长按编辑的班干 / 值日卡片。 |
 | 内容文案组 | `.grow` | 行内左侧文字容器。 |
 | 内容项标题 | `.item-title` | 职位或日期等主文案。 |
 | 内容项说明 | `.item-note` | 值日任务等辅助说明。 |
-| 行状态 | `.item-status` | 未指派为「未指定」「未排」；已指派显示学生姓名。 |
-| 学生选择 Sheet | `.people-pick-sheet` | 见第 5 节浮层表；从名单指派或清除指派。 |
+| 行状态 | `.item-status` | 未指派时显示「未指定」「未排」；已指派时不渲染。 |
+| 学生选择 Sheet | `.people-pick-sheet` | 见第 5 节浮层表；从名单多选草稿指派，确认后写入。 |
+| 已选人数提示 | `.people-pick-count` | 选人 Sheet 标题下「已选 N 人」或「未选择」。 |
+| 指派操作区 | `.people-pick-actions` | 选人 Sheet 底部「清除」与「确认」。 |
+| 指派人员文案 | `.item-assignees` | 班干/值日行标题下完整换行展示已指派姓名。 |
 | 人员编辑 Sheet | `.people-edit-sheet` | 见第 5 节浮层表；编辑职位/值日文案或删除项。 |
 | 周课表 | `#weekStrip.week-strip` | 周一～周五 × 固定节次的课表矩阵；一屏完整显示、无纵向滚动。 |
 | 课表格 | `.week-slot-cell` | 可轻点编辑的课表格。 |

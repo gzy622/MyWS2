@@ -1,51 +1,63 @@
 import { elements } from './dom.js';
 
-function studentNameById(students, studentId) {
-  if (studentId == null) return null;
-  return students.find((student) => student.id === studentId)?.name ?? null;
+function namesByIds(students, studentIds) {
+  if (!Array.isArray(studentIds) || studentIds.length === 0) return [];
+  const byId = new Map(students.map((student) => [student.id, student.name]));
+  return studentIds.map((id) => byId.get(id)).filter(Boolean);
 }
 
-function createRoleRow(role, name) {
+function createRoleRow(role, names) {
   const row = document.createElement('button');
   row.type = 'button';
-  row.className = 'row people-row';
+  row.className = 'card row people-row';
   row.setAttribute('role', 'listitem');
   row.dataset.peopleKind = 'role';
   row.dataset.peopleId = String(role.id);
-  row.setAttribute('aria-label', name ? `${role.title}，${name}` : `${role.title}，未指定`);
-  row.innerHTML = `<div class="grow"><div class="item-title"></div></div><span class="item-status"></span>`;
+  const assigned = names.length > 0;
+  const namesText = names.join('、');
+  row.setAttribute(
+    'aria-label',
+    assigned ? `${role.title}，${namesText}` : `${role.title}，未指定`
+  );
+  row.innerHTML = [
+    '<div class="grow">',
+    '<div class="item-title"></div>',
+    assigned ? '<div class="item-assignees"></div>' : '',
+    '</div>',
+    assigned ? '' : '<span class="item-status">未指定</span>'
+  ].join('');
   row.querySelector('.item-title').textContent = role.title;
-  const status = row.querySelector('.item-status');
-  status.textContent = name || '未指定';
-  status.classList.toggle('is-assigned', Boolean(name));
+  if (assigned) row.querySelector('.item-assignees').textContent = namesText;
   return row;
 }
 
-function createDutyRow(duty, name) {
+function createDutyRow(duty, names) {
   const row = document.createElement('button');
   row.type = 'button';
-  row.className = 'row people-row';
+  row.className = 'card row people-row';
   row.setAttribute('role', 'listitem');
   row.dataset.peopleKind = 'duty';
   row.dataset.peopleId = String(duty.id);
   const note = duty.note || '';
+  const assigned = names.length > 0;
+  const namesText = names.join('、');
   row.setAttribute(
     'aria-label',
-    name
-      ? `${duty.title}，${name}${note ? `，${note}` : ''}`
+    assigned
+      ? `${duty.title}，${namesText}${note ? `，${note}` : ''}`
       : `${duty.title}，未排${note ? `，${note}` : ''}`
   );
-  row.innerHTML = `<div class="grow"><div class="item-title"></div><div class="item-note"></div></div><span class="item-status"></span>`;
+  row.innerHTML = [
+    '<div class="grow">',
+    '<div class="item-title"></div>',
+    note ? '<div class="item-note"></div>' : '',
+    assigned ? '<div class="item-assignees"></div>' : '',
+    '</div>',
+    assigned ? '' : '<span class="item-status">未排</span>'
+  ].join('');
   row.querySelector('.item-title').textContent = duty.title;
-  const noteEl = row.querySelector('.item-note');
-  if (note) {
-    noteEl.textContent = note;
-  } else {
-    noteEl.remove();
-  }
-  const status = row.querySelector('.item-status');
-  status.textContent = name || '未排';
-  status.classList.toggle('is-assigned', Boolean(name));
+  if (note) row.querySelector('.item-note').textContent = note;
+  if (assigned) row.querySelector('.item-assignees').textContent = namesText;
   return row;
 }
 
@@ -53,10 +65,10 @@ export function initPeopleRenderer(store) {
   function render(snapshot = store.getSnapshot()) {
     const { students, roles, duties } = snapshot;
     elements.roleList.replaceChildren(
-      ...roles.map((role) => createRoleRow(role, studentNameById(students, role.studentId)))
+      ...roles.map((role) => createRoleRow(role, namesByIds(students, role.studentIds)))
     );
     elements.dutyList.replaceChildren(
-      ...duties.map((duty) => createDutyRow(duty, studentNameById(students, duty.studentId)))
+      ...duties.map((duty) => createDutyRow(duty, namesByIds(students, duty.studentIds)))
     );
   }
 
