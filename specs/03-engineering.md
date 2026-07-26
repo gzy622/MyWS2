@@ -90,7 +90,7 @@
 
 ```js
 {
-  schemaVersion: 3,
+  schemaVersion: 4,
   students: [{ id: 1, name: '示例学生' }],
   seats: [{ studentId: 1, seatIndex: 0 }],
   assignments: [{ id: 1, name: '作业 1' }],
@@ -98,8 +98,8 @@
   submissions: [{ assignmentId: 1, studentId: 1 }],
   scores: [{ assignmentId: 1, studentId: 1, value: 95.5 }],
   nextAssignmentId: 1,
-  roles: [{ id: 1, title: '班长', studentId: null }],
-  duties: [{ id: 1, title: '周一', note: '扫地 · 擦黑板', studentId: null }],
+  roles: [{ id: 1, title: '班长', studentIds: [] }],
+  duties: [{ id: 1, title: '周一', note: '扫地 · 擦黑板', studentIds: [] }],
   nextRoleId: 1,
   nextDutyId: 1,
   periods: [{ id: 1, title: '早' }],
@@ -112,12 +112,12 @@
 ```
 
 - 默认值使用现有 46 名学生、稳定默认座位映射、“作业 1”、4 个默认班干职位、3 个默认值日项、10 个固定节次、3 个默认科目与空课表/空课程成绩；不得在 HTML、渲染器或交互模块复制默认名单或座位。
-- 学生 ID、作业 ID、班干 ID、值日 ID、节次 ID、科目 ID、座位索引唯一；每名学生恰有一个 `0～103` 的座位，所有引用必须存在；`roles`/`duties` 的 `studentId` 可为 `null` 或指向存在的学生。
+- 学生 ID、作业 ID、班干 ID、值日 ID、节次 ID、科目 ID、座位索引唯一；每名学生恰有一个 `0～103` 的座位，所有引用必须存在；`roles`/`duties` 的 `studentIds` 为去重数组，元素须指向存在的学生（空数组表示未指派）。
 - 同一 `(assignmentId, studentId)` 最多一条提交和一条分数；分数必须为 `0～100`、最多一位小数且必须对应提交。清除完成记录同时清除分数。
 - `periods` 必须恰好 10 项；`scheduleSlots.day` 为 `0～4`；同一 `(day, periodId)` 最多一条课表格；`courseGrades` 与登记 `scores` 分立，同一 `(subjectId, studentId)` 最多一条，分值规则同 `parseScore`。
 - 至少保留一个作业、一个班干职位、一个值日项与一个科目；节次结构不可增删；活动作业必须存在；`nextAssignmentId` / `nextRoleId` / `nextDutyId` / `nextPeriodId` / `nextSubjectId` 不小于各自已有最大 ID。
 - 班干职位名、值日标题、节次名、科目名、课表格科目为非空字符串，值日 `note` 可为空串，文案 trim 后长度不超过 40。
-- Schema 1/2 可读入并迁移为 Schema 3（1→3 注入默认人员与课程；2→3 保留人员并注入默认空课表与科目）；其他 `schemaVersion` 不匹配仅可进入显式的已知迁移；损坏 JSON、未知版本、引用失效、重复值或存储异常不得阻止启动，读取时整体回退默认值，写入失败保留当前内存会话。
+- Schema 1/2/3 可读入并迁移为 Schema 4（1→4 注入默认人员与课程；2→4 保留人员并注入默认空课表与科目，且将 `studentId` 转为 `studentIds`；3→4 将 `studentId` 转为 `studentIds`）；其他 `schemaVersion` 不匹配仅可进入显式的已知迁移；损坏 JSON、未知版本、引用失效、重复值或存储异常不得阻止启动，读取时整体回退默认值，写入失败保留当前内存会话。
 
 ## 5. 改动流程
 

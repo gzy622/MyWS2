@@ -363,19 +363,49 @@ export class RosterStore {
     return true;
   }
 
+  toggleRoleStudent(roleId, studentId) {
+    const role = this.#findRole(roleId);
+    if (!role || !this.#hasStudent(studentId)) return false;
+    const index = role.studentIds.indexOf(studentId);
+    if (index >= 0) role.studentIds.splice(index, 1);
+    else role.studentIds.push(studentId);
+    this.#notify();
+    return true;
+  }
+
+  setRoleStudents(roleId, studentIds) {
+    const role = this.#findRole(roleId);
+    if (!role || !Array.isArray(studentIds)) return false;
+    const next = [];
+    const seen = new Set();
+    for (const id of studentIds) {
+      if (!this.#hasStudent(id) || seen.has(id)) continue;
+      seen.add(id);
+      next.push(id);
+    }
+    if (next.length === role.studentIds.length
+      && next.every((id, index) => id === role.studentIds[index])) {
+      return true;
+    }
+    role.studentIds = next;
+    this.#notify();
+    return true;
+  }
+
+  /** Ensure student is assigned (add if absent). */
   assignRole(roleId, studentId) {
     const role = this.#findRole(roleId);
     if (!role || !this.#hasStudent(studentId)) return false;
-    if (role.studentId === studentId) return true;
-    role.studentId = studentId;
+    if (role.studentIds.includes(studentId)) return true;
+    role.studentIds.push(studentId);
     this.#notify();
     return true;
   }
 
   clearRole(roleId) {
     const role = this.#findRole(roleId);
-    if (!role || role.studentId === null) return false;
-    role.studentId = null;
+    if (!role || role.studentIds.length === 0) return false;
+    role.studentIds = [];
     this.#notify();
     return true;
   }
@@ -384,11 +414,11 @@ export class RosterStore {
     const title = cleanPeopleTitle(value);
     if (!title || this.#state.nextRoleId >= Number.MAX_SAFE_INTEGER) return null;
     const id = this.#state.nextRoleId + 1;
-    const role = { id, title, studentId: null };
+    const role = { id, title, studentIds: [] };
     this.#state.roles.push(role);
     this.#state.nextRoleId = id;
     this.#notify();
-    return { ...role };
+    return { id, title, studentIds: [] };
   }
 
   renameRole(roleId, value) {
@@ -412,8 +442,8 @@ export class RosterStore {
   clearAllRoleAssignments() {
     let changed = false;
     for (const role of this.#state.roles) {
-      if (role.studentId !== null) {
-        role.studentId = null;
+      if (role.studentIds.length > 0) {
+        role.studentIds = [];
         changed = true;
       }
     }
@@ -421,19 +451,49 @@ export class RosterStore {
     return changed;
   }
 
+  toggleDutyStudent(dutyId, studentId) {
+    const duty = this.#findDuty(dutyId);
+    if (!duty || !this.#hasStudent(studentId)) return false;
+    const index = duty.studentIds.indexOf(studentId);
+    if (index >= 0) duty.studentIds.splice(index, 1);
+    else duty.studentIds.push(studentId);
+    this.#notify();
+    return true;
+  }
+
+  setDutyStudents(dutyId, studentIds) {
+    const duty = this.#findDuty(dutyId);
+    if (!duty || !Array.isArray(studentIds)) return false;
+    const next = [];
+    const seen = new Set();
+    for (const id of studentIds) {
+      if (!this.#hasStudent(id) || seen.has(id)) continue;
+      seen.add(id);
+      next.push(id);
+    }
+    if (next.length === duty.studentIds.length
+      && next.every((id, index) => id === duty.studentIds[index])) {
+      return true;
+    }
+    duty.studentIds = next;
+    this.#notify();
+    return true;
+  }
+
+  /** Ensure student is assigned (add if absent). */
   assignDuty(dutyId, studentId) {
     const duty = this.#findDuty(dutyId);
     if (!duty || !this.#hasStudent(studentId)) return false;
-    if (duty.studentId === studentId) return true;
-    duty.studentId = studentId;
+    if (duty.studentIds.includes(studentId)) return true;
+    duty.studentIds.push(studentId);
     this.#notify();
     return true;
   }
 
   clearDuty(dutyId) {
     const duty = this.#findDuty(dutyId);
-    if (!duty || duty.studentId === null) return false;
-    duty.studentId = null;
+    if (!duty || duty.studentIds.length === 0) return false;
+    duty.studentIds = [];
     this.#notify();
     return true;
   }
@@ -443,11 +503,11 @@ export class RosterStore {
     const note = cleanNote(noteValue);
     if (!title || note === null || this.#state.nextDutyId >= Number.MAX_SAFE_INTEGER) return null;
     const id = this.#state.nextDutyId + 1;
-    const duty = { id, title, note, studentId: null };
+    const duty = { id, title, note, studentIds: [] };
     this.#state.duties.push(duty);
     this.#state.nextDutyId = id;
     this.#notify();
-    return { ...duty };
+    return { id, title, note, studentIds: [] };
   }
 
   renameDuty(dutyId, value) {
@@ -504,8 +564,8 @@ export class RosterStore {
   clearAllDutyAssignments() {
     let changed = false;
     for (const duty of this.#state.duties) {
-      if (duty.studentId !== null) {
-        duty.studentId = null;
+      if (duty.studentIds.length > 0) {
+        duty.studentIds = [];
         changed = true;
       }
     }

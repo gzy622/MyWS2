@@ -10,11 +10,11 @@ test('默认名单、座位、作业、人员与课程项满足领域不变量',
   assert.equal(new Set(state.seats.map(({ seatIndex }) => seatIndex)).size, 46);
   assert.ok(state.seats.every(({ seatIndex }) => seatIndex >= 0 && seatIndex < SEAT_COUNT));
   assert.deepEqual(state.assignments, [{ id: 1, name: '作业 1' }]);
-  assert.equal(state.schemaVersion, 3);
+  assert.equal(state.schemaVersion, 4);
   assert.equal(state.roles.length, 4);
   assert.equal(state.duties.length, 3);
-  assert.ok(state.roles.every((role) => role.studentId === null));
-  assert.ok(state.duties.every((duty) => duty.studentId === null));
+  assert.ok(state.roles.every((role) => Array.isArray(role.studentIds) && role.studentIds.length === 0));
+  assert.ok(state.duties.every((duty) => Array.isArray(duty.studentIds) && duty.studentIds.length === 0));
   assert.equal(state.periods.length, 10);
   assert.deepEqual(state.periods.map(({ title }) => title), [
     '早', '1', '2', '3', '4', '午', '5', '6', '7', '服'
@@ -129,21 +129,28 @@ test('恢复默认名单和座位时保留作业，清空全部登记记录并�
   assert.equal(state.seats.find(({ studentId }) => studentId === 1).seatIndex, 17);
   assert.equal(state.roles.length, 4);
   assert.equal(state.duties.length, 3);
-  assert.ok(state.roles.every((role) => role.studentId === null));
-  assert.ok(state.duties.every((duty) => duty.studentId === null));
+  assert.ok(state.roles.every((role) => Array.isArray(role.studentIds) && role.studentIds.length === 0));
+  assert.ok(state.duties.every((duty) => Array.isArray(duty.studentIds) && duty.studentIds.length === 0));
   assert.equal(state.periods[0].title, '早');
   assert.equal(state.scheduleSlots.length, 0);
   assert.equal(state.subjects.length, 3);
   assert.equal(state.courseGrades.length, 0);
 });
 
-test('班干与值日可指派、增删改，并保留至少一项', () => {
+test('班干与值日可多选指派、增删改，并保留至少一项', () => {
   const store = createRosterStore();
-  assert.equal(store.assignRole(1, 1), true);
-  assert.equal(store.getSnapshot().roles.find(({ id }) => id === 1).studentId, 1);
+  assert.equal(store.toggleRoleStudent(1, 1), true);
+  assert.equal(store.toggleRoleStudent(1, 2), true);
+  assert.deepEqual(store.getSnapshot().roles.find(({ id }) => id === 1).studentIds, [1, 2]);
+  assert.equal(store.toggleRoleStudent(1, 1), true);
+  assert.deepEqual(store.getSnapshot().roles.find(({ id }) => id === 1).studentIds, [2]);
+  assert.equal(store.setRoleStudents(1, [1, 3, 1, 999]), true);
+  assert.deepEqual(store.getSnapshot().roles.find(({ id }) => id === 1).studentIds, [1, 3]);
   assert.equal(store.clearRole(1), true);
+  assert.deepEqual(store.getSnapshot().roles.find(({ id }) => id === 1).studentIds, []);
   const role = store.addRole();
   assert.equal(role.title, '新班干');
+  assert.deepEqual(role.studentIds, []);
   assert.equal(store.renameRole(role.id, '宣传委员'), true);
   assert.equal(store.deleteRole(role.id), true);
   assert.equal(store.deleteRole(1), true);
@@ -151,7 +158,11 @@ test('班干与值日可指派、增删改，并保留至少一项', () => {
   assert.equal(store.deleteRole(3), true);
   assert.equal(store.deleteRole(4), false);
 
-  assert.equal(store.assignDuty(1, 2), true);
+  assert.equal(store.toggleDutyStudent(1, 2), true);
+  assert.equal(store.toggleDutyStudent(1, 3), true);
+  assert.deepEqual(store.getSnapshot().duties.find(({ id }) => id === 1).studentIds, [2, 3]);
+  assert.equal(store.setDutyStudents(1, [1, 2]), true);
+  assert.deepEqual(store.getSnapshot().duties.find(({ id }) => id === 1).studentIds, [1, 2]);
   assert.equal(store.updateDuty(1, { title: '周二', note: '拖地' }), true);
   const duty = store.getSnapshot().duties.find(({ id }) => id === 1);
   assert.equal(duty.title, '周二');
@@ -160,13 +171,16 @@ test('班干与值日可指派、增删改，并保留至少一项', () => {
   const added = store.addDuty();
   assert.equal(added.title, '新值日');
   assert.equal(added.note, '');
+  assert.deepEqual(added.studentIds, []);
   assert.equal(store.deleteDuty(added.id), true);
   assert.equal(store.deleteDuty(1), true);
   assert.equal(store.deleteDuty(2), true);
   assert.equal(store.deleteDuty(3), false);
 
   store.assignRole(4, 3);
+  store.assignRole(4, 5);
   store.assignDuty(3, 4);
+  assert.deepEqual(store.getSnapshot().roles.find(({ id }) => id === 4).studentIds, [3, 5]);
   assert.equal(store.clearAllRoleAssignments(), true);
   assert.equal(store.clearAllDutyAssignments(), true);
   assert.equal(store.clearAllRoleAssignments(), false);
