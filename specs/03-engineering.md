@@ -67,6 +67,7 @@
 
 - ID：`#app`、`#viewport`、`#pages`、`#nav`、`#glider`、`#topbarTitle`、`#topbarTitleLabel`、`#fontSizePopover`、`#studentGrid`、`#gridLetterIndex`、`#studentFontSize`、`#studentFontSizeValue`、`#roleList`、`#dutyList`、`#weekStrip`、`#gradeTable`、`#seatLetterIndex`、`#menuDrawer`、`#menuDrawerHandle`、`#menuDrawerBuild`、`#menuButton`、`#moreButton`、`#closeMenuDrawer`、`#scrim`、`#toast`。
 - Class：`.page`、`.nav-btn`、`.segment`、`.segment-glider`、`.subview`、`.student-grid`、`.student-card`、`.letter-index`、`.letter-index-item`、`.letter-index-badge`、`.people-row`、`.week-slot-cell`、`.week-period-label`、`.grade-score-cell`、`.grade-subject-head`、`.subdots i`、`.menu-item`、`.menu-drawer`、`.student-record-sheet`、`.people-pick-sheet`、`.people-edit-sheet`、`.course-slot-sheet`、`.course-period-sheet`、`.course-subject-sheet`、`.course-grade-sheet`、`.confirm-sheet`、`.assignment-sheet`、`.assignment-name-sheet`、`.more-menu`。
+  - 字母索引拖动态 class：`.letter-index.is-scrubbing`（展开布局壳）、`.letter-index.is-scrubbing-shown`（渐变+侧滑入；移除后播退出再清壳）。
 - Data：`data-page`、`data-index`、`data-sub`、`data-view`、`data-action`，以及学生格可选的 `data-score`。
 
 索引必须是从 0 开始的连续整数，并保持“页面—导航—状态数组”一一对应。

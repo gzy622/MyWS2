@@ -95,30 +95,93 @@
     inset 0 0 0 1px color-mix(in srgb, var(--teal) 18%, var(--line));
 }
 .letter-index {
-  /* Visual column ~12px at the right; padding-left widens the touch target toward the grid. */
-  position: absolute; z-index: 2; top: 0; bottom: 0; right: -11px;
+  /* Idle: short vertically-centered slider; scrubbing expands the A–Z rail. */
+  position: absolute; z-index: 2; top: 50%; bottom: auto; right: -11px;
   display: flex; flex-direction: column; justify-content: space-between; align-items: stretch;
-  box-sizing: border-box; width: 32px; padding: 2px 0 2px 20px; touch-action: none; user-select: none;
+  box-sizing: border-box; width: 32px; height: 52px; padding: 0 0 0 20px;
+  touch-action: none; user-select: none;
+  transform: translateY(-50%);
   opacity: 0; pointer-events: none;
   /* Hide is near-instant; show uses the slower transition on .is-visible */
   transition: opacity 60ms linear;
+}
+.letter-index::after {
+  /* Idle thumb: same quick fade + side-slide as the expanded letter rail. */
+  content: '';
+  position: absolute; z-index: 1; right: 4px; top: 50%;
+  width: 6px; height: 44px; margin: 0; border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 36%, var(--control));
+  box-shadow: inset 0 0 0 .5px color-mix(in srgb, var(--line) 70%, transparent);
+  transform: translateY(-50%) translateX(10px);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity var(--duration-letter-rail) var(--ease),
+    transform var(--duration-letter-rail) var(--ease);
 }
 .letter-index.is-visible {
   opacity: 1; pointer-events: auto;
   transition: opacity var(--duration-fade) var(--ease);
 }
-.letter-index-item {
-  flex: 1 1 0; display: grid; place-items: center; min-height: 0;
-  width: 100%; color: var(--muted-soft); font-size: 8px; font-weight: 600; line-height: 1;
+.letter-index.is-visible:not(.is-scrubbing)::after {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
 }
-.letter-index-item.is-empty { color: var(--disabled); opacity: .4; }
+.letter-index.is-scrubbing {
+  /* Expanded hit/layout shell; chrome + letters animate via ::before / items. */
+  top: 6%; bottom: 6%; height: auto; transform: none;
+  width: 28px; padding: 10px 0; right: -7px;
+  background: transparent;
+  border-radius: 14px;
+}
+.letter-index.is-scrubbing::before {
+  content: '';
+  position: absolute; z-index: 0; inset: 0;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--card) 94%, transparent);
+  box-shadow: var(--shadow-soft);
+  transform: translateX(10px);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity var(--duration-letter-rail) var(--ease),
+    transform var(--duration-letter-rail) var(--ease);
+}
+.letter-index.is-scrubbing.is-scrubbing-shown::before {
+  transform: translateX(0);
+  opacity: 1;
+}
+.letter-index.is-scrubbing::after {
+  opacity: 0;
+  transform: translateY(-50%) translateX(10px);
+}
+.letter-index-item {
+  position: relative; z-index: 1;
+  flex: 1 1 0; display: grid; place-items: center; justify-items: center; min-height: 0;
+  width: 100%; margin: 0; padding: 0; text-align: center;
+  color: var(--muted-soft); font-size: 10px; font-weight: 600; line-height: 1;
+  opacity: 0; pointer-events: none;
+  transform: translateX(10px);
+  transition:
+    opacity var(--duration-letter-rail) var(--ease),
+    transform var(--duration-letter-rail) var(--ease);
+}
+.letter-index.is-scrubbing .letter-index-item {
+  pointer-events: auto;
+}
+.letter-index.is-scrubbing.is-scrubbing-shown .letter-index-item {
+  opacity: 1;
+  transform: translateX(0);
+}
+.letter-index-item.is-empty { color: var(--disabled); }
+.letter-index.is-scrubbing.is-scrubbing-shown .letter-index-item.is-empty { opacity: .4; }
 .letter-index-item.is-active { color: var(--teal); }
 .letter-index-badge {
   position: absolute; z-index: 12; left: 50%; top: 42%;
-  width: 72px; height: 72px; margin: 0; border-radius: 18px;
+  width: 80px; height: 80px; margin: 0; border-radius: 18px;
   display: grid; place-items: center;
   color: var(--on-accent); background: color-mix(in srgb, var(--ink) 78%, transparent);
-  font-size: 36px; font-weight: 700; line-height: 1;
+  font-size: 40px; font-weight: 700; line-height: 1;
   transform: translate(-50%, -50%) scale(.92);
   opacity: 0; pointer-events: none;
   transition: opacity 120ms var(--ease-accelerate), transform 120ms var(--ease);
@@ -133,8 +196,9 @@
 }
 .seat-view, .seat-viewport { width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; }
 .seat-view { position: relative; background: var(--paper); }
-.seat-view > .letter-index {
-  top: 6px; bottom: max(48px, calc(env(safe-area-inset-bottom) + 36px)); right: -9px;
+.seat-view > .letter-index { right: -9px; }
+.seat-view > .letter-index.is-scrubbing {
+  top: 6px; bottom: max(48px, calc(env(safe-area-inset-bottom) + 36px)); right: -5px;
 }
 .seat-viewport {
   position: relative; background: var(--paper); cursor: grab; touch-action: none; user-select: none;
@@ -446,6 +510,11 @@
   .week-period-label,
   .week-slot-cell { transition: none; }
   .week-slot-cell:active { transform: none; }
+  .letter-index::after,
+  .letter-index.is-scrubbing::before,
+  .letter-index-item {
+    transition: none;
+  }
 }
 .grade-table { padding: 14px 0 10px; overflow: hidden; }
 .grade-scroll {

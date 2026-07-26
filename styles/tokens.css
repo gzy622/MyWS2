@@ -37,6 +37,8 @@
   --scrim-stacked: rgba(0, 0, 0, .12);
   --duration-sheet: 300ms;
   --duration-fade: 240ms;
+  /* 字母条展开/收起：快速渐变 + 侧滑 */
+  --duration-letter-rail: 120ms;
   /* 跟手期遮罩的追赶时长：面板仍 1:1，遮罩用极短过渡吸收不连续值 */
   --duration-scrim-track: 90ms;
   --ease: cubic-bezier(.2, 0, 0, 1);

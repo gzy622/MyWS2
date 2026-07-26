@@ -7,6 +7,8 @@ const CLEAR_HIGHLIGHT_MS = 400;
 /** Match `.pages` transform transition in shell.css */
 const PAGE_SETTLE_MS = 420;
 const INSTANT_SETTLE_MS = 32;
+/** Match `--duration-letter-rail` fade+slide for scrubbing panel. */
+const SCRUB_RAIL_MS = 120;
 const LETTERS = listAlphabetLetters();
 
 let pageDragging = false;
@@ -16,6 +18,8 @@ let settleTimer = 0;
 let activeLetter = null;
 let activePointerId = null;
 let clearTimer = 0;
+let scrubEnterFrame = 0;
+let scrubExitTimer = 0;
 /** @type {Map<string, number[]>} */
 let letterToStudentIds = new Map();
 /** @type {Set<string>} */
@@ -24,6 +28,21 @@ let presentLetters = new Set();
 let badge = null;
 /** @type {HTMLElement[]} */
 let rails = [];
+
+function scrubRailMotionMs() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : SCRUB_RAIL_MS;
+}
+
+function cancelScrubRailTimers() {
+  if (scrubEnterFrame) {
+    window.cancelAnimationFrame(scrubEnterFrame);
+    scrubEnterFrame = 0;
+  }
+  if (scrubExitTimer) {
+    window.clearTimeout(scrubExitTimer);
+    scrubExitTimer = 0;
+  }
+}
 
 function ensureBadge() {
   if (badge) return badge;
@@ -149,6 +168,54 @@ function setRailActiveLetter(letter) {
   }
 }
 
+function setRailScrubbing(rail, scrubbing) {
+  cancelScrubRailTimers();
+  for (const other of rails) {
+    if (other !== rail) other.classList.remove('is-scrubbing', 'is-scrubbing-shown');
+  }
+  if (!rail) return;
+  if (!scrubbing) {
+    clearRailScrubbing({ animate: true });
+    return;
+  }
+  rail.classList.add('is-scrubbing');
+  rail.classList.remove('is-scrubbing-shown');
+  // Expand layout before hit-testing so idle thumb height does not skew the letter map.
+  void rail.offsetHeight;
+  // Double rAF: paint collapsed chrome first, then fade+slide in.
+  scrubEnterFrame = window.requestAnimationFrame(() => {
+    scrubEnterFrame = window.requestAnimationFrame(() => {
+      scrubEnterFrame = 0;
+      if (!rail.classList.contains('is-scrubbing')) return;
+      rail.classList.add('is-scrubbing-shown');
+    });
+  });
+}
+
+function clearRailScrubbing({ animate = true } = {}) {
+  cancelScrubRailTimers();
+  const delay = animate ? scrubRailMotionMs() : 0;
+  let anyScrubbing = false;
+  for (const rail of rails) {
+    if (!rail.classList.contains('is-scrubbing')) {
+      rail.classList.remove('is-scrubbing-shown');
+      continue;
+    }
+    anyScrubbing = true;
+    rail.classList.remove('is-scrubbing-shown');
+    if (!delay) rail.classList.remove('is-scrubbing');
+  }
+  if (!anyScrubbing || !delay) return;
+  scrubExitTimer = window.setTimeout(() => {
+    scrubExitTimer = 0;
+    for (const rail of rails) {
+      if (!rail.classList.contains('is-scrubbing-shown')) {
+        rail.classList.remove('is-scrubbing');
+      }
+    }
+  }, delay);
+}
+
 function showBadge(letter) {
   const el = ensureBadge();
   el.textContent = letter || '';
@@ -195,6 +262,7 @@ function abortTracking({ immediate = false } = {}) {
   const letter = activeLetter;
   activeLetter = null;
   setRailActiveLetter(null);
+  clearRailScrubbing({ animate: !immediate });
   if (immediate) {
     showBadge(null);
     clearHighlights();
@@ -229,6 +297,7 @@ function bindRail(rail) {
       window.clearTimeout(clearTimer);
       clearTimer = 0;
     }
+    setRailScrubbing(rail, true);
     const letter = letterFromPoint(rail, event.clientY);
     activePointerId = event.pointerId;
     activeLetter = null;
