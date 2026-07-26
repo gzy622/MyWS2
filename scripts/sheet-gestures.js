@@ -4,7 +4,9 @@ import {
   findScrollPort,
   getSheet,
   getTopSheet,
-  scrollPortCanScroll
+  scrollPortCanScroll,
+  startScrollPortInertia,
+  stopScrollPortInertia
 } from './sheet-drag.js';
 import { haptic, Haptic } from './haptics.js';
 import { blurIfSheetChrome } from './focus.js';
@@ -67,6 +69,9 @@ export function createSheetGestureBridge() {
    * @returns {'sheet' | 'blocked' | null}
    */
   function claimPointerDown(event) {
+    // New contact cancels any coasting list scroll.
+    stopScrollPortInertia();
+
     const hit = describeDebugTarget(event.target);
     const courseRelated = isInteractiveField(event.target)
       || isCourseControl(event.target)
@@ -96,16 +101,20 @@ export function createSheetGestureBridge() {
 
     const top = getTopSheet();
     if (top) {
-      // Save / Cancel / keypad must receive the click; do not start Y-scrub on them.
-      if (isSheetActionControl(event.target, top)) {
-        return finish('blocked', `sheetAction top=${top.id}`);
-      }
       // Native-scroll ports keep browser momentum; do not claim the pointer.
+      // Check before sheetAction — list rows are often <button>s (people-pick).
       if (findScrollPort(event.target, top.getNativeScrollPorts?.() ?? [])) {
         return finish(null, `nativeScroll top=${top.id}`);
       }
 
       const scrollPort = findScrollPort(event.target, top.getScrollPorts());
+      // Save / Cancel / keypad must receive the click; do not start Y-scrub on them.
+      // Exception: controls inside a JS scroll port must still be claimable so the
+      // list can scrub-scroll (touch-action:none). Taps without drag still click.
+      if (isSheetActionControl(event.target, top) && !scrollPort) {
+        return finish('blocked', `sheetAction top=${top.id}`);
+      }
+
       session = {
         sheet: top,
         mode: 'scrub',
@@ -142,6 +151,7 @@ export function createSheetGestureBridge() {
 
   function lockSheet(clientY) {
     if (!session?.sheet) return;
+    if (session.scrollPort) stopScrollPortInertia(session.scrollPort);
     session.sheetLocked = true;
     session.scrollLocked = false;
     session.sheetStartClientY = clientY;
@@ -200,6 +210,10 @@ export function createSheetGestureBridge() {
     if (!session) return false;
     const sheet = session.sheet;
     const wasSheet = Boolean(session.started && sheet && sheet.isDragging());
+    const wasScrollOnly = Boolean(
+      session.started && session.scrollLocked && session.scrollPort && !wasSheet
+    );
+    const scrollPort = session.scrollPort;
     let openedDrawer = false;
 
     if (wasSheet) {
@@ -208,6 +222,7 @@ export function createSheetGestureBridge() {
     }
 
     clear();
+    if (wasScrollOnly && !cancelled) startScrollPortInertia(scrollPort, velocityY);
     if (openedDrawer) haptic(Haptic.light);
     return wasSheet;
   }
@@ -217,6 +232,7 @@ export function createSheetGestureBridge() {
     onAxisY,
     endPointer,
     cancel() {
+      stopScrollPortInertia();
       if (session?.sheet?.isDragging()) session.sheet.endDrag({ cancelled: true });
       clear();
     },

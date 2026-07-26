@@ -17,6 +17,16 @@ const FLICK_MIN_OPEN_PX = 64;
 const FLICK_CLOSE_VELOCITY = 0.4;
 const FLICK_MIN_CLOSE_PX = 36;
 
+/** JS scroll-port coast after release (aligned with seat-canvas inertia). */
+const MAX_SCROLL_INERTIA_SPEED = 2.5;
+const MIN_SCROLL_INERTIA_SPEED = 0.02;
+const SCROLL_INERTIA_DECAY = 325;
+
+/** @type {WeakMap<Element, number>} */
+const scrollInertiaFrames = new WeakMap();
+/** Strong refs while a coast is running so WeakMap frames stay reachable. */
+const scrollingPorts = new Set();
+
 /** Top-most first; matches system-back dismiss order for vertical sheets. */
 export const SHEET_STACK_ORDER = [
   'confirm',
@@ -247,6 +257,7 @@ export function createSheetController({
   function leavePresented() {
     const closedSource = openSource;
     cancelDragRaf();
+    for (const port of scrollPorts) stopScrollPortInertia(port);
     presented = false;
     progress = 0;
     openSource = null;
@@ -655,4 +666,63 @@ export function applyScrollPortDelta(port, deltaYFromStart, startScrollTop) {
   port.scrollTop = next;
   // Return unused delta in screen space (positive deltaY = finger moved down).
   return deltaYFromStart - applied;
+}
+
+/**
+ * Stop coasting on one port, or every port when omitted.
+ * @param {Element | null} [port]
+ */
+export function stopScrollPortInertia(port = null) {
+  if (port) {
+    const frame = scrollInertiaFrames.get(port);
+    if (frame !== undefined) cancelAnimationFrame(frame);
+    scrollInertiaFrames.delete(port);
+    scrollingPorts.delete(port);
+    return;
+  }
+  for (const active of [...scrollingPorts]) stopScrollPortInertia(active);
+}
+
+/**
+ * Coast a JS scroll port after release. velocityY is finger velocity (px/ms);
+ * positive = finger down. Hits edges hard (no sheet handoff from inertia).
+ */
+export function startScrollPortInertia(port, velocityY) {
+  if (!port || prefersReducedMotion()) return;
+  stopScrollPortInertia(port);
+  // During scrub: scrollTop = start - deltaY ⇒ d(scrollTop)/dt = -velocityY.
+  let velocity = Math.max(
+    -MAX_SCROLL_INERTIA_SPEED,
+    Math.min(MAX_SCROLL_INERTIA_SPEED, -velocityY)
+  );
+  if (Math.abs(velocity) < MIN_SCROLL_INERTIA_SPEED) return;
+
+  let previousTime;
+  const animate = (time) => {
+    if (previousTime === undefined) {
+      previousTime = time;
+      const frame = requestAnimationFrame(animate);
+      scrollInertiaFrames.set(port, frame);
+      return;
+    }
+    const elapsedFrame = Math.min(time - previousTime, 32);
+    previousTime = time;
+    velocity *= Math.exp(-elapsedFrame / SCROLL_INERTIA_DECAY);
+    const max = Math.max(0, port.scrollHeight - port.clientHeight);
+    const intended = port.scrollTop + velocity * elapsedFrame;
+    const next = Math.min(max, Math.max(0, intended));
+    port.scrollTop = next;
+    if (Math.abs(next - intended) > 0.01) velocity = 0;
+    if (Math.abs(velocity) < MIN_SCROLL_INERTIA_SPEED) {
+      scrollInertiaFrames.delete(port);
+      scrollingPorts.delete(port);
+      return;
+    }
+    const frame = requestAnimationFrame(animate);
+    scrollInertiaFrames.set(port, frame);
+  };
+
+  scrollingPorts.add(port);
+  const frame = requestAnimationFrame(animate);
+  scrollInertiaFrames.set(port, frame);
 }
