@@ -4,13 +4,13 @@
   "private": true,
   "description": "Optional Capacitor Android packaging for the teacher workbench demo",
   "scripts": {
-    "sync:www": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/sync-capacitor-www.ps1",
+    "sync:www": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tools/sync-web-assets.ps1",
     "sync:android": "npm run sync:www && npx cap sync android",
     "build:apk": "npm run sync:android && cd android && .\\gradlew.bat assembleDebug",
-    "deploy:apk": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/deploy-apk.ps1",
-    "preview:native": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/preview-native.ps1",
-    "code:id": "node ./scripts/content-id.cjs .",
-    "sync:phone": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/sync-phone.ps1",
+    "deploy:apk": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tools/deploy-apk.ps1",
+    "preview:native": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tools/preview-native.ps1",
+    "code:id": "node ./tools/content-id.cjs .",
+    "sync:phone": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tools/sync-phone.ps1",
     "open:android": "npx cap open android"
   },
   "dependencies": {

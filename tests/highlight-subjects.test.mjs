@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   parseHighlightPatterns,
   subjectMatchesHighlight
-} from '../scripts/highlight-subjects-model.js';
+} from '../src/scripts/highlight-subjects-model.js';
 
 test('解析顿号逗号换行并去重截断', () => {
   assert.deepEqual(

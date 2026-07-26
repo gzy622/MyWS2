@@ -1,17 +1,16 @@
 /**
- * Shared content fingerprint for demo web assets (index.html + styles + scripts).
- * Used by lan-server, sync-capacitor-www, and `npm run code:id`.
+ * Shared content fingerprint for demo web assets under src/.
+ * Used by lan-server, sync-web-assets, and `npm run code:id`.
  */
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-const ROOT_ENTRIES = ['index.html', 'styles', 'scripts'];
+const ROOT_ENTRIES = ['src/index.html', 'src/styles', 'src/scripts'];
 
 function shouldSkipName(name) {
   return name === 'build-id.json'
     || name === 'node_modules'
-    || name === 'content-id.cjs'
     || name.startsWith('.');
 }
 

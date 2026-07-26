@@ -1,8 +1,8 @@
-# 02 · 交互与状态 Spec
+# 交互与状态
 
 ## 1. 状态模型
 
-状态分为 UI 瞬时状态与业务 Store 两个边界。`scripts/state.js` 只保存 UI 状态：
+状态分为 UI 瞬时状态与业务 Store 两个边界。`src/scripts/state.js` 只保存 UI 状态：
 
 ```text
 currentPage: 0 | 1 | 2
@@ -21,8 +21,8 @@ activeOverlay: null | 'assignments' | 'student-record' | 'people-pick' | 'people
 
 - `currentPage` 必须经过 `clampPage()`，不可越界。
 - 每页独立记住本次会话中的子视图选择。
-- 导航、子视图、通用菜单和姓名字号状态只存在内存；刷新后回到产品 Spec 定义的初始状态。
-- `studentFontSize` 使用 `teacher-workbench.student-name-font-size` 保存；读取失败或非数值时回退到 `16`，越界数值按 `14～18` 夹取。业务数据和主题的受控持久化规则见工程 Spec。
+- 导航、子视图、通用菜单和姓名字号状态只存在内存；刷新后回到产品文档定义的初始状态。
+- `studentFontSize` 使用 `teacher-workbench.student-name-font-size` 保存；读取失败或非数值时回退到 `16`，越界数值按 `14～18` 夹取。业务数据和主题的受控持久化规则见工程文档。
 - CSS class 和 CSS 自定义属性是状态的渲染结果，不是第二份状态源。
 
 ## 2. 主页面导航
@@ -120,7 +120,7 @@ activeOverlay: null | 'assignments' | 'student-record' | 'people-pick' | 'people
 
 ### 纵向 Sheet 全屏跟手
 
-- 适用范围（均为 `translateY` Sheet，与 `scripts/sheet-drag.js` 的 `SHEET_STACK_ORDER` 一致）：确认面板、高亮科目、课程科目/节次/课表格/成绩、人员编辑、人员选择、作业名称、作业列表、学生记录、通用菜单。更多菜单与姓名字号不在此列。
+- 适用范围（均为 `translateY` Sheet，与 `src/scripts/sheet-drag.js` 的 `SHEET_STACK_ORDER` 一致）：确认面板、高亮科目、课程科目/节次/课表格/成绩、人员编辑、人员选择、作业名称、作业列表、学生记录、通用菜单。更多菜单与姓名字号不在此列。
 - 任一上述 Sheet 呈现时：除自滚动容器（且该方向尚未到边）与文本输入控件外，全屏任意位置均可纵向拖动，实时驱动该 Sheet 的 progress（0～1）与遮罩透明度；把手不再是唯一关闭入口。
 - 例外：人员选择 Sheet 的学生名单使用原生纵向滚动；跟手关闭仅从把手/标题等非列表区域发起（见 §4.1）。
 - 多层同时存在时只驱动最上层（顺序与返回键关闭栈一致，见 §10）；同一次手势不转移到下层。
@@ -139,7 +139,7 @@ activeOverlay: null | 'assignments' | 'student-record' | 'people-pick' | 'people
 
 ## 8. 触觉反馈
 
-所有触觉统一为 `10ms`，由 `scripts/haptics.js` 的 `Haptic.light` / `Haptic.medium`（同为 `10`）与 `haptic()` 提供；业务代码禁止直接写 `navigator.vibrate` 毫秒数。不可用或抛错时静默降级。
+所有触觉统一为 `10ms`，由 `src/scripts/haptics.js` 的 `Haptic.light` / `Haptic.medium`（同为 `10`）与 `haptic()` 提供；业务代码禁止直接写 `navigator.vibrate` 毫秒数。不可用或抛错时静默降级。
 
 | 场景 | 调用 |
 | --- | --- |
@@ -177,7 +177,7 @@ activeOverlay: null | 'assignments' | 'student-record' | 'people-pick' | 'people
 ## 10. 更多菜单与 Toast
 
 - 登记页“更多”打开更多菜单：所有登记视图提供主题和清除当前作业；网格额外提供姓名字号，座位额外提供编辑模式与座位视图复位。通用菜单与 `activeOverlay` 业务浮层（作业列表、学生记录、人员/课程 Sheet、更多、确认等）必须互斥。
-- Escape 与 Android 系统返回键共用同一关闭栈（`scripts/system-back.js`，与 `SHEET_STACK_ORDER` / `specs/04-terminology.md` 一致），按最上层优先关闭并恢复触发焦点：确认面板 → 高亮科目 → 科目编辑 → 节次改名 → 课表格 → 成绩 → 人员编辑 → 人员选择 → 作业名称 → 作业列表 → 学生记录 → 更多菜单 → 姓名字号 → 通用菜单。无浮层可关时，系统返回键退出应用。
+- Escape 与 Android 系统返回键共用同一关闭栈（`src/scripts/system-back.js`，与 `SHEET_STACK_ORDER` / [`glossary.md`](glossary.md) 一致），按最上层优先关闭并恢复触发焦点：确认面板 → 高亮科目 → 科目编辑 → 节次改名 → 课表格 → 成绩 → 人员编辑 → 人员选择 → 作业名称 → 作业列表 → 学生记录 → 更多菜单 → 姓名字号 → 通用菜单。无浮层可关时，系统返回键退出应用。
 - Toast 使用 `role="status"`，显示约 1600ms。
 - 新消息到来时替换旧消息并重新计时；不得叠加多个 Toast。
 

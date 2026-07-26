@@ -21,9 +21,9 @@ if (Test-Path $www) {
 New-Item -ItemType Directory -Path $www | Out-Null
 
 $copyMap = @(
-  @{ Source = 'index.html'; Destination = 'index.html'; IsDirectory = $false }
-  @{ Source = 'styles'; Destination = 'styles'; IsDirectory = $true }
-  @{ Source = 'scripts'; Destination = 'scripts'; IsDirectory = $true }
+  @{ Source = 'src\index.html'; Destination = 'index.html'; IsDirectory = $false }
+  @{ Source = 'src\styles'; Destination = 'styles'; IsDirectory = $true }
+  @{ Source = 'src\scripts'; Destination = 'scripts'; IsDirectory = $true }
 )
 
 foreach ($item in $copyMap) {
@@ -37,12 +37,6 @@ foreach ($item in $copyMap) {
   } else {
     Copy-Item -Force $from $to
   }
-}
-
-# Dev-only Node helper; must not ship inside the APK web assets.
-$devHelper = Join-Path $www 'scripts\content-id.cjs'
-if (Test-Path $devHelper) {
-  Remove-Item -Force $devHelper
 }
 
 $stamp = (& node (Join-Path $PSScriptRoot 'content-id.cjs') $root)

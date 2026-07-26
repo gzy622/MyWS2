@@ -22,7 +22,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $packageId = 'com.teacherworkbench.app'
 $apkRel = 'android\app\build\outputs\apk\debug\app-debug.apk'
 $apkPath = Join-Path $root $apkRel
-$syncScript = Join-Path $PSScriptRoot 'sync-capacitor-www.ps1'
+$syncScript = Join-Path $PSScriptRoot 'sync-web-assets.ps1'
 $gradlew = Join-Path $root 'android\gradlew.bat'
 
 function Write-Step([string]$Message) {
@@ -164,7 +164,7 @@ try {
     Write-Step 'Sync web assets to www'
     & $syncScript
     if (-not $?) {
-      throw 'sync-capacitor-www.ps1 failed'
+      throw 'sync-web-assets.ps1 failed'
     }
 
     Write-Step 'Capacitor sync android'

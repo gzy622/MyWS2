@@ -25,7 +25,7 @@ echo Starting native shell live preview...
 echo Wireless adb: LAN IP + file watch reload. USB reverse: npm run preview:native -- -Usb
 echo If reload fails: check __health warning, or use npm run deploy:apk
 echo.
-powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\preview-native.ps1" %*
+powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0tools\preview-native.ps1" %*
 set "EXIT_CODE=%ERRORLEVEL%"
 echo.
 if not "%EXIT_CODE%"=="0" (

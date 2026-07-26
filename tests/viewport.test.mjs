@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { resolveViewportMetrics } from '../scripts/viewport.js';
+import { resolveViewportMetrics } from '../src/scripts/viewport.js';
 
 test('无输入焦点时壳层跟随布局高度，并可带非负顶部偏移', () => {
   assert.deepEqual(resolveViewportMetrics(800, { height: 520, offsetTop: 24 }, 800), {

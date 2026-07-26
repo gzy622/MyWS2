@@ -8,15 +8,16 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { computeContentId } = require('./scripts/content-id.cjs');
+const { computeContentId } = require('./tools/content-id.cjs');
 
-const root = __dirname;
+const projectRoot = __dirname;
+const webRoot = path.join(projectRoot, 'src');
 const port = Number(process.env.PORT || process.argv[2] || 8080);
 const liveReload = process.env.DISABLE_LIVE_RELOAD !== '1';
 let cachedContentId = null;
 
 function getContentId() {
-  if (!cachedContentId) cachedContentId = computeContentId(root);
+  if (!cachedContentId) cachedContentId = computeContentId(projectRoot);
   return cachedContentId;
 }
 
@@ -103,13 +104,13 @@ function injectBuildStamp(htmlBuffer) {
 }
 
 function startWatchers() {
-  const targets = ['index.html', 'styles', 'scripts', 'tests']
-    .map((name) => path.join(root, name))
+  const targets = ['src', 'tests']
+    .map((name) => path.join(projectRoot, name))
     .filter((target) => fs.existsSync(target));
 
   let timer = null;
   const schedule = (filePath) => {
-    const rel = path.relative(root, filePath).split(path.sep)[0];
+    const rel = path.relative(projectRoot, filePath).split(path.sep)[0];
     if (watchIgnore.has(rel)) return;
     if (timer) clearTimeout(timer);
     timer = setTimeout(() => {
@@ -169,9 +170,9 @@ const server = http.createServer((request, response) => {
   }
 
   const requestedPath = urlPath === '/' ? '/index.html' : urlPath;
-  const filePath = path.resolve(root, `.${requestedPath}`);
+  const filePath = path.resolve(webRoot, `.${requestedPath}`);
 
-  if (!filePath.startsWith(root + path.sep) && filePath !== root) {
+  if (!filePath.startsWith(webRoot + path.sep) && filePath !== webRoot) {
     sendHeaders(response, 403, { 'Content-Type': 'text/plain; charset=utf-8' });
     response.end('Forbidden');
     return;

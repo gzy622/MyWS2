@@ -1,0 +1,31 @@
+# Stable cross-platform text normalization.
+* text=auto
+
+# Web source, documentation, and configuration use LF.
+*.css text eol=lf
+*.cjs text eol=lf
+*.gradle text eol=lf
+*.html text eol=lf
+*.java text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.mjs text eol=lf
+*.properties text eol=lf
+*.xml text eol=lf
+/android/gradlew text eol=lf
+
+# Windows launchers and PowerShell tooling require CRLF.
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Generated/native binary assets must never be normalized.
+*.aab binary
+*.apk binary
+*.gif binary
+*.ico binary
+*.jar binary
+*.jpeg binary
+*.jpg binary
+*.png binary
+*.webp binary

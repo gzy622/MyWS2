@@ -24,7 +24,7 @@ if not exist "%~dp0node_modules\@capacitor\cli\" (
 echo Starting phone sync console...
 echo Tip: 1 = save to refresh. 2 = install on phone. 0 = quit. Use -Details for more.
 echo.
-powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\sync-phone.ps1" %*
+powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0tools\sync-phone.ps1" %*
 set "EXIT_CODE=%ERRORLEVEL%"
 echo.
 if not "%EXIT_CODE%"=="0" (

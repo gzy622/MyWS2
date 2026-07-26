@@ -6,13 +6,13 @@ import {
   ROSTER_SCHEMA_VERSION,
   ROSTER_SCHEMA_VERSION_V2,
   ROSTER_SCHEMA_VERSION_V3
-} from '../scripts/roster-model.js';
+} from '../src/scripts/roster-model.js';
 import {
   loadRosterState,
   parseStoredRoster,
   ROSTER_STORAGE_KEY,
   saveRosterState
-} from '../scripts/roster-storage.js';
+} from '../src/scripts/roster-storage.js';
 
 function memoryStorage(initialValue = null) {
   const values = new Map(initialValue === null ? [] : [[ROSTER_STORAGE_KEY, initialValue]]);

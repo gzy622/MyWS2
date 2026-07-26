@@ -9,3 +9,6 @@ local.properties
 *.apk
 *.aab
 .DS_Store
+
+# Windows reserved device name accidentally created by Unix-like shells.
+/NUL

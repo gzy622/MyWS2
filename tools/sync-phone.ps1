@@ -26,7 +26,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $packageId = 'com.teacherworkbench.app'
 $contentIdScript = Join-Path $PSScriptRoot 'content-id.cjs'
 $deployScript = Join-Path $PSScriptRoot 'deploy-apk.ps1'
-$syncWwwScript = Join-Path $PSScriptRoot 'sync-capacitor-www.ps1'
+$syncWwwScript = Join-Path $PSScriptRoot 'sync-web-assets.ps1'
 $previewScript = Join-Path $PSScriptRoot 'preview-native.ps1'
 
 $script:deviceSerial = ''
@@ -790,7 +790,7 @@ function Invoke-SyncWwwOnly {
   Write-Log 'www 同步完成（不会自动改手机画面）' 'Green'
   $mode = Get-PreviewMode
   if ($mode -eq 'hot') {
-    Write-Log '当前已在热更新：改 styles/scripts 保存即可，不必靠 S' 'Cyan'
+    Write-Log '当前已在热更新：改 src/ 保存即可，不必靠 S' 'Cyan'
     Set-FeedbackAction 'www 已同步 · 热更新中请直接保存源码' 'ok'
   } elseif ($mode -eq 'hot-wait') {
     Write-Log '热更新窗口在，但 WebView 未连上；可按 3 或 2' 'Yellow'
@@ -919,7 +919,7 @@ function Start-Watchers {
     $state.LastChange = Get-Date
   }
 
-  foreach ($name in @('index.html', 'styles', 'scripts')) {
+  foreach ($name in @('src')) {
     $path = Join-Path $root $name
     if (-not (Test-Path $path)) { continue }
     $item = Get-Item $path
@@ -934,7 +934,7 @@ function Start-Watchers {
     }
     $script:watchers += $watcher
   }
-  Write-Log '已监视 index.html / styles / scripts' 'DarkCyan'
+  Write-Log '已监视 src/' 'DarkCyan'
 }
 
 function Stop-OwnedServer {

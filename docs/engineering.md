@@ -1,0 +1,250 @@
+# 工程与验收
+
+## 1. 技术边界
+
+- Web 运行时只使用原生 HTML、CSS 和 JavaScript ES Modules。
+- 不新增 Web 运行时 npm 依赖、框架、打包器、CSS-in-JS、图标库或远程 CDN。
+- 日常入口始终是 `node lan-server.js`；`src/` 无需转换即可运行。
+- Capacitor、npm 和 `android/` 仅是可选 Android 通道，不得成为 Web Demo 的启动前置。
+- Capacitor 能力只能通过 `globalThis.Capacitor` 可选桥接；浏览器模块禁止静态导入 npm 包。
+- 移动端手势使用 Pointer Events，并保留 `prefers-reduced-motion` 降级。
+- 不使用 cookie 或 IndexedDB 保存界面状态。
+
+## 2. 目录职责
+
+| 位置 | 职责 |
+| --- | --- |
+| `src/index.html` | 静态语义结构、页面与浮层容器、可访问属性和固定文案 |
+| `src/scripts/` | 浏览器 ES Modules；默认业务数据由领域模型维护 |
+| `src/styles/` | token、基础样式、外壳、内容、Sheet 和控件样式 |
+| `tests/` | `node:test` 领域、存储与纯计算测试 |
+| `tools/` | 内容指纹、单文件导出、Web 资源同步与 Android 辅助脚本 |
+| `docs/` | 现行文档、操作指南和历史档案 |
+| `android/` | 可选 Capacitor Android 工程 |
+| `www/` | 由 `tools/sync-web-assets.ps1` 生成的 Capacitor Web 资源 |
+| `dist/` | 由 `tools/build-single-html.ps1` 生成的单文件输出 |
+
+`src/` 是 Web 资源唯一源码。禁止直接修改 `www/` 或 `dist/`，也不得把工具脚本复制回 `src/scripts/`。
+
+## 3. 修改职责映射
+
+| 修改类型 | 首选文件 |
+| --- | --- |
+| 页面结构、固定文案、语义属性 | `src/index.html` |
+| 颜色、尺寸、圆角、阴影、缓动 | `src/styles/tokens.css` |
+| reset、基础元素、通用动画、reduced motion | `src/styles/base.css` |
+| 应用容器、顶栏、页面视口 | `src/styles/shell.css` |
+| 页面内容、网格、座位、人员、课程 | `src/styles/content.css` |
+| 共享 Sheet | `src/styles/sheets.css` |
+| 底栏、菜单、Popover、确认、Toast | `src/styles/controls.css` |
+| 作业列表和作业名称 | `src/styles/assignments.css` |
+| 跨模块固定 DOM 引用 | `src/scripts/dom.js` |
+| UI 瞬时状态 | `src/scripts/state.js` |
+| 默认数据、领域常量、Schema 校验与迁移 | `src/scripts/roster-model.js` |
+| 业务查询、变更与订阅 | `src/scripts/roster-store.js` |
+| 业务数据读取、迁移、回退与写入 | `src/scripts/roster-storage.js` |
+| 网格和座位共享渲染 | `src/scripts/roster-renderer.js` |
+| 学生点击、长按和记录面板 | `src/scripts/student-interactions.js`、`src/scripts/student-record.js` |
+| 作业管理 | `src/scripts/assignments.js` |
+| 座位几何与画布手势 | `src/scripts/seat-geometry.js`、`src/scripts/seat-canvas.js` |
+| 姓名首字母和侧边索引 | `src/scripts/name-initial.js`、`src/scripts/letter-index.js` |
+| 人员渲染与交互 | `src/scripts/people-renderer.js`、`src/scripts/people-interactions.js` |
+| 课程渲染与交互 | `src/scripts/courses-renderer.js`、`src/scripts/courses-interactions.js` |
+| 高亮科目校验、存储与 Sheet | `src/scripts/highlight-subjects-model.js`、`src/scripts/highlight-subjects.js` |
+| 主/子导航 | `src/scripts/navigation.js` |
+| 页面、底栏、分段与 Sheet 手势路由 | `src/scripts/gestures.js`、`src/scripts/sheet-gestures.js` |
+| Sheet progress 与最上层栈 | `src/scripts/sheet-drag.js` |
+| 通用菜单、更多菜单与确认 | `src/scripts/drawer.js`、`src/scripts/more-sheet.js` |
+| Escape / Android 返回 | `src/scripts/system-back.js` |
+| 主题、视口、触觉、焦点、Toast | 对应同名模块 |
+| 初始化和依赖注入 | `src/scripts/main.js` |
+| 内容指纹 | `tools/content-id.cjs`、`src/scripts/build-id.js` |
+| 单文件导出 | `tools/build-single-html.ps1` |
+| Web 资源同步 | `tools/sync-web-assets.ps1` |
+| Android 预览、部署、手机同步 | `tools/preview-native.ps1`、`tools/deploy-apk.ps1`、`tools/sync-phone.ps1` |
+
+不得为了“小改动方便”把 CSS 或 JS 塞回 `src/index.html`。只有出现清晰、独立且可测试的职责时才新建模块。
+
+## 4. 状态与模块边界
+
+- `state.js` 是 UI 瞬时状态来源；`roster-store.js` 是业务状态唯一可写来源。
+- 渲染器只读取 Store 快照并订阅变更，不直接修改领域数组。
+- 交互模块只调用 Store 方法；浮层草稿确认前可保存在模块内。
+- `roster-storage.js` 只负责严格读取、已知迁移和写入，不承载业务操作。
+- `navigation.js` 统一将页面状态渲染到轨道、顶栏、导航、分段、子视图和指示点。
+- `gestures.js` 可调用导航渲染接口，但不得建立新的导航状态。
+- `main.js` 只创建 Store、初始化模块和注入接口，禁止承载业务规则。
+- CSS class、ARIA、data 属性和 CSS 自定义属性都是渲染结果，不是第二份状态。
+- 跨模块外壳 DOM 查询集中在 `dom.js`；模块私有面板允许在所属模块内查询，但不得被其他模块依赖。
+
+更完整的数据流和模块分层见 [`architecture.md`](architecture.md)。
+
+## 5. DOM 契约
+
+### 5.1 页面与导航
+
+以下属性必须保留语义、唯一性和从 0 开始的连续索引：
+
+- `data-page`：主页面，人员 `0`、登记 `1`、课程 `2`；
+- `data-index`：底部导航，与主页面一一对应；
+- `data-sub`：子视图按钮索引；
+- `data-view`：子视图内容索引；
+- `data-action`：业务命令入口。
+
+每个主页面恰有两个子视图。`state.subviews`、页面 DOM、导航 DOM、分段控件和指示点必须保持同序。
+
+### 5.2 必需外壳 ID
+
+`src/scripts/dom.js` 是跨模块必需 selector 的事实来源。当前不可删除或复用的 ID 包括：
+
+- 外壳与导航：`#app`、`#viewport`、`#pages`、`#nav`、`#glider`、`#topbarTitle`、`#topbarTitleLabel`、`#menuButton`、`#moreButton`；
+- 登记与座位：`#studentGrid`、`#gridLetterIndex`、`#studentFontSize`、`#studentFontSizeValue`、`#seatViewport`、`#seatStage`、`#seatGrid`、`#seatHint`、`#seatLetterIndex`；
+- 人员与课程：`#roleList`、`#dutyList`、`#weekStrip`、`#gradeTable`；
+- 通用菜单与反馈：`#fontSizePopover`、`#menuDrawer`、`#menuDrawerHandle`、`#menuDrawerBuild`、`#closeMenuDrawer`、`#scrim`、`#toast`；
+- 学生记录：`#studentRecordSheet`、`#studentRecordPanel`、`#studentRecordHandle`、`#closeStudentRecord`、`#studentRecordTitle`、`#studentRecordStatus`、`#studentScoreControls`、`#studentScoreInput`、`#studentScoreError`、`#clearStudentRecord`、`#saveStudentRecord`；
+- 更多与确认：`#moreMenu`、`#confirmSheet`、`#confirmTitle`、`#confirmMessage`、`#cancelConfirm`、`#acceptConfirm`。
+
+模块私有标题、字段和面板 selector 也属于各模块内部契约；修改对应 HTML 时必须搜索 `querySelector`、`getElementById` 和事件委托选择器。
+
+### 5.3 关键动态 class
+
+不得改变以下 class 的语义：
+
+- 导航：`.page`、`.nav-btn`、`.segment`、`.segment-glider`、`.subview`、`.subdots i`；
+- 登记：`.student-grid`、`.student-card`、`.seat-cell`、`.seat-card`、`.letter-index`、`.letter-index-item`、`.letter-index-badge`；
+- 人员与课程：`.people-row`、`.week-slot-cell`、`.week-period-label`、`.grade-score-cell`、`.grade-subject-head`；
+- 浮层：`.menu-drawer`、`.student-record-sheet`、`.assignment-sheet`、`.assignment-name-sheet`、`.people-pick-sheet`、`.people-edit-sheet`、`.course-slot-sheet`、`.course-period-sheet`、`.course-subject-sheet`、`.course-grade-sheet`、`.course-highlight-sheet`、`.confirm-sheet`、`.more-menu`；
+- 字母索引拖动态：`.is-scrubbing`、`.is-scrubbing-shown`、`.is-letter-hit`。
+
+学生格可选 `data-score` 驱动分数角标；座位卡必须维护 `data-student-id` 与 `data-seat-index`。
+
+## 6. 持久化契约
+
+`localStorage` 只允许以下键：
+
+| 键 | 所属模块 | 值 |
+| --- | --- | --- |
+| `teacher-workbench.student-name-font-size` | `student-font-size.js` | `14～18` |
+| `teacher-workbench.roster.v1` | `roster-storage.js` | 完整业务 Schema 对象 |
+| `teacher-workbench.theme` | `theme.js` | `light` 或 `dark` |
+| `teacher-workbench.highlight-subjects` | `highlight-subjects.js` | 关键词 JSON |
+
+禁止保存导航、子视图、通用菜单、浮层、座位编辑模式或画布 transform。所有读取、解析和写入都必须捕获存储不可用异常。
+
+### 6.1 业务 Schema Version 4
+
+结构示例如下；数组为便于阅读只展示代表项，实际存储必须包含完整字段并满足后续约束。
+
+```js
+{
+  schemaVersion: 4,
+  students: [{ id: 1, name: '示例学生' }],
+  seats: [{ studentId: 1, seatIndex: 0 }],
+  assignments: [{ id: 1, name: '作业 1' }],
+  activeAssignmentId: 1,
+  submissions: [{ assignmentId: 1, studentId: 1 }],
+  scores: [{ assignmentId: 1, studentId: 1, value: 95.5 }],
+  nextAssignmentId: 1,
+  roles: [{ id: 1, title: '班长', studentIds: [] }],
+  duties: [{ id: 1, title: '周一', note: '扫地 · 擦黑板', studentIds: [] }],
+  nextRoleId: 1,
+  nextDutyId: 1,
+  periods: [{ id: 1, title: '早' }],
+  scheduleSlots: [{ day: 0, periodId: 1, subject: '语文' }],
+  subjects: [{ id: 1, title: '语文' }],
+  courseGrades: [{ subjectId: 1, studentId: 1, value: 88 }],
+  nextPeriodId: 10,
+  nextSubjectId: 1
+}
+```
+
+约束：
+
+- 默认数据为 46 名学生、稳定座位映射、1 个作业、4 个班干项、3 个值日项、10 个节次、3 个科目、空课表和空成绩。
+- 学生、作业、班干、值日、节次、科目 ID 及座位索引唯一；所有引用必须存在。
+- 每名学生恰有一个 `0～103` 座位；同一逻辑位置最多一人。
+- 同一 `(assignmentId, studentId)` 最多一条完成和一条作业分数；分数为 `0～100`、最多一位小数，存在分数必须存在完成记录。
+- 同一 `(day, periodId)` 最多一个课表格；`day` 为 `0～4`，节次恰好 10 项。
+- 同一 `(subjectId, studentId)` 最多一条课程成绩；课程成绩与作业分数分立。
+- 至少保留一个作业、班干项、值日项和科目；活动作业必须存在。
+- 人员与课程文案 trim 后非空且不超过 40 字；值日说明可为空。
+- Version 1/2/3 可显式迁移到 Version 4；未知版本、损坏 JSON、重复值、引用失效或无法完整校验时整体回退默认值。
+- 写入失败不破坏当前内存会话。
+
+## 7. 工具与生成文件
+
+- `tools/sync-web-assets.ps1` 只复制 `src/index.html`、`src/styles/` 和 `src/scripts/` 到 `www/`。
+- `tools/content-id.cjs` 只对上述 Web 源码计算指纹。
+- `tools/build-single-html.ps1` 默认从 `src/index.html` 生成 `dist/teacher-workbench.single.html`。
+- 根目录 `.bat` 必须保持纯 ASCII + CRLF；`tools/*.ps1` 保持 UTF-8 BOM + CRLF。
+- 生成文件不得纳入日常源码评审；如需验证，重建后检查结果而非手工补丁。
+
+## 8. 改动流程
+
+1. 阅读任务相关现行文档与实现。
+2. 列出结构、视觉、状态、手势、可访问性和工具链影响。
+3. 选择职责对应的最少文件，先复用 token、组件和函数。
+4. 实现完整闭环，不顺手重构无关区域。
+5. 执行静态、单元、运行和相关交互检查。
+6. 检查 `git diff` 与 `git diff --check`，排除用户已有改动和无意格式化。
+7. 同步受影响文档；历史过程只在有长期回溯价值时进入 `archive/`。
+
+## 9. 代码质量
+
+- 常量使用语义化名称；手势阈值不散落为魔法数字。
+- 事件监听只在初始化函数中注册一次。
+- 所有手势结束路径（up、cancel、lost capture、卸载）恢复临时视觉状态。
+- Store 和 UI 状态必须经过各自边界函数修改。
+- CSS 优先使用 token；同一新值重复出现 3 次以上时评估提取变量。
+- 不留下无条件 `console.log`、调试边框、注释掉的大段代码或无用 selector。
+- 不做全文件无关格式化，不覆盖工作区已有用户改动。
+
+## 10. 验收清单
+
+### 10.1 静态与单元检查
+
+- [ ] `node --check` 检查全部 `src/scripts/*.js`、`lan-server.js` 和 `tools/content-id.cjs`。
+- [ ] `node --test tests/*.test.mjs` 全部通过。
+- [ ] 页面 ID 唯一；`data-page` / `data-index` 为 `0～2` 且一一对应；每页 `data-sub` / `data-view` 连续。
+- [ ] 浏览器运行后登记网格恰有 46 个 `.student-card`；座位表恰有 104 个 `.seat-cell` 和 46 张 `.seat-card`。
+- [ ] 无远程运行时资源、内联业务脚本样式或第三方 Web 依赖。
+- [ ] `localStorage` 只使用 4 个受控键；Capacitor 包未被浏览器模块静态导入。
+- [ ] `www/` 同步结果不包含 `tools/`、`tests/` 或文档。
+- [ ] `git diff --check` 无空白错误。
+
+### 10.2 运行检查
+
+- [ ] `node lan-server.js` 可启动，`http://localhost:8080`、`/__health` 可访问。
+- [ ] 页面资源从 `/styles/` 与 `/scripts/` 正常加载，控制台无 error。
+- [ ] 320px、390px、430px 无水平溢出、遮挡或不可读文字。
+- [ ] 桌面宽度保持最大 430px 的居中手机容器。
+- [ ] 顶部、底部安全区和 Visual Viewport 行为正确。
+- [ ] 单文件导出可生成，`npm run sync:www` 可重建仅含 Web 资源的 `www/`。
+
+### 10.3 交互回归
+
+- [ ] 执行 [`interaction.md`](interaction.md) 的 10 个必测场景。
+- [ ] 点击、长按、拖动和 Sheet 跟手不重复触发。
+- [ ] active class、导航滑块、分段滑块、指示点、顶栏标题和 ARIA 始终同步。
+- [ ] 姓名字号、业务数据、主题和高亮科目按契约恢复；导航、浮层、编辑模式和 transform 不持久化。
+- [ ] 网格与座位的完成、作业分数和活动作业始终同步。
+- [ ] 作业分数与课程成绩互不污染。
+- [ ] 320px、390px、430px、短横屏、软键盘和 reduced motion 下功能完整。
+- [ ] 任务之外的页面、文案、视觉和行为没有改变。
+
+### 10.4 可选 Android 检查
+
+- [ ] `npm run build:apk` 可生成 debug APK。
+- [ ] `npm run deploy:apk` 可同步、构建并覆盖安装到目标设备。
+- [ ] App 内容指纹与电脑源码一致；Live Reload `clients > 0` 时保存可刷新。
+- [ ] 原生触觉与 Web 触觉互斥，同一操作只震一次。
+
+## 11. 完成定义
+
+以下条件同时满足才算完成：
+
+1. 用户要求已形成可见或可验证结果。
+2. 页面、状态、手势、DOM、存储和生成路径契约未被破坏。
+3. 已执行当前环境可执行的检查；未执行项及原因明确记录。
+4. `git diff` 不包含任务外改动，也未覆盖用户原有工作区修改。
+5. 最终说明修改文件、结构或行为变化、验证结果和剩余限制。

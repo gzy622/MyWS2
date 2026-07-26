@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createDefaultRosterState, isValidRosterState, SEAT_COUNT } from '../scripts/roster-model.js';
-import { createRosterStore } from '../scripts/roster-store.js';
+import { createDefaultRosterState, isValidRosterState, SEAT_COUNT } from '../src/scripts/roster-model.js';
+import { createRosterStore } from '../src/scripts/roster-store.js';
 
 test('默认名单、座位、作业、人员与课程项满足领域不变量', () => {
   const state = createDefaultRosterState();

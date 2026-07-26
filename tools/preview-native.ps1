@@ -294,8 +294,8 @@ if (-not (Test-Path (Join-Path $root 'node_modules\@capacitor\cli'))) {
 
 # Keep embedded www in sync so a cleartext/LAN failure cannot silently serve ancient JS.
 Write-Step 'Syncing www web assets'
-& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'sync-capacitor-www.ps1')
-if (-not $?) { throw 'sync-capacitor-www.ps1 failed' }
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'sync-web-assets.ps1')
+if (-not $?) { throw 'sync-web-assets.ps1 failed' }
 
 $serial = Resolve-TargetSerial $Serial
 $serial = Resolve-NativeRunSerial $serial
@@ -373,7 +373,7 @@ if ($reach.Ok) {
   Write-Host 'Reliable fallback: npm run deploy:apk' -ForegroundColor Yellow
 }
 
-Write-Host 'Save files under index.html / styles / scripts → WebView reloads automatically.'
+Write-Host 'Save files under src/ → WebView reloads automatically.'
 Write-Host 'Keep this terminal open. Stop with Ctrl+C when finished.'
 Write-Host 'Version check: npm run code:id  →  long-press menu → compare build.'
 
