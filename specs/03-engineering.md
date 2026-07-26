@@ -32,6 +32,11 @@
 | 课程页课表/成绩列表渲染 | `scripts/courses-renderer.js` |
 | 课程页课表、科目与成绩 Sheet | `scripts/courses-interactions.js` |
 | 课表高亮科目关键词（更多菜单入口） | `scripts/highlight-subjects.js` |
+| 高亮科目关键词校验与存储键 | `scripts/highlight-subjects-model.js` |
+| 主题状态与 StatusBar 同步 | `scripts/theme.js` |
+| 统一触觉反馈 | `scripts/haptics.js` |
+| Escape / 系统返回关闭栈 | `scripts/system-back.js` |
+| 座位画布定位、缩放与编辑拖放 | `scripts/seat-canvas.js` |
 | 学生轻点、长按和右键 | `scripts/student-interactions.js` |
 | 学生记录 | `scripts/student-record.js` |
 | 作业列表与作业名称 | `scripts/assignments.js` |

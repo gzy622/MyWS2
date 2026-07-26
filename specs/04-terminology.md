@@ -88,12 +88,12 @@
 | 作业名称把手区 | `.assignment-name-panel .sheet-handle-zone` | 上拉关闭作业名称的手势区域；阈值 88px。 |
 | 通用菜单关闭按钮 | `#closeMenuDrawer.sheet-close` | 通用菜单头部右侧关闭触发器。 |
 | 学生记录关闭按钮 | `#closeStudentRecord.sheet-close` | 学生记录头部右侧关闭触发器。 |
-| 菜单项 | `.menu-item[data-action]` | 视图切换、批量标记、清除、复制未交或恢复默认的入口。 |
+| 菜单项 | `.menu-item[data-action]` | 视图切换、批量标记、清除、复制未交或恢复默认的入口；恢复项可见文案为「恢复默认名单」，确认标题为「恢复默认数据」。 |
 | 字号标题 | `.font-size-popover-head label` | 控件名称「姓名字号」。 |
 | 字号滑杆 | `#studentFontSize` | `14～18px`、步长 `1px`。 |
 | 字号数值 | `#studentFontSizeValue` | 例如「16px」。 |
 | 字号刻度 | `.font-size-popover-scale` | 滑杆两端「小 / 大」。 |
-| 字号持久化键 | `teacher-workbench.student-name-font-size` | 三个受控键之一。 |
+| 字号持久化键 | `teacher-workbench.student-name-font-size` | 受控 `localStorage` 键之一（另有业务 Schema、主题、高亮科目）。 |
 
 关闭栈（高→低）：确认面板 → 高亮科目 / 课程科目/节次/课表格/成绩 Sheet → 人员编辑/选择 Sheet → 作业名称 → 作业列表 → 学生记录 → 更多菜单 → 姓名字号 → 通用菜单。
 
@@ -158,7 +158,7 @@
 | 指示点选中态 | `.subdots i.on` | 当前子视图对应的状态点。 |
 | 姓名字号 | `state.studentFontSize` | 取值 14～18，并持久化保存。 |
 | 姓名字号打开态 | `state.fontSizePopoverOpen`、`.font-size-popover.show` | 姓名字号控件当前可见；不持久化。 |
-| 业务状态 | `roster-store.js` | 学生、座位、作业、提交、分数、班干与值日的唯一可写来源。 |
+| 业务状态 | `roster-store.js` | 学生、座位、作业、提交、分数、班干、值日、课表与课程成绩的唯一可写来源。 |
 | 活动浮层 | `state.activeOverlay` | 当前业务浮层（含 `people-*` / `course-*` / `assignments` / `student-record` / `more` / `confirm`）；与通用菜单互斥且不持久化。 |
 | 座位编辑态 | `state.seatEditing` | 当前会话中座位卡可移动/交换的状态。 |
 | 拖动中 | `.pages.dragging`、`.nav-glider.dragging`、`.segment-glider.dragging` 或 `.menu-drawer.dragging` | 手势跟手阶段，临时取消过渡动画。 |
