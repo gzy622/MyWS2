@@ -124,11 +124,12 @@ function createGradeSheet() {
   layer.inert = true;
   layer.innerHTML = [
     '<section class="course-grade-panel sheet-panel sheet-panel--bottom" role="dialog" aria-modal="true" aria-labelledby="courseGradeTitle">',
-    '<div class="sheet-handle-zone sheet-handle-zone--top" aria-hidden="true"><div class="sheet-handle"></div></div>',
+    '<div class="student-record-handle-zone" aria-hidden="true"><div class="sheet-handle"></div></div>',
     '<div class="student-record-head sheet-head">',
     '<div class="sheet-title"><span data-field="eyebrow">成绩</span><h2 id="courseGradeTitle">录入</h2></div>',
     '<button type="button" class="sheet-close" data-action="close" aria-label="关闭">×</button>',
     '</div>',
+    '<p class="student-record-status" data-field="status"></p>',
     '<div class="student-score-display">',
     '<label for="courseGradeInput">本次得分</label>',
     '<div><input id="courseGradeInput" data-field="input" inputmode="none" autocomplete="off" readonly aria-describedby="courseGradeError" /><span>/ 100</span></div>',
@@ -181,6 +182,7 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
   const gradePanel = gradeLayer.querySelector('.course-grade-panel');
   const gradeEyebrow = gradeLayer.querySelector('[data-field="eyebrow"]');
   const gradeTitle = gradeLayer.querySelector('#courseGradeTitle');
+  const gradeStatus = gradeLayer.querySelector('[data-field="status"]');
   const gradeInput = gradeLayer.querySelector('[data-field="input"]');
   const gradeError = gradeLayer.querySelector('[data-field="error"]');
   const gradeKeypad = gradeLayer.querySelector('[data-field="keypad"]');
@@ -199,9 +201,37 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
   let gradeReturnFocus = null;
   const presses = new Map();
   let suppressClickUntil = 0;
+  let ghostGuard = null;
 
-  function armGridClickSuppress(ms = CLICK_SUPPRESSION_MS) {
+  /**
+   * After save/clear/close on pointerdown, the trailing click can land on the
+   * bottom nav (toggles 成绩→课表) or segment tabs / score cells underneath.
+   */
+  function armGridClickSuppress(ms = 500) {
     suppressClickUntil = performance.now() + ms;
+    if (ghostGuard) {
+      document.removeEventListener('click', ghostGuard, true);
+      ghostGuard = null;
+    }
+    const until = suppressClickUntil;
+    ghostGuard = (event) => {
+      if (performance.now() >= until) {
+        document.removeEventListener('click', ghostGuard, true);
+        ghostGuard = null;
+        return;
+      }
+      const hit = event.target;
+      if (!(hit instanceof Element)) return;
+      if (!hit.closest(
+        '#nav, .nav-btn, .segment, #weekStrip, #gradeTable, .week-slot-cell, .week-period-label, .grade-score-cell, .grade-subject-head, .confirm-sheet'
+      )) {
+        return;
+      }
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      logCourseDebug('ghost click suppressed', describeDebugTarget(hit));
+    };
+    document.addEventListener('click', ghostGuard, true);
   }
 
   function closeSlot({ restoreFocus = true } = {}) {
@@ -337,6 +367,7 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     gradeEyebrow.textContent = subject.title;
     gradeTitle.textContent = student.name;
     const score = store.getCourseGrade(studentId, subjectId);
+    gradeStatus.textContent = score !== undefined ? `已计分 · ${score} 分` : '未计分';
     gradeInput.value = score === undefined ? '' : String(score);
     gradeError.textContent = '';
     gradeSheet.openInstant();
