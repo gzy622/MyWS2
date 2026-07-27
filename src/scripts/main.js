@@ -77,7 +77,6 @@ moreSheet = initMoreSheet({
   showToast,
   seatCanvas,
   fontSize,
-  theme,
   closeOthers: closeOverlays,
   highlightSubjects,
 });

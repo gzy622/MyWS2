@@ -1,5 +1,6 @@
 import { elements } from './dom.js';
 import { closeDrawer } from './drawer.js';
+import { setSub } from './navigation.js';
 import { state, setActiveOverlay } from './state.js';
 import { haptic, Haptic } from './haptics.js';
 import { createSheetController } from './sheet-drag.js';
@@ -15,7 +16,7 @@ const DUTY_SUBVIEW_INDEX = 1;
 const SCHEDULE_SUBVIEW_INDEX = 0;
 const GRADES_SUBVIEW_INDEX = 1;
 
-const REGISTER_ACTIONS = new Set(['clear-assignment', 'font-size', 'seat-edit', 'seat-reset']);
+const REGISTER_ACTIONS = new Set(['register-view', 'clear-assignment', 'font-size', 'seat-edit', 'seat-reset']);
 const PEOPLE_ROLE_ACTIONS = new Set(['add-role', 'clear-roles']);
 const PEOPLE_DUTY_ACTIONS = new Set(['add-duty', 'clear-duties']);
 const PEOPLE_ACTIONS = new Set([...PEOPLE_ROLE_ACTIONS, ...PEOPLE_DUTY_ACTIONS]);
@@ -23,7 +24,7 @@ const COURSES_SCHEDULE_ACTIONS = new Set(['clear-schedule', 'highlight-subjects'
 const COURSES_GRADES_ACTIONS = new Set(['add-subject', 'clear-grades']);
 const COURSES_ACTIONS = new Set([...COURSES_SCHEDULE_ACTIONS, ...COURSES_GRADES_ACTIONS]);
 
-export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, closeOthers, highlightSubjects }) {
+export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOthers, highlightSubjects }) {
   let trigger = null;
   let confirmAction = null;
   let confirmReturnFocus = null;
@@ -111,9 +112,7 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
     for (const button of elements.moreActions) {
       const action = button.dataset.moreAction;
       let hidden = false;
-      if (action === 'theme') {
-        hidden = false;
-      } else if (REGISTER_ACTIONS.has(action)) {
+      if (REGISTER_ACTIONS.has(action)) {
         hidden = !onRegister
           || (action === 'font-size' && !isGrid)
           || ((action === 'seat-edit' || action === 'seat-reset') && !isSeats);
@@ -129,12 +128,12 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
         hidden = true;
       }
       button.hidden = hidden;
+      if (action === 'register-view') {
+        button.textContent = isGrid ? '切换至座位视图' : '切换回网格视图';
+      }
       if (action === 'seat-edit') {
         button.setAttribute('aria-pressed', String(state.seatEditing));
         button.textContent = state.seatEditing ? '退出编辑模式' : '编辑座位表';
-      }
-      if (action === 'theme') {
-        button.textContent = theme.get() === 'dark' ? '切换到浅色' : '切换到深色';
       }
     }
   }
@@ -173,10 +172,13 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
   elements.moreActions.forEach((button) => button.addEventListener('click', (event) => {
     event.stopPropagation();
     const action = button.dataset.moreAction;
-    if (action === 'theme') {
-      const nextTheme = theme.toggle();
-      render();
-      showToast(nextTheme === 'dark' ? '已切换到深色模式' : '已切换到浅色模式');
+    if (action === 'register-view') {
+      const targetSubview = state.subviews[REGISTER_PAGE_INDEX] === GRID_SUBVIEW_INDEX
+        ? SEAT_SUBVIEW_INDEX
+        : GRID_SUBVIEW_INDEX;
+      close({ restoreFocus: false });
+      setSub(REGISTER_PAGE_INDEX, targetSubview);
+      focusSilently(elements.moreButton);
       return;
     }
     if (action === 'clear-assignment') {
