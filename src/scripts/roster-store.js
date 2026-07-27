@@ -229,6 +229,35 @@ export class RosterStore {
     return true;
   }
 
+  /**
+   * Atomically replace the entire business state.
+   *
+   * 1. Validates the snapshot as current schema.
+   * 2. Deep-clones it so the caller cannot mutate the store later.
+   * 3. Persists the cloned state **before** swapping the in-memory state
+   *    (so a storage failure does not leave a half-replaced session).
+   * 4. On success, replaces #state and notifies subscribers exactly once.
+   *
+   * @returns {'replaced' | 'invalid' | 'persist-failed'}
+   */
+  replaceSnapshot(snapshot) {
+    if (!isValidRosterState(snapshot)) return 'invalid';
+
+    const cloned = cloneRosterState(snapshot);
+
+    if (this.#persist) {
+      try {
+        this.#persist(cloned);
+      } catch {
+        return 'persist-failed';
+      }
+    }
+
+    this.#state = cloned;
+    this.#notify();
+    return 'replaced';
+  }
+
   resetRoster() {
     const defaults = createDefaultRosterState();
     this.#state.students = defaults.students;
