@@ -114,7 +114,6 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
       let hidden = false;
       if (REGISTER_ACTIONS.has(action)) {
         hidden = !onRegister
-          || (action === 'font-size' && !isGrid)
           || ((action === 'seat-edit' || action === 'seat-reset') && !isSeats);
       } else if (PEOPLE_ACTIONS.has(action)) {
         hidden = !onPeople

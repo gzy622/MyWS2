@@ -3,22 +3,25 @@ import { state, setFontSizePopoverOpen, setStudentFontSize } from './state.js';
 
 const STORAGE_KEY = 'teacher-workbench.student-name-font-size';
 const REGISTER_PAGE_INDEX = 1;
-const GRID_SUBVIEW_INDEX = 0;
+const SEAT_EDIT_FONT_SCALE = 1.25;
+const SEAT_VIEW_FONT_SCALE = 1.5;
 
-function isStudentGridActive() {
-  return state.currentPage === REGISTER_PAGE_INDEX && state.subviews[REGISTER_PAGE_INDEX] === GRID_SUBVIEW_INDEX;
+function isRegisterNameViewActive() {
+  return state.currentPage === REGISTER_PAGE_INDEX;
 }
 
 function renderStudentFontSize() {
   const size = state.studentFontSize;
   elements.studentGrid.style.setProperty('--student-name-size', `${size}px`);
+  elements.seatStage.style.setProperty('--seat-name-size', `${size * SEAT_EDIT_FONT_SCALE}px`);
+  elements.seatStage.style.setProperty('--seat-view-name-size', `${size * SEAT_VIEW_FONT_SCALE}px`);
   elements.studentFontSizeInput.value = String(size);
   elements.studentFontSizeValue.value = `${size}px`;
 }
 
 function renderPopover() {
-  const isGridActive = isStudentGridActive();
-  const isOpen = isGridActive && state.fontSizePopoverOpen;
+  const isRegisterActive = isRegisterNameViewActive();
+  const isOpen = isRegisterActive && state.fontSizePopoverOpen;
   elements.fontSizePopover.classList.toggle('show', isOpen);
   elements.fontSizePopover.setAttribute('aria-hidden', String(!isOpen));
   elements.moreButton.setAttribute('aria-label', '更多功能');
@@ -50,7 +53,7 @@ function closePopover() {
 }
 
 function openPopover() {
-  if (!isStudentGridActive()) return false;
+  if (!isRegisterNameViewActive()) return false;
   setFontSizePopoverOpen(true);
   renderPopover();
   elements.studentFontSizeInput.focus({ preventScroll: true });

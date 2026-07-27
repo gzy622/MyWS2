@@ -229,7 +229,7 @@
   position: absolute; z-index: 1; top: 0; left: 0; width: var(--seat-card-width); height: var(--seat-card-height); cursor: pointer;
   display: grid; place-items: center; padding: 0; overflow: hidden; color: var(--ink-soft);
   background: var(--card); border: .5px solid var(--line); border-radius: 0;
-  box-shadow: none; font-size: 20px; font-weight: 500; line-height: 1;
+  box-shadow: none; font-size: var(--seat-name-size, 20px); font-weight: 500; line-height: 1;
   touch-action: none; will-change: transform;
 }
 .seat-name {
@@ -239,7 +239,7 @@
 .seat-name > span { display: block; }
 .seat-stage.is-view-mode .seat-card {
   top: 0; left: 0; width: var(--seat-view-card-width); height: var(--seat-view-card-height); padding: 0;
-  border-radius: 0; font-size: 24px;
+  border-radius: 0; font-size: var(--seat-view-name-size, 24px);
 }
 .seat-stage.is-view-mode .seat-card.is-completed:not([data-score])::before,
 .seat-stage.is-view-mode .seat-card[data-score]::after {
