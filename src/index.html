@@ -76,7 +76,14 @@
                       <div class="seat-grid" id="seatGrid" role="list" aria-label="学生座位"></div>
                       <div class="podium">讲台</div>
                     </div>
-                    <p class="seat-hint" id="seatHint">查看模式 · 轻点登记 · 长按打分 · 拖动画布 · 双指缩放</p>
+                    <div class="seat-view-controls">
+                      <button class="seat-fit-button" id="seatFitButton" type="button" aria-label="使座位表适应屏幕">适应</button>
+                      <div class="seat-mode-bar" id="seatModeBar" hidden>
+                        <span id="seatEditStatus" role="status" aria-live="polite">编辑中 · 拖动学生调整</span>
+                        <button id="exitSeatEdit" type="button">退出</button>
+                      </div>
+                    </div>
+                    <p class="seat-hint" id="seatHint">轻点登记 · 长按打分</p>
                   </div>
                   <nav class="letter-index" id="seatLetterIndex" aria-label="姓名首字母" aria-hidden="true"></nav>
                 </section>

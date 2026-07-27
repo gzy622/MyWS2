@@ -98,7 +98,7 @@
 `src/scripts/dom.js` 是跨模块必需 selector 的事实来源。当前不可删除或复用的 ID 包括：
 
 - 外壳与导航：`#app`、`#viewport`、`#pages`、`#nav`、`#glider`、`#topbarTitle`、`#topbarTitleLabel`、`#menuButton`、`#moreButton`；
-- 登记与座位：`#studentGrid`、`#gridLetterIndex`、`#studentFontSize`、`#studentFontSizeValue`、`#seatViewport`、`#seatStage`、`#seatGrid`、`#seatHint`、`#seatLetterIndex`；
+- 登记与座位：`#studentGrid`、`#gridLetterIndex`、`#studentFontSize`、`#studentFontSizeValue`、`#seatViewport`、`#seatStage`、`#seatGrid`、`#seatHint`、`#seatFitButton`、`#seatModeBar`、`#seatEditStatus`、`#exitSeatEdit`、`#seatLetterIndex`；
 - 人员与课程：`#roleList`、`#dutyList`、`#weekStrip`、`#gradeTable`；
 - 通用菜单与反馈：`#fontSizePopover`、`#menuDrawer`、`#menuDrawerHandle`、`#menuDrawerBuild`、`#closeMenuDrawer`、`#scrim`、`#toast`；
 - 学生记录：`#studentRecordSheet`、`#studentRecordPanel`、`#studentRecordHandle`、`#closeStudentRecord`、`#studentRecordTitle`、`#studentRecordStatus`、`#studentScoreControls`、`#studentScoreInput`、`#studentScoreError`、`#clearStudentRecord`、`#saveStudentRecord`；
@@ -229,7 +229,7 @@
 - [ ] 姓名字号、业务数据、主题和高亮科目按契约恢复；导航、浮层、编辑模式和 transform 不持久化。
 - [ ] 网格与座位的完成、作业分数和活动作业始终同步。
 - [ ] 作业分数与课程成绩互不污染。
-- [ ] 320px、390px、430px、短横屏、软键盘和 reduced motion 下功能完整。
+- [ ] 320px、390px、430px、短横屏、软键盘和 reduced motion 下功能完整；座位查看模式姓名与状态可读，编辑模式可通过拖动和键盘完成移动/交换。
 - [ ] 任务之外的页面、文案、视觉和行为没有改变。
 
 ### 10.4 可选 Android 检查

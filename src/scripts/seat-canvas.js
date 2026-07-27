@@ -1,14 +1,19 @@
 import { elements } from './dom.js';
 import { state, setSeatEditing } from './state.js';
 import { SEAT_COLUMNS, SEAT_ROWS } from './roster-model.js';
-import { SEAT_STAGE_HEIGHT, SEAT_STAGE_WIDTH } from './seat-geometry.js';
+import {
+  getAdjacentSeatIndex,
+  SEAT_STAGE_HEIGHT,
+  SEAT_STAGE_WIDTH,
+  SEAT_VIEW_MIN_SCALE
+} from './seat-geometry.js';
 import { haptic, Haptic } from './haptics.js';
 
 const MIN_SCALE = 0.18;
 const MAX_SCALE = 2.5;
 const LONG_PRESS_MS = 480;
 const CARD_MOVE_DISTANCE = 9;
-const HINT_DURATION = 1400;
+const HINT_DURATION = 2600;
 const PAN_SAMPLE_WINDOW = 100;
 const MAX_INERTIA_SPEED = 2.5;
 const MIN_INERTIA_SPEED = 0.02;
@@ -19,7 +24,15 @@ const distance = (first, second) => Math.hypot(second.x - first.x, second.y - fi
 const midpoint = (first, second) => ({ x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 });
 
 export function initSeatCanvas({ store, showToast, openStudentRecord }) {
-  const { seatViewport: viewport, seatStage: stage, seatHint: hint } = elements;
+  const {
+    seatViewport: viewport,
+    seatStage: stage,
+    seatHint: hint,
+    seatFitButton: fitButton,
+    seatModeBar: modeBar,
+    seatEditStatus: editStatus,
+    exitSeatEditButton: exitEditButton
+  } = elements;
   const pointers = new Map();
   const transform = { x: 0, y: 0, scale: 1 };
   let gesture = null;
@@ -30,15 +43,23 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
   let inertiaFrame;
   let resizeFrame;
   let pendingResizeConstraint = false;
+  let keyboardSelection = null;
 
   function stopInertia() {
     if (inertiaFrame !== undefined) cancelAnimationFrame(inertiaFrame);
     inertiaFrame = undefined;
   }
 
+  function getStageSize() {
+    return state.seatEditing
+      ? { width: SEAT_STAGE_WIDTH, height: SEAT_STAGE_HEIGHT }
+      : { width: stage.offsetWidth, height: stage.offsetHeight };
+  }
+
   function constrain(nextX, nextY, scale = transform.scale) {
-    const scaledWidth = SEAT_STAGE_WIDTH * scale;
-    const scaledHeight = SEAT_STAGE_HEIGHT * scale;
+    const { width, height } = getStageSize();
+    const scaledWidth = width * scale;
+    const scaledHeight = height * scale;
     return {
       x: scaledWidth <= viewport.clientWidth
         ? (viewport.clientWidth - scaledWidth) / 2
@@ -65,19 +86,73 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
   function reset() {
     if (!viewport.clientWidth || !viewport.clientHeight) return;
     stopInertia();
+    clearKeyboardSelection();
+    const { width, height } = getStageSize();
+    const fitScale = Math.min(viewport.clientWidth / width, viewport.clientHeight / height) * 0.96;
     const scale = clamp(
-      Math.min(viewport.clientWidth / SEAT_STAGE_WIDTH, viewport.clientHeight / SEAT_STAGE_HEIGHT) * 0.94,
+      state.seatEditing ? fitScale : Math.max(fitScale, SEAT_VIEW_MIN_SCALE),
       MIN_SCALE,
       MAX_SCALE
     );
     apply(
-      (viewport.clientWidth - SEAT_STAGE_WIDTH * scale) / 2,
-      (viewport.clientHeight - SEAT_STAGE_HEIGHT * scale) / 2,
+      (viewport.clientWidth - width * scale) / 2,
+      (viewport.clientHeight - height * scale) / 2,
       scale
     );
     initialized = true;
     hint.classList.remove('is-hidden');
     hideHintSoon();
+  }
+
+  function seatPosition(seatIndex) {
+    return {
+      row: Math.floor(seatIndex / SEAT_COLUMNS) + 1,
+      column: seatIndex % SEAT_COLUMNS + 1
+    };
+  }
+
+  function getMoveDetails(studentId, targetSeat) {
+    const snapshot = store.getSnapshot();
+    const occupantSeat = snapshot.seats.find((seat) => seat.seatIndex === targetSeat && seat.studentId !== studentId);
+    const occupant = occupantSeat
+      ? snapshot.students.find((student) => student.id === occupantSeat.studentId)
+      : null;
+    return { occupant, ...seatPosition(targetSeat) };
+  }
+
+  function setEditStatus(message = '编辑中 · 拖动学生调整') {
+    editStatus.textContent = message;
+  }
+
+  function describeTarget(studentId, targetSeat) {
+    const { occupant, row, column } = getMoveDetails(studentId, targetSeat);
+    return occupant ? `将与${occupant.name}交换` : `移动到第${row}排第${column}列`;
+  }
+
+  function moveSuccessMessage(studentId, targetSeat) {
+    const { occupant, row, column } = getMoveDetails(studentId, targetSeat);
+    return occupant ? `已与${occupant.name}交换座位` : `已移动到第${row}排第${column}列`;
+  }
+
+  function syncCardAccessibility() {
+    const snapshot = store.getSnapshot();
+    const students = new Map(snapshot.students.map((student) => [student.id, student]));
+    for (const card of elements.seatGrid.querySelectorAll('.seat-card')) {
+      const studentId = Number(card.dataset.studentId);
+      const seatIndex = Number(card.dataset.seatIndex);
+      const student = students.get(studentId);
+      if (!student) continue;
+      const { row, column } = seatPosition(seatIndex);
+      const completed = card.getAttribute('aria-pressed') === 'true';
+      const score = store.getScore(studentId);
+      const status = score === undefined ? (completed ? '已完成' : '未记录') : `已完成，${score} 分`;
+      const action = state.seatEditing
+        ? '编辑模式。拖动调整座位；键盘可用方向键选择目标，回车确认。'
+        : '轻点登记，长按打分。';
+      card.setAttribute('aria-label', `${student.name}，第 ${row} 排第 ${column} 列，${status}。${action}`);
+      if (state.seatEditing) card.setAttribute('aria-keyshortcuts', 'ArrowUp ArrowDown ArrowLeft ArrowRight Enter Escape');
+      else card.removeAttribute('aria-keyshortcuts');
+    }
   }
 
   function clearDropTarget() {
@@ -104,6 +179,47 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
     clearDropTarget();
     dropTarget = target;
     dropTarget?.classList.add('is-drop-target');
+  }
+
+  function clearKeyboardSelection({ resetStatus = true } = {}) {
+    keyboardSelection?.card.classList.remove('is-keyboard-source');
+    keyboardSelection = null;
+    clearDropTarget();
+    if (resetStatus && state.seatEditing) setEditStatus();
+  }
+
+  function selectCardForKeyboard(card) {
+    clearKeyboardSelection({ resetStatus: false });
+    keyboardSelection = {
+      card,
+      studentId: Number(card.dataset.studentId),
+      targetSeat: Number(card.dataset.seatIndex)
+    };
+    card.classList.add('is-keyboard-source');
+    showDropTarget(keyboardSelection.targetSeat);
+    setEditStatus(`已选择${card.textContent.trim()} · 方向键选位置`);
+  }
+
+  function moveKeyboardTarget(key) {
+    if (!keyboardSelection) return;
+    keyboardSelection.targetSeat = getAdjacentSeatIndex(keyboardSelection.targetSeat, key);
+    showDropTarget(keyboardSelection.targetSeat);
+    setEditStatus(describeTarget(keyboardSelection.studentId, keyboardSelection.targetSeat));
+  }
+
+  function commitKeyboardMove() {
+    if (!keyboardSelection) return;
+    const { studentId, targetSeat } = keyboardSelection;
+    const message = moveSuccessMessage(studentId, targetSeat);
+    clearKeyboardSelection({ resetStatus: false });
+    if (store.moveStudentSeat(studentId, targetSeat)) {
+      showToast(message);
+      setEditStatus(message);
+      requestAnimationFrame(() => {
+        elements.seatGrid.querySelector(`.seat-card[data-student-id="${studentId}"]`)?.focus();
+        apply();
+      });
+    }
   }
 
   function closestSeatToCard(card) {
@@ -148,6 +264,7 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
   function beginPinch() {
     stopInertia();
     cancelCardInteraction();
+    clearKeyboardSelection();
     viewport.classList.remove('is-panning');
     const entries = [...pointers.entries()].slice(0, 2);
     const centre = midpoint(entries[0][1], entries[1][1]);
@@ -225,7 +342,7 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     const target = event.target instanceof Element ? event.target : null;
     // 命中整个座位视口（含舞台外留白），避免缩放后可操作区域只剩中间一小块舞台
-    if (!target || !viewport.contains(target)) return;
+    if (!target || !viewport.contains(target) || target.closest('.seat-view-controls')) return;
     event.preventDefault();
     stopInertia();
     viewport.setPointerCapture?.(event.pointerId);
@@ -246,13 +363,15 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
         moved: false, longPressed: false, longPressTimer: undefined
       };
       card.classList.add('is-pressing');
-      cardGesture.longPressTimer = setTimeout(() => {
-        if (gesture !== cardGesture || cardGesture.moved) return;
-        cardGesture.longPressed = true;
-        card.classList.remove('is-pressing');
-        haptic(Haptic.medium);
-        openStudentRecord(cardGesture.studentId, card);
-      }, LONG_PRESS_MS);
+      if (!cardGesture.editable) {
+        cardGesture.longPressTimer = setTimeout(() => {
+          if (gesture !== cardGesture || cardGesture.moved) return;
+          cardGesture.longPressed = true;
+          card.classList.remove('is-pressing');
+          haptic(Haptic.medium);
+          openStudentRecord(cardGesture.studentId, card);
+        }, LONG_PRESS_MS);
+      }
       gesture = cardGesture;
       return;
     }
@@ -297,6 +416,7 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
         recordPanSample(gesture, event);
         return;
       }
+      clearKeyboardSelection();
       gesture.moved = true;
       gesture.card.classList.add('is-dragging');
       cacheSeatCells();
@@ -306,6 +426,7 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
     gesture.card.style.transform = `translate3d(${deltaX / transform.scale}px, ${deltaY / transform.scale}px, 0)`;
     gesture.targetSeat = closestSeatToCard(gesture.card);
     showDropTarget(gesture.targetSeat);
+    setEditStatus(describeTarget(gesture.studentId, gesture.targetSeat));
   }
 
   function applyPendingResizeConstraint() {
@@ -334,9 +455,20 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
       clearSeatCellCache();
       gesture = null;
       applyPendingResizeConstraint();
-      if (cancelled || cardGesture.longPressed) return;
+      if (cancelled) {
+        if (state.seatEditing) setEditStatus();
+        return;
+      }
+      if (cardGesture.longPressed) return;
       if (cardGesture.moved) {
-        if (store.moveStudentSeat(cardGesture.studentId, cardGesture.targetSeat)) showToast('座位已更新');
+        const message = moveSuccessMessage(cardGesture.studentId, cardGesture.targetSeat);
+        if (store.moveStudentSeat(cardGesture.studentId, cardGesture.targetSeat)) {
+          showToast(message);
+          setEditStatus(message);
+          requestAnimationFrame(() => apply());
+        }
+      } else if (state.seatEditing) {
+        selectCardForKeyboard(cardGesture.card);
       } else {
         const wasCompleted = cardGesture.card.getAttribute('aria-pressed') === 'true';
         if (store.toggleCompletion(cardGesture.studentId)) {
@@ -375,7 +507,48 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
     const card = event.target instanceof Element ? event.target.closest('.seat-card') : null;
     if (!card) return;
     event.preventDefault();
-    openStudentRecord(Number(card.dataset.studentId), card);
+    if (!state.seatEditing) openStudentRecord(Number(card.dataset.studentId), card);
+  }
+
+  function keyboardClick(event) {
+    if (event.detail !== 0) return;
+    const card = event.target instanceof Element ? event.target.closest('.seat-card') : null;
+    if (!card || !elements.seatGrid.contains(card)) return;
+    if (state.seatEditing) {
+      selectCardForKeyboard(card);
+      return;
+    }
+    const studentId = Number(card.dataset.studentId);
+    const wasCompleted = card.getAttribute('aria-pressed') === 'true';
+    if (store.toggleCompletion(studentId)) {
+      haptic(Haptic.light);
+      showToast(wasCompleted ? '已取消完成' : '已标记完成');
+    }
+  }
+
+  function keyboardEdit(event) {
+    if (!state.seatEditing) return;
+    const card = event.target instanceof Element ? event.target.closest('.seat-card') : null;
+    if (event.key === 'Escape' && keyboardSelection) {
+      event.preventDefault();
+      clearKeyboardSelection();
+      return;
+    }
+    if (!card || !elements.seatGrid.contains(card)) return;
+    if (event.key.startsWith('Arrow')) {
+      event.preventDefault();
+      if (!keyboardSelection || keyboardSelection.studentId !== Number(card.dataset.studentId)) selectCardForKeyboard(card);
+      moveKeyboardTarget(event.key);
+      return;
+    }
+    if (event.key === 'Enter' && keyboardSelection) {
+      event.preventDefault();
+      const targetStudentId = Number(card.dataset.studentId);
+      if (targetStudentId !== keyboardSelection.studentId) {
+        keyboardSelection.targetSeat = Number(card.dataset.seatIndex);
+      }
+      commitKeyboardMove();
+    }
   }
 
   function pointerCancel(event) {
@@ -384,6 +557,7 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
 
   function setEditing(editing) {
     cancelCardInteraction();
+    clearKeyboardSelection({ resetStatus: false });
     for (const pointerId of pointers.keys()) {
       if (viewport.hasPointerCapture?.(pointerId)) viewport.releasePointerCapture(pointerId);
     }
@@ -394,17 +568,19 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
     setSeatEditing(editing);
     stage.classList.toggle('is-edit-mode', state.seatEditing);
     stage.classList.toggle('is-view-mode', !state.seatEditing);
+    modeBar.hidden = !state.seatEditing;
+    setEditStatus();
     hint.textContent = state.seatEditing
-      ? '编辑模式 · 拖动卡片换座 · 空白平移 · 双指缩放'
-      : '查看模式 · 轻点登记 · 长按打分 · 拖动画布 · 双指缩放';
-    for (const card of elements.seatGrid.querySelectorAll('.seat-card')) {
-      const name = card.textContent.trim();
-      const completed = card.getAttribute('aria-pressed') === 'true';
-      card.setAttribute(
-        'aria-label',
-        `${name}，${completed ? '已完成' : '未记录'}。${state.seatEditing ? '拖动可调整座位。' : '轻点登记，长按打分。'}`
-      );
-    }
+      ? '拖动调整 · 拖到学生处交换'
+      : '轻点登记 · 长按打分';
+    syncCardAccessibility();
+    reset();
+  }
+
+  function exitEditing() {
+    setEditing(false);
+    showToast('已退出座位编辑模式');
+    fitButton.focus();
   }
 
   viewport.addEventListener('pointerdown', pointerDown);
@@ -413,7 +589,11 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
   viewport.addEventListener('pointercancel', pointerCancel);
   viewport.addEventListener('lostpointercapture', pointerCancel);
   viewport.addEventListener('contextmenu', contextMenu);
+  viewport.addEventListener('click', keyboardClick);
+  viewport.addEventListener('keydown', keyboardEdit);
   viewport.addEventListener('wheel', zoomWithWheel, { passive: false });
+  fitButton.addEventListener('click', reset);
+  exitEditButton.addEventListener('click', exitEditing);
 
   const observer = new ResizeObserver(() => {
     cancelAnimationFrame(resizeFrame);
@@ -436,6 +616,7 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
       cancelAnimationFrame(resizeFrame);
       clearTimeout(hintTimer);
       cancelCardInteraction();
+      clearKeyboardSelection({ resetStatus: false });
       observer.disconnect();
       viewport.removeEventListener('pointerdown', pointerDown);
       viewport.removeEventListener('pointermove', pointerMove);
@@ -443,7 +624,11 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
       viewport.removeEventListener('pointercancel', pointerCancel);
       viewport.removeEventListener('lostpointercapture', pointerCancel);
       viewport.removeEventListener('contextmenu', contextMenu);
+      viewport.removeEventListener('click', keyboardClick);
+      viewport.removeEventListener('keydown', keyboardEdit);
       viewport.removeEventListener('wheel', zoomWithWheel);
+      fitButton.removeEventListener('click', reset);
+      exitEditButton.removeEventListener('click', exitEditing);
       pointers.clear();
     }
   };

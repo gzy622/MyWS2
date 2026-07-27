@@ -1,19 +1,28 @@
 import { elements } from './dom.js';
+import { state as uiState } from './state.js';
 import { SEAT_COLUMNS, SEAT_COUNT } from './roster-model.js';
 import {
+  getSeatViewGeometry,
   SEAT_CELL_HEIGHT,
   SEAT_CELL_WIDTH,
-  SEAT_EMPTY_COLUMN_WIDTH,
   SEAT_GRID_HEIGHT,
   SEAT_STAGE_HEIGHT,
-  SEAT_STAGE_WIDTH,
-  SEAT_VIEW_GRID_HEIGHT,
-  SEAT_VIEW_ROW_HEIGHT
+  SEAT_STAGE_WIDTH
 } from './seat-geometry.js';
 
 function describeStudent(student, completed, score) {
   const status = score === undefined ? (completed ? '已完成' : '未记录') : `已完成，${score} 分`;
   return `${student.name}，${status}。轻点切换完成状态。`;
+}
+
+function describeSeatStudent(student, completed, score, seatIndex) {
+  const row = Math.floor(seatIndex / SEAT_COLUMNS) + 1;
+  const column = seatIndex % SEAT_COLUMNS + 1;
+  const status = score === undefined ? (completed ? '已完成' : '未记录') : `已完成，${score} 分`;
+  const action = uiState.seatEditing
+    ? '编辑模式。拖动调整座位；键盘可用方向键选择目标，回车确认。'
+    : '轻点登记，长按打分。';
+  return `${student.name}，第 ${row} 排第 ${column} 列，${status}。${action}`;
 }
 
 export function initRosterRenderer(store) {
@@ -22,8 +31,6 @@ export function initRosterRenderer(store) {
     '--seat-rows': SEAT_COUNT / SEAT_COLUMNS,
     '--seat-cell-width': `${SEAT_CELL_WIDTH}px`,
     '--seat-cell-height': `${SEAT_CELL_HEIGHT}px`,
-    '--seat-view-row-height': `${SEAT_VIEW_ROW_HEIGHT}px`,
-    '--seat-view-grid-height': `${SEAT_VIEW_GRID_HEIGHT}px`,
     '--seat-grid-height': `${SEAT_GRID_HEIGHT}px`,
     '--seat-stage-width': `${SEAT_STAGE_WIDTH}px`,
     '--seat-stage-height': `${SEAT_STAGE_HEIGHT}px`
@@ -79,13 +86,12 @@ export function initRosterRenderer(store) {
     if (!sameChildren) elements.studentGrid.replaceChildren(...cards);
     const studentById = new Map(state.students.map((student) => [student.id, student]));
     const seatByIndex = new Map(state.seats.map((seat) => [seat.seatIndex, seat]));
-    const occupiedColumns = new Set(state.seats.map(({ seatIndex }) => seatIndex % SEAT_COLUMNS));
-    elements.seatGrid.style.setProperty(
-      '--view-seat-columns',
-      Array.from({ length: SEAT_COLUMNS }, (_, column) => (
-        `${occupiedColumns.has(column) ? SEAT_CELL_WIDTH : SEAT_EMPTY_COLUMN_WIDTH}px`
-      )).join(' ')
-    );
+    const viewGeometry = getSeatViewGeometry(state.seats);
+    elements.seatStage.style.setProperty('--seat-view-stage-width', `${viewGeometry.width}px`);
+    elements.seatStage.style.setProperty('--seat-view-grid-height', `${viewGeometry.gridHeight}px`);
+    elements.seatStage.style.setProperty('--seat-view-stage-height', `${viewGeometry.height}px`);
+    elements.seatGrid.style.setProperty('--view-seat-columns', viewGeometry.columns.map((value) => `${value}px`).join(' '));
+    elements.seatGrid.style.setProperty('--view-seat-rows', viewGeometry.rows.map((value) => `${value}px`).join(' '));
     seatCells.forEach((cell, seatIndex) => {
       const seat = seatByIndex.get(seatIndex);
       const student = seat ? studentById.get(seat.studentId) : undefined;
@@ -105,7 +111,7 @@ export function initRosterRenderer(store) {
       card.dataset.studentId = String(student.id);
       card.dataset.seatIndex = String(seatIndex);
       card.setAttribute('aria-pressed', String(completed));
-      card.setAttribute('aria-label', `${describeStudent(student, completed, score)}座位表中。`);
+      card.setAttribute('aria-label', describeSeatStudent(student, completed, score, seatIndex));
       card.classList.toggle('is-completed', completed);
       if (score === undefined) delete card.dataset.score;
       else card.dataset.score = String(score);
