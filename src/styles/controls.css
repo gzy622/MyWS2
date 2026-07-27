@@ -211,7 +211,7 @@
   line-height: 1.25;
   cursor: pointer;
 }
-.more-actions button + button::before {
+.more-actions button:not([hidden]) + button:not([hidden])::before {
   content: "";
   position: absolute;
   top: 0;
