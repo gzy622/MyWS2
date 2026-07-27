@@ -243,3 +243,68 @@ test('有效变更触发持久化且写入异常不破坏内存会话', () => {
   assert.doesNotThrow(() => failingStore.toggleCompletion(1));
   assert.equal(failingStore.getCompletedStudentIds().has(1), true);
 });
+
+test('replaceSnapshot: 合法快照可整体替换', () => {
+  const store = createRosterStore();
+  store.setScore(1, 80);
+  store.assignRole(1, 1);
+  store.setScheduleSlot(0, 1, '语文');
+
+  const snapshot = createDefaultRosterState();
+  snapshot.submissions.push({ assignmentId: 1, studentId: 5 });
+  snapshot.scores.push({ assignmentId: 1, studentId: 5, value: 92 });
+  snapshot.roles[0].studentIds = [2, 3];
+
+  const result = store.replaceSnapshot(snapshot);
+  assert.equal(result, 'replaced');
+
+  const state = store.getSnapshot();
+  assert.equal(state.submissions.length, 1);
+  assert.equal(state.scores[0].value, 92);
+  assert.deepEqual(state.roles[0].studentIds, [2, 3]);
+  assert.equal(state.scheduleSlots.length, 0); // replaced, not mutated
+  assert.equal(state.students[0].name, '赵予安');
+});
+
+test('replaceSnapshot: 替换只触发一次订阅', () => {
+  let count = 0;
+  const store = createRosterStore(createDefaultRosterState(), () => {});
+  store.subscribe(() => count++);
+  const result = store.replaceSnapshot(createDefaultRosterState());
+  assert.equal(result, 'replaced');
+  assert.equal(count, 1);
+});
+
+test('replaceSnapshot: 非法快照不改变原状态', () => {
+  const store = createRosterStore();
+  const original = store.getSnapshot();
+
+  assert.equal(store.replaceSnapshot({ schemaVersion: 4, students: [], seats: [], assignments: [], activeAssignmentId: 1, submissions: [], scores: [], nextAssignmentId: 1, roles: [], duties: [], nextRoleId: 1, nextDutyId: 1, periods: [], scheduleSlots: [], subjects: [], courseGrades: [], nextPeriodId: 1, nextSubjectId: 1 }), 'invalid');
+
+  assert.deepEqual(store.getSnapshot(), original);
+});
+
+test('replaceSnapshot: 持久化失败时原内存状态不变', () => {
+  const store = createRosterStore(createDefaultRosterState(), () => { throw new Error('Storage full'); });
+  const original = store.getSnapshot();
+
+  const snapshot = createDefaultRosterState();
+  snapshot.assignments[0].name = '改名测试';
+
+  const result = store.replaceSnapshot(snapshot);
+  assert.equal(result, 'persist-failed');
+  assert.deepEqual(store.getSnapshot(), original);
+});
+
+test('replaceSnapshot: 导入对象不能反向修改 Store', () => {
+  const store = createRosterStore();
+  const snapshot = createDefaultRosterState();
+  store.replaceSnapshot(snapshot);
+
+  snapshot.students[0].name = '篡改';
+  snapshot.seats[0].seatIndex = 0;
+
+  const state = store.getSnapshot();
+  assert.equal(state.students[0].name, '赵予安');
+  assert.equal(state.seats[0].seatIndex, 17);
+});
