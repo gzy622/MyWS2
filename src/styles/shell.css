@@ -101,6 +101,7 @@ button.topbar-title { cursor: default; }
 .app.seat-landscape {
   position: fixed; inset: 0; width: 100%; max-width: none; height: 100%; max-height: none;
   border-radius: 0; transform: none;
+  --topbar-h: 0px;
 }
 .app.seat-landscape .topbar,
 .app.seat-landscape .bottom-shell { display: none; }

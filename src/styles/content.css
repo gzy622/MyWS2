@@ -318,14 +318,6 @@
   min-width: 52px; min-height: 36px; padding: 0 12px; border: 0; border-radius: 12px;
   color: var(--on-accent); background: var(--accent); font-size: 12px; font-weight: 700;
 }
-.seat-hint {
-  position: absolute; right: 50%; bottom: max(10px, env(safe-area-inset-bottom)); z-index: 1;
-  max-width: calc(100% - 32px); margin: 0; padding: 7px 12px; overflow: hidden;
-  color: var(--on-accent); background: var(--hint-scrim); border-radius: 999px;
-  font-size: 12px; line-height: 1; white-space: nowrap; text-overflow: ellipsis;
-  opacity: 1; transform: translateX(50%); transition: opacity .3s var(--ease); pointer-events: none;
-}
-.seat-hint.is-hidden { opacity: 0; }
 
 .app.seat-landscape .seat-stage.is-view-mode {
   width: var(--seat-landscape-stage-width); height: var(--seat-landscape-stage-height);
@@ -349,7 +341,6 @@
   top: max(10px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left));
   right: max(38px, calc(env(safe-area-inset-right) + 38px));
 }
-.app.seat-landscape .seat-hint { bottom: max(10px, env(safe-area-inset-bottom)); }
 
 .section-title { margin: 0 2px 11px; display: flex; justify-content: space-between; align-items: center; font-size: 17px; font-weight: 600; }
 .section-title span { color: var(--muted); font-size: 12px; font-weight: 500; }
