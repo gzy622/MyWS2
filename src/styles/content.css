@@ -226,28 +226,33 @@
 .seat-stage.is-view-mode .seat-cell { border-color: transparent; }
 .seat-cell.is-drop-target { background: color-mix(in srgb, var(--teal) 10%, transparent); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--teal) 45%, transparent); }
 .seat-card {
-  position: absolute; z-index: 1; top: 12px; left: 8px; width: 98px; height: 72px; cursor: pointer;
-  display: grid; place-items: center; padding: 6px; overflow: hidden; color: var(--ink-soft);
-  background: var(--card); border: .5px solid var(--line); border-radius: 12px;
-  box-shadow: var(--shadow-soft); font-size: 18px; font-weight: 500; line-height: 1.1;
+  position: absolute; z-index: 1; top: 0; left: 0; width: var(--seat-card-width); height: var(--seat-card-height); cursor: pointer;
+  display: grid; place-items: center; padding: 0; overflow: hidden; color: var(--ink-soft);
+  background: var(--card); border: .5px solid var(--line); border-radius: 0;
+  box-shadow: none; font-size: 20px; font-weight: 500; line-height: 1;
   touch-action: none; will-change: transform;
 }
+.seat-name {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  line-height: 1; white-space: nowrap; pointer-events: none;
+}
+.seat-name > span { display: block; }
 .seat-stage.is-view-mode .seat-card {
-  top: 1px; left: 1px; width: 98px; height: 98px; padding: 10px;
-  border-radius: 14px; font-size: 26px;
+  top: 0; left: 0; width: var(--seat-view-card-width); height: var(--seat-view-card-height); padding: 0;
+  border-radius: 0; font-size: 24px;
 }
 .seat-stage.is-view-mode .seat-card.is-completed:not([data-score])::before,
 .seat-stage.is-view-mode .seat-card[data-score]::after {
-  top: 7px; right: 7px; font-size: 22px;
+  top: 6px; right: 5px; font-size: 18px;
 }
 .seat-stage.is-edit-mode .seat-card { cursor: grab; }
-.seat-card.is-keyboard-source { box-shadow: inset 0 0 0 3px var(--teal), var(--shadow-drag); }
+.seat-card.is-keyboard-source { box-shadow: inset 0 0 0 3px var(--teal); }
 .seat-card.is-completed {
   color: var(--muted);
   font-weight: 600;
   background: color-mix(in srgb, var(--paper) 40%, var(--card));
   border-color: var(--line);
-  box-shadow: var(--shadow-card);
+  box-shadow: none;
 }
 .seat-card.is-completed:not([data-score])::before {
   content: "✓"; position: absolute; top: 4px; right: 4px;
@@ -257,8 +262,10 @@
   content: attr(data-score); position: absolute; top: 4px; right: 4px; color: var(--muted);
   font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1;
 }
-.seat-card.is-pressing { transform: scale(.96); box-shadow: var(--shadow-press); }
-.seat-card.is-dragging { z-index: 3; cursor: grabbing; box-shadow: var(--shadow-drag); transition: none; }
+.seat-card.is-pressing { background: var(--control); box-shadow: none; }
+.seat-card.is-dragging {
+  z-index: 3; cursor: grabbing; border-radius: 10px; box-shadow: var(--shadow-drag); transition: none;
+}
 .seat-card.is-letter-hit {
   z-index: 2;
   color: var(--ink);

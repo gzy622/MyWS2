@@ -1,18 +1,23 @@
 import { SEAT_COLUMNS, SEAT_ROWS } from './roster-model.js';
 
-export const SEAT_CELL_WIDTH = 114;
-export const SEAT_CELL_HEIGHT = 96;
+export const SEAT_CELL_WIDTH = 80;
+export const SEAT_CELL_HEIGHT = 104;
+export const SEAT_CARD_WIDTH = 80;
+export const SEAT_CARD_HEIGHT = 104;
 export const SEAT_STAGE_FOOTER_HEIGHT = 140;
 export const SEAT_STAGE_WIDTH = SEAT_COLUMNS * SEAT_CELL_WIDTH;
 export const SEAT_GRID_HEIGHT = SEAT_ROWS * SEAT_CELL_HEIGHT;
 export const SEAT_STAGE_HEIGHT = SEAT_GRID_HEIGHT + SEAT_STAGE_FOOTER_HEIGHT;
 
-export const SEAT_VIEW_OCCUPIED_COLUMN_WIDTH = 100;
-export const SEAT_VIEW_EMPTY_COLUMN_WIDTH = 12;
-export const SEAT_VIEW_OCCUPIED_ROW_HEIGHT = 100;
-export const SEAT_VIEW_EMPTY_ROW_HEIGHT = 12;
+export const SEAT_VIEW_OCCUPIED_COLUMN_WIDTH = 64;
+export const SEAT_VIEW_EMPTY_COLUMN_WIDTH = 16;
+export const SEAT_VIEW_OUTER_COLUMN_WIDTH = 0;
+export const SEAT_VIEW_OCCUPIED_ROW_HEIGHT = 104;
+export const SEAT_VIEW_EMPTY_ROW_HEIGHT = 0;
+export const SEAT_VIEW_CARD_WIDTH = 64;
+export const SEAT_VIEW_CARD_HEIGHT = 104;
 export const SEAT_VIEW_FOOTER_HEIGHT = 120;
-export const SEAT_VIEW_MIN_SCALE = 0.45;
+export const SEAT_VIEW_MIN_SCALE = 44 / SEAT_VIEW_CARD_WIDTH;
 
 export function getAdjacentSeatIndex(seatIndex, key) {
   if (!Number.isInteger(seatIndex) || seatIndex < 0 || seatIndex >= SEAT_COLUMNS * SEAT_ROWS) return null;
@@ -33,9 +38,14 @@ export function getSeatViewGeometry(seats = []) {
     occupiedColumns.add(seat.seatIndex % SEAT_COLUMNS);
     occupiedRows.add(Math.floor(seat.seatIndex / SEAT_COLUMNS));
   }
-  const columns = Array.from({ length: SEAT_COLUMNS }, (_, column) => (
-    occupiedColumns.has(column) ? SEAT_VIEW_OCCUPIED_COLUMN_WIDTH : SEAT_VIEW_EMPTY_COLUMN_WIDTH
-  ));
+  const firstOccupiedColumn = occupiedColumns.size ? Math.min(...occupiedColumns) : 0;
+  const lastOccupiedColumn = occupiedColumns.size ? Math.max(...occupiedColumns) : SEAT_COLUMNS - 1;
+  const columns = Array.from({ length: SEAT_COLUMNS }, (_, column) => {
+    if (occupiedColumns.has(column)) return SEAT_VIEW_OCCUPIED_COLUMN_WIDTH;
+    return column < firstOccupiedColumn || column > lastOccupiedColumn
+      ? SEAT_VIEW_OUTER_COLUMN_WIDTH
+      : SEAT_VIEW_EMPTY_COLUMN_WIDTH;
+  });
   const rows = Array.from({ length: SEAT_ROWS }, (_, row) => (
     occupiedRows.has(row) ? SEAT_VIEW_OCCUPIED_ROW_HEIGHT : SEAT_VIEW_EMPTY_ROW_HEIGHT
   ));

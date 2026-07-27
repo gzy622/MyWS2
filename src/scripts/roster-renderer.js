@@ -3,11 +3,15 @@ import { state as uiState } from './state.js';
 import { SEAT_COLUMNS, SEAT_COUNT } from './roster-model.js';
 import {
   getSeatViewGeometry,
+  SEAT_CARD_HEIGHT,
+  SEAT_CARD_WIDTH,
   SEAT_CELL_HEIGHT,
   SEAT_CELL_WIDTH,
   SEAT_GRID_HEIGHT,
   SEAT_STAGE_HEIGHT,
-  SEAT_STAGE_WIDTH
+  SEAT_STAGE_WIDTH,
+  SEAT_VIEW_CARD_HEIGHT,
+  SEAT_VIEW_CARD_WIDTH
 } from './seat-geometry.js';
 
 function describeStudent(student, completed, score) {
@@ -25,12 +29,33 @@ function describeSeatStudent(student, completed, score, seatIndex) {
   return `${student.name}，第 ${row} 排第 ${column} 列，${status}。${action}`;
 }
 
+function updateSeatCardName(card, name) {
+  let label = card.querySelector('.seat-name');
+  if (!label) {
+    label = document.createElement('span');
+    label.className = 'seat-name';
+    label.setAttribute('aria-hidden', 'true');
+    card.replaceChildren(label);
+  }
+  if (label.dataset.name === name) return;
+  label.dataset.name = name;
+  label.replaceChildren(...Array.from(name, (character) => {
+    const line = document.createElement('span');
+    line.textContent = character;
+    return line;
+  }));
+}
+
 export function initRosterRenderer(store) {
   const geometry = {
     '--seat-columns': SEAT_COLUMNS,
     '--seat-rows': SEAT_COUNT / SEAT_COLUMNS,
     '--seat-cell-width': `${SEAT_CELL_WIDTH}px`,
     '--seat-cell-height': `${SEAT_CELL_HEIGHT}px`,
+    '--seat-card-width': `${SEAT_CARD_WIDTH}px`,
+    '--seat-card-height': `${SEAT_CARD_HEIGHT}px`,
+    '--seat-view-card-width': `${SEAT_VIEW_CARD_WIDTH}px`,
+    '--seat-view-card-height': `${SEAT_VIEW_CARD_HEIGHT}px`,
     '--seat-grid-height': `${SEAT_GRID_HEIGHT}px`,
     '--seat-stage-width': `${SEAT_STAGE_WIDTH}px`,
     '--seat-stage-height': `${SEAT_STAGE_HEIGHT}px`
@@ -115,7 +140,7 @@ export function initRosterRenderer(store) {
       card.classList.toggle('is-completed', completed);
       if (score === undefined) delete card.dataset.score;
       else card.dataset.score = String(score);
-      if (card.textContent !== student.name) card.textContent = student.name;
+      updateSeatCardName(card, student.name);
     });
   }
 
