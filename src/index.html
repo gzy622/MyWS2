@@ -194,20 +194,20 @@
           <div class="sheet-handle"></div>
         </div>
         <div class="menu-drawer-head sheet-head">
-          <div class="menu-drawer-title sheet-title"><span>工作台</span><h2>设置</h2></div>
+          <div class="menu-drawer-title sheet-title"><span>工作台</span><h2>设置</h2><p>调整显示主题，管理本地数据。</p></div>
           <button class="sheet-close" id="closeMenuDrawer" aria-label="关闭菜单">×</button>
         </div>
         <section class="menu-drawer-section" aria-labelledby="drawerAppearanceTitle">
           <h3 id="drawerAppearanceTitle">外观</h3>
           <div class="menu-drawer-action-list">
-            <button class="menu-item" type="button" data-action="toggle-theme" aria-pressed="false"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" /><circle cx="12" cy="12" r="4" /></svg></span><span class="menu-copy"><b>深浅色切换</b><small>切换工作台的显示主题</small></span><span class="menu-value" data-theme-value>浅色</span></button>
+            <button class="menu-item menu-item--theme" type="button" data-action="toggle-theme" aria-pressed="false"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" /><circle cx="12" cy="12" r="4" /></svg></span><span class="menu-copy"><b>深浅色切换</b><small>当前使用<span data-theme-value>浅色</span>模式</small></span><span class="theme-switch" aria-hidden="true"><span></span></span></button>
           </div>
         </section>
         <section class="menu-drawer-section" aria-labelledby="drawerBackupTitle">
           <h3 id="drawerBackupTitle">备份</h3>
-          <div class="menu-drawer-action-list">
-            <button class="menu-item" type="button" data-action="backup-import"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></svg></span><span class="menu-copy"><b>导入备份</b><small>占位按钮，功能待完善</small></span><span class="menu-value">占位</span></button>
-            <button class="menu-item" type="button" data-action="backup-export"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 11l4 4 4-4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></svg></span><span class="menu-copy"><b>导出备份</b><small>占位按钮，功能待完善</small></span><span class="menu-value">占位</span></button>
+          <div class="menu-drawer-action-list menu-backup-grid">
+            <button class="menu-item menu-item--backup" type="button" data-action="backup-import"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></svg></span><span class="menu-copy"><b>导入备份</b><small>功能待完善</small></span></button>
+            <button class="menu-item menu-item--backup" type="button" data-action="backup-export"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 11l4 4 4-4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></svg></span><span class="menu-copy"><b>导出备份</b><small>功能待完善</small></span></button>
           </div>
         </section>
         <div class="menu-drawer-foot" id="menuDrawerBuild" aria-label="版本指纹" hidden>版本 —</div>

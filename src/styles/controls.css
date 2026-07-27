@@ -59,22 +59,39 @@
   will-change: transform;
   backface-visibility: hidden;
 }
+/* Hallmark · component: bottom sheet · genre: utilitarian editorial · theme: project tokens
+ * critique: P5 H4 E4 S4 R5 V4 · states: default · hover · focus · active · selected
+ */
 .menu-drawer-handle-zone,.student-record-handle-zone { height: 32px; display: flex; justify-content: center; align-items: flex-start; padding-top: 8px; cursor: grab; }
-.menu-drawer-head { margin-bottom: 14px; }
-.menu-drawer-section + .menu-drawer-section { margin-top: 14px; }
-.menu-drawer-section h3 { margin: 0 2px 7px; color: var(--muted); font-size: 12px; font-weight: 600; }
+.menu-drawer-head { margin-bottom: 18px; }
+.menu-drawer-title p { margin: 7px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+.menu-drawer-section + .menu-drawer-section { margin-top: 18px; }
+.menu-drawer-section h3 { margin: 0 2px 8px; color: var(--muted); font-size: 12px; font-weight: 600; }
 .menu-drawer-action-list { overflow: hidden; border-radius: 16px; background: var(--paper); }
-.menu-item { width: 100%; min-height: 64px; padding: 9px 12px; border: 0; background: transparent; color: var(--ink); display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 11px; text-align: left; cursor: pointer; }
+.menu-item { width: 100%; min-height: 68px; padding: 10px 12px; border: 0; background: transparent; color: var(--ink); display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 11px; text-align: left; cursor: pointer; transition: background-color 120ms var(--ease), transform 100ms var(--ease); }
 .menu-item + .menu-item { border-top: .5px solid var(--line); }
-.menu-item:active { background: var(--control); }
-.menu-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; background: transparent; color: var(--muted); }
+.menu-item:active { background: var(--control); transform: translateY(1px); }
+.menu-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; background: var(--card); color: var(--muted); box-shadow: var(--shadow-card); }
+.menu-item--theme .menu-icon { color: var(--accent); }
 .menu-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .menu-copy { min-width: 0; }
 .menu-copy b,.menu-copy small { display: block; }
-.menu-copy b { font-size: 15px; font-weight: 600; }
-.menu-copy small { margin-top: 2px; overflow: hidden; color: var(--muted); font-size: 12px; font-weight: 450; white-space: nowrap; text-overflow: ellipsis; }
-.menu-value { min-width: 34px; color: var(--muted); font-size: 12px; font-weight: 600; text-align: right; }
-.menu-item[aria-pressed="true"] .menu-value { color: var(--accent); }
+.menu-copy b { font-size: 15px; font-weight: 650; white-space: nowrap; }
+.menu-copy small { margin-top: 3px; overflow: hidden; color: var(--muted); font-size: 12px; font-weight: 450; white-space: nowrap; text-overflow: ellipsis; }
+.menu-copy [data-theme-value] { color: var(--ink); font-weight: 600; }
+.theme-switch { width: 42px; height: 24px; padding: 3px; border-radius: 12px; background: var(--control); transition: background-color 140ms var(--ease); }
+.theme-switch span { display: block; width: 18px; height: 18px; border-radius: 50%; background: var(--card); box-shadow: var(--shadow-soft); transition: transform 140ms var(--ease); }
+.menu-item--theme[aria-pressed="true"] .theme-switch { background: var(--accent); }
+.menu-item--theme[aria-pressed="true"] .theme-switch span { transform: translateX(18px); }
+.menu-backup-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; overflow: visible; background: transparent; }
+.menu-item--backup { min-height: 82px; grid-template-columns: 36px minmax(0, 1fr); gap: 9px; border-radius: 16px; background: var(--paper); }
+.menu-item--backup + .menu-item--backup { border-top: 0; }
+.menu-item--backup .menu-icon { background: transparent; box-shadow: none; }
+.menu-item--backup .menu-copy b { font-size: 14px; }
+.menu-item--backup .menu-copy small { margin-top: 4px; color: var(--disabled); font-size: 11px; }
+@media (hover: hover) and (pointer: fine) {
+  .menu-item:hover { background: var(--control); }
+}
 .menu-drawer-foot { margin-top: 10px; padding: 4px 2px 0; color: var(--muted); font-size: 11px; text-align: center; }
 .toast { position: absolute; z-index: 40; left: 50%; top: calc(var(--topbar-h) + env(safe-area-inset-top) + 10px); transform: translate(-50%, -12px); background: color-mix(in srgb, var(--ink) 88%, transparent); color: var(--card); border-radius: 999px; padding: 10px 16px; font-size: 12px; opacity: 0; pointer-events: none; transition: .25s; white-space: nowrap; box-shadow: 0 8px 24px rgba(0, 0, 0, .14); }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
