@@ -4,13 +4,16 @@
  * Run through start-lan-server.bat on Windows.
  * Optional live reload: enabled by default (DISABLE_LIVE_RELOAD=1 to turn off).
  */
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
-const { computeContentId } = require('./tools/content-id.cjs');
+import http from 'node:http';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
-const projectRoot = __dirname;
+const require = createRequire(import.meta.url);
+const { computeContentId } = require('./tools/content-id.cjs');
+const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 const webRoot = path.join(projectRoot, 'src');
 const port = Number(process.env.PORT || process.argv[2] || 8080);
 const liveReload = process.env.DISABLE_LIVE_RELOAD !== '1';
