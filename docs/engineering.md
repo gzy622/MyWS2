@@ -51,6 +51,7 @@
 | 人员渲染与交互 | `src/scripts/people-renderer.js`、`src/scripts/people-interactions.js` |
 | 课程渲染与交互 | `src/scripts/courses-renderer.js`、`src/scripts/courses-interactions.js` |
 | 高亮科目校验、存储与 Sheet | `src/scripts/highlight-subjects-model.js`、`src/scripts/highlight-subjects.js` |
+| 备份导入导出 | `src/scripts/backup.js` |
 | 主/子导航 | `src/scripts/navigation.js` |
 | 页面、底栏、分段与 Sheet 手势路由 | `src/scripts/gestures.js`、`src/scripts/sheet-gestures.js` |
 | Sheet progress 与最上层栈 | `src/scripts/sheet-drag.js` |
@@ -101,6 +102,7 @@
 - 登记与座位：`#studentGrid`、`#gridLetterIndex`、`#studentFontSize`、`#studentFontSizeValue`、`#seatViewport`、`#seatStage`、`#seatGrid`、`#seatHint`、`#seatFitButton`、`#seatLandscapeButton`、`#seatModeBar`、`#seatEditStatus`、`#exitSeatEdit`、`#seatLetterIndex`；
 - 人员与课程：`#roleList`、`#dutyList`、`#weekStrip`、`#gradeTable`；
 - 通用菜单与反馈：`#fontSizePopover`、`#menuDrawer`、`#menuDrawerHandle`、`#menuDrawerBuild`、`#closeMenuDrawer`、`#scrim`、`#toast`；
+- 备份文件选择：`#backupFileInput`；
 - 学生记录：`#studentRecordSheet`、`#studentRecordPanel`、`#studentRecordHandle`、`#closeStudentRecord`、`#studentRecordTitle`、`#studentRecordStatus`、`#studentScoreControls`、`#studentScoreInput`、`#studentScoreError`、`#clearStudentRecord`、`#saveStudentRecord`；
 - 更多与确认：`#moreMenu`、`#confirmSheet`、`#confirmTitle`、`#confirmMessage`、`#cancelConfirm`、`#acceptConfirm`。
 

@@ -107,6 +107,7 @@ Capacitor 依赖只用于原生壳。浏览器代码通过 `globalThis.Capacitor
 | 姓名索引 | `name-initial.js`、`letter-index.js` |
 | 人员 | `people-renderer.js`、`people-interactions.js` |
 | 课程 | `courses-renderer.js`、`courses-interactions.js`、`highlight-subjects-model.js`、`highlight-subjects.js` |
+| 备份 | `backup.js` |
 
 ## 6. 数据流
 
