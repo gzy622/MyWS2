@@ -18,7 +18,6 @@ let settleTimer = 0;
 let activeLetter = null;
 let activePointerId = null;
 let clearTimer = 0;
-let scrubEnterFrame = 0;
 let scrubExitTimer = 0;
 /** @type {Map<string, number[]>} */
 let letterToStudentIds = new Map();
@@ -34,10 +33,6 @@ function scrubRailMotionMs() {
 }
 
 function cancelScrubRailTimers() {
-  if (scrubEnterFrame) {
-    window.cancelAnimationFrame(scrubEnterFrame);
-    scrubEnterFrame = 0;
-  }
   if (scrubExitTimer) {
     window.clearTimeout(scrubExitTimer);
     scrubExitTimer = 0;
@@ -178,18 +173,9 @@ function setRailScrubbing(rail, scrubbing) {
     clearRailScrubbing({ animate: true });
     return;
   }
-  rail.classList.add('is-scrubbing');
-  rail.classList.remove('is-scrubbing-shown');
-  // Expand layout before hit-testing so idle thumb height does not skew the letter map.
-  void rail.offsetHeight;
-  // Double rAF: paint collapsed chrome first, then fade+slide in.
-  scrubEnterFrame = window.requestAnimationFrame(() => {
-    scrubEnterFrame = window.requestAnimationFrame(() => {
-      scrubEnterFrame = 0;
-      if (!rail.classList.contains('is-scrubbing')) return;
-      rail.classList.add('is-scrubbing-shown');
-    });
-  });
+  // A touch must reveal the complete rail in the same input turn. The CSS
+  // transition still supplies the prescribed quick fade and side-slide.
+  rail.classList.add('is-scrubbing', 'is-scrubbing-shown');
 }
 
 function clearRailScrubbing({ animate = true } = {}) {
@@ -262,16 +248,18 @@ function abortTracking({ immediate = false } = {}) {
   const letter = activeLetter;
   activeLetter = null;
   setRailActiveLetter(null);
-  clearRailScrubbing({ animate: !immediate });
   if (immediate) {
+    clearRailScrubbing({ animate: false });
     showBadge(null);
     clearHighlights();
     return;
   }
-  // Keep the letter tip visible after a tap/release (same window as highlights).
+  // A short tap must leave the complete rail visible long enough to be seen;
+  // release it together with the badge and matched-student highlight.
   if (letter) showBadge(letter);
   clearTimer = window.setTimeout(() => {
     clearTimer = 0;
+    clearRailScrubbing({ animate: true });
     showBadge(null);
     clearHighlights();
   }, CLEAR_HIGHLIGHT_MS);

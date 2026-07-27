@@ -196,7 +196,7 @@
 }
 .seat-view, .seat-viewport { width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; }
 .seat-view { position: relative; background: var(--paper); }
-.seat-view > .letter-index { right: -9px; }
+.seat-view > .letter-index { z-index: 5; right: -9px; }
 .seat-view > .letter-index.is-scrubbing {
   top: 6px; bottom: max(48px, calc(env(safe-area-inset-bottom) + 36px)); right: -5px;
 }
