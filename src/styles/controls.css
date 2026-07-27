@@ -151,6 +151,94 @@
 #saveStudentRecord,
 .course-grade-panel .student-record-actions [data-action="save"] { color: var(--on-accent); background: var(--accent); font-weight: 650; }
 
+/* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4
+ * Landscape score sheet: compact header + score left + keypad/actions right.
+ */
+.app.seat-landscape .student-record-sheet,
+.app.seat-landscape .course-grade-sheet {
+  padding:
+    max(10px, env(safe-area-inset-top))
+    max(12px, env(safe-area-inset-right))
+    max(14px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
+}
+.app.seat-landscape .student-record-panel,
+.app.seat-landscape .course-grade-panel {
+  width: min(100%, 600px);
+  display: grid;
+  grid-template-columns: minmax(0, .78fr) minmax(0, 1.22fr);
+  grid-template-areas:
+    "handle handle"
+    "head head"
+    "status keypad"
+    "display keypad"
+    "error keypad"
+    ". actions";
+  align-content: start;
+  column-gap: 14px;
+  row-gap: 2px;
+  padding: 0 16px 6px;
+  overflow-y: auto;
+}
+.app.seat-landscape .student-record-handle-zone {
+  grid-area: handle;
+  height: 18px;
+  padding-top: 6px;
+}
+.app.seat-landscape .student-record-head {
+  grid-area: head;
+  align-items: center;
+}
+.app.seat-landscape .student-record-head .sheet-title span {
+  margin-bottom: 2px;
+  font-size: 10px;
+}
+.app.seat-landscape .student-record-head .sheet-title h2 {
+  font-size: 22px;
+}
+.app.seat-landscape .student-record-status {
+  grid-area: status;
+  min-height: 14px;
+  margin: 0 0 1px;
+  font-size: 12px;
+}
+.app.seat-landscape .student-score-display {
+  grid-area: display;
+  align-self: start;
+  min-height: 96px;
+  padding: 11px 14px 10px;
+}
+.app.seat-landscape .student-record-panel .student-score-display input,
+.app.seat-landscape .course-grade-panel .student-score-display input {
+  font-size: 36px;
+}
+.app.seat-landscape .student-score-keypad {
+  grid-area: keypad;
+  align-self: start;
+  grid-template-rows: repeat(4, 44px);
+  gap: 4px;
+  height: max-content;
+  margin-top: 0;
+}
+.app.seat-landscape .student-score-keypad button {
+  min-height: 44px;
+  font-size: 18px;
+}
+.app.seat-landscape .student-record-panel #studentScoreError,
+.app.seat-landscape .course-grade-panel #courseGradeError {
+  grid-area: error;
+  align-self: start;
+  min-height: 14px;
+  margin: 2px 2px 0;
+  font-size: 11px;
+}
+.app.seat-landscape .student-record-actions {
+  grid-area: actions;
+  align-self: start;
+  gap: 6px;
+  margin-top: 5px;
+}
+
 .more-menu {
   position: absolute;
   z-index: 30;

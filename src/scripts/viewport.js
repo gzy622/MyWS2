@@ -49,6 +49,7 @@ export function resolveViewportMetrics(
 
   return {
     height: nextBaseline,
+    visualHeight: vvHeight,
     offsetTop: textEntryFocused ? 0 : vvOffsetTop,
     imeInsetBottom,
     imeOpen: textEntryFocused && imeInsetBottom >= IME_INSET_THRESHOLD,
@@ -88,6 +89,7 @@ export function initViewport({ app, studentGrid }) {
     );
     baselineHeight = metrics.baselineHeight;
     app.style.setProperty('--app-viewport-height', `${metrics.height}px`);
+    app.style.setProperty('--visual-viewport-height', `${metrics.visualHeight}px`);
     app.style.setProperty('--app-viewport-offset-top', `${metrics.offsetTop}px`);
     app.style.setProperty('--ime-inset-bottom', `${metrics.imeInsetBottom}px`);
     app.classList.toggle('ime-open', metrics.imeOpen);

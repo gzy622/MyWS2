@@ -99,7 +99,9 @@ button.topbar-title { cursor: default; }
 }
 
 .app.seat-landscape {
-  position: fixed; inset: 0; width: 100%; max-width: none; height: 100%; max-height: none;
+  position: fixed;
+  top: var(--app-viewport-offset-top, 0px); right: 0; bottom: auto; left: 0;
+  width: 100%; max-width: none; height: var(--visual-viewport-height, 100dvh); max-height: none;
   border-radius: 0; transform: none;
   --topbar-h: 0px;
 }

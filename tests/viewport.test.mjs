@@ -5,6 +5,7 @@ import { resolveViewportMetrics } from '../src/scripts/viewport.js';
 test('无输入焦点时壳层跟随布局高度，并可带非负顶部偏移', () => {
   assert.deepEqual(resolveViewportMetrics(800, { height: 520, offsetTop: 24 }, 800), {
     height: 800,
+    visualHeight: 520,
     offsetTop: 24,
     imeInsetBottom: 0,
     imeOpen: false,
@@ -12,6 +13,7 @@ test('无输入焦点时壳层跟随布局高度，并可带非负顶部偏移',
   });
   assert.deepEqual(resolveViewportMetrics(800, { height: 520, offsetTop: -5 }, 800), {
     height: 800,
+    visualHeight: 520,
     offsetTop: 0,
     imeInsetBottom: 0,
     imeOpen: false,
@@ -22,6 +24,7 @@ test('无输入焦点时壳层跟随布局高度，并可带非负顶部偏移',
 test('布局视口变化时更新基线，并支持无 Visual Viewport 回退', () => {
   assert.deepEqual(resolveViewportMetrics(560, { height: 300, offsetTop: 0 }, 800), {
     height: 560,
+    visualHeight: 300,
     offsetTop: 0,
     imeInsetBottom: 0,
     imeOpen: false,
@@ -29,6 +32,7 @@ test('布局视口变化时更新基线，并支持无 Visual Viewport 回退', 
   });
   assert.deepEqual(resolveViewportMetrics(720, null, 720), {
     height: 720,
+    visualHeight: 720,
     offsetTop: 0,
     imeInsetBottom: 0,
     imeOpen: false,
@@ -41,6 +45,7 @@ test('文本输入聚焦时壳层保持基线，仅浮层使用键盘 inset', ()
     resolveViewportMetrics(800, { height: 420, offsetTop: 0 }, 800, { textEntryFocused: true }),
     {
       height: 800,
+      visualHeight: 420,
       offsetTop: 0,
       imeInsetBottom: 380,
       imeOpen: true,
@@ -54,6 +59,7 @@ test('文本输入聚焦且 innerHeight 被压矮时仍锁定壳层基线', () =
     resolveViewportMetrics(480, { height: 480, offsetTop: 0 }, 800, { textEntryFocused: true }),
     {
       height: 800,
+      visualHeight: 480,
       offsetTop: 0,
       imeInsetBottom: 320,
       imeOpen: true,
