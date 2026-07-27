@@ -307,7 +307,9 @@
 .seat-control-icon--fit {
   fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
 }
-.seat-control-icon--rotate { width: 21px; height: 21px; fill: currentColor; stroke: none; }
+.seat-control-icon--rotate {
+  width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+}
 .seat-landscape-button[disabled] { color: var(--disabled); cursor: default; }
 .seat-mode-bar {
   position: absolute; top: 10px; left: 12px; right: 38px;
