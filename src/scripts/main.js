@@ -17,6 +17,7 @@ import { initStudentInteractions } from './student-interactions.js';
 import { initStudentRecord } from './student-record.js';
 import { initAssignments } from './assignments.js';
 import { initMoreSheet } from './more-sheet.js';
+import { initBackup } from './backup.js';
 import { loadRosterState, saveRosterState } from './roster-storage.js';
 import { initTheme } from './theme.js';
 import { initViewport } from './viewport.js';
@@ -74,6 +75,16 @@ assignments = initAssignments({
 initStudentInteractions({ store: rosterStore, showToast, openStudentRecord: studentRecord.open });
 export const seatCanvas = initSeatCanvas({ store: rosterStore, showToast, openStudentRecord: studentRecord.open });
 const seatLandscape = initSeatLandscape({ seatCanvas, showToast });
+const backup = initBackup({
+  store: rosterStore,
+  showToast,
+  confirm: (...args) => moreSheet.confirm(...args),
+  fileInput: document.getElementById('backupFileInput'),
+  onAfterImport: () => {
+    seatCanvas?.reset();
+  }
+});
+
 moreSheet = initMoreSheet({
   store: rosterStore,
   showToast,
@@ -96,7 +107,7 @@ courses = initCoursesInteractions({
   closeOthers: closeOverlays,
   confirm: (...args) => moreSheet.confirm(...args),
 });
-initDrawer({ closeOverlays, theme, showToast });
+initDrawer({ closeOverlays, theme, showToast, onBackupImport: () => backup.importBackup(), onBackupExport: () => backup.exportBackup() });
 initHorizontalGestures();
 createSystemBackController({
   closeConfirm: () => moreSheet.closeConfirm(),

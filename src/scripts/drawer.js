@@ -67,7 +67,7 @@ export function closeDrawer({ restoreFocus = true } = {}) {
   }
 }
 
-export function initDrawer({ closeOverlays, theme, showToast } = {}) {
+export function initDrawer({ closeOverlays, theme, showToast, onBackupImport, onBackupExport } = {}) {
   closeBusinessOverlays = closeOverlays ?? (() => {});
 
   function renderContent() {
@@ -88,8 +88,8 @@ export function initDrawer({ closeOverlays, theme, showToast } = {}) {
       showToast?.(nextTheme === 'dark' ? '已切换到深色模式' : '已切换到浅色模式');
       return;
     }
-    if (action === 'backup-import') showToast?.('备份导入待完善');
-    if (action === 'backup-export') showToast?.('备份导出待完善');
+    if (action === 'backup-import') { onBackupImport?.(); return; }
+    if (action === 'backup-export') { onBackupExport?.(); return; }
   }));
   elements.scrim.addEventListener('click', () => {
     if (sheet?.isActive()) return;
