@@ -67,10 +67,30 @@ export function closeDrawer({ restoreFocus = true } = {}) {
   }
 }
 
-export function initDrawer({ closeOverlays } = {}) {
+export function initDrawer({ closeOverlays, theme, showToast } = {}) {
   closeBusinessOverlays = closeOverlays ?? (() => {});
+
+  function renderContent() {
+    const themeButton = elements.menuDrawer.querySelector('[data-action="toggle-theme"]');
+    const themeValue = themeButton?.querySelector('[data-theme-value]');
+    const isDark = theme?.get() === 'dark';
+    themeButton?.setAttribute('aria-pressed', String(isDark));
+    if (themeValue) themeValue.textContent = isDark ? '深色' : '浅色';
+  }
+
   elements.menuButton.addEventListener('click', openDrawer);
   elements.closeMenuDrawerButton.addEventListener('click', () => closeDrawer());
+  elements.menuItems.forEach((button) => button.addEventListener('click', () => {
+    const action = button.dataset.action;
+    if (action === 'toggle-theme') {
+      const nextTheme = theme?.toggle();
+      renderContent();
+      showToast?.(nextTheme === 'dark' ? '已切换到深色模式' : '已切换到浅色模式');
+      return;
+    }
+    if (action === 'backup-import') showToast?.('备份导入待完善');
+    if (action === 'backup-export') showToast?.('备份导出待完善');
+  }));
   elements.scrim.addEventListener('click', () => {
     if (sheet?.isActive()) return;
     closeDrawer();
@@ -86,6 +106,7 @@ export function initDrawer({ closeOverlays } = {}) {
     onPrepare({ source } = {}) {
       closeBusinessOverlays('drawer');
       refreshBuildId();
+      renderContent();
       if (source === 'gesture') {
         drawerTrigger = null;
       } else if (!drawerTrigger) {

@@ -64,17 +64,17 @@
 .menu-drawer-section + .menu-drawer-section { margin-top: 14px; }
 .menu-drawer-section h3 { margin: 0 2px 7px; color: var(--muted); font-size: 12px; font-weight: 600; }
 .menu-drawer-action-list { overflow: hidden; border-radius: 16px; background: var(--paper); }
-.menu-item { width: 100%; min-height: 64px; padding: 9px 12px; border: 0; background: transparent; color: var(--ink); display: grid; grid-template-columns: 38px 1fr 16px; align-items: center; gap: 11px; text-align: left; cursor: pointer; }
+.menu-item { width: 100%; min-height: 64px; padding: 9px 12px; border: 0; background: transparent; color: var(--ink); display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 11px; text-align: left; cursor: pointer; }
 .menu-item + .menu-item { border-top: .5px solid var(--line); }
 .menu-item:active { background: var(--control); }
 .menu-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; background: transparent; color: var(--muted); }
-.menu-item[data-action^="view"] .menu-icon { color: var(--accent); background: transparent; }
 .menu-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .menu-copy { min-width: 0; }
 .menu-copy b,.menu-copy small { display: block; }
 .menu-copy b { font-size: 15px; font-weight: 600; }
 .menu-copy small { margin-top: 2px; overflow: hidden; color: var(--muted); font-size: 12px; font-weight: 450; white-space: nowrap; text-overflow: ellipsis; }
-.menu-chevron { color: var(--muted); font-size: 24px; font-weight: 300; line-height: 1; text-align: right; }
+.menu-value { min-width: 34px; color: var(--muted); font-size: 12px; font-weight: 600; text-align: right; }
+.menu-item[aria-pressed="true"] .menu-value { color: var(--accent); }
 .menu-drawer-foot { margin-top: 10px; padding: 4px 2px 0; color: var(--muted); font-size: 11px; text-align: center; }
 .toast { position: absolute; z-index: 40; left: 50%; top: calc(var(--topbar-h) + env(safe-area-inset-top) + 10px); transform: translate(-50%, -12px); background: color-mix(in srgb, var(--ink) 88%, transparent); color: var(--card); border-radius: 999px; padding: 10px 16px; font-size: 12px; opacity: 0; pointer-events: none; transition: .25s; white-space: nowrap; box-shadow: 0 8px 24px rgba(0, 0, 0, .14); }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }

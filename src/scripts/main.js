@@ -95,7 +95,7 @@ courses = initCoursesInteractions({
   closeOthers: closeOverlays,
   confirm: (...args) => moreSheet.confirm(...args),
 });
-initDrawer({ closeOverlays });
+initDrawer({ closeOverlays, theme, showToast });
 initHorizontalGestures();
 createSystemBackController({
   closeConfirm: () => moreSheet.closeConfirm(),

@@ -1,6 +1,5 @@
 import { elements } from './dom.js';
 import { closeDrawer } from './drawer.js';
-import { setPage, setSub } from './navigation.js';
 import { state, setActiveOverlay } from './state.js';
 import { haptic, Haptic } from './haptics.js';
 import { createSheetController } from './sheet-drag.js';
@@ -167,62 +166,6 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
     focusSilently(firstAction);
   }
 
-  async function copyMissingStudents() {
-    const missing = store.getMissingStudents();
-    closeDrawer({ restoreFocus: false });
-    if (!missing.length) {
-      showToast('全部已交，无需复制');
-      focusSilently(elements.menuButton);
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(missing.map(({ name }) => name).join('、'));
-      showToast(`已复制 ${missing.length} 名未交学生`);
-    } catch {
-      showToast('复制失败，请检查剪贴板权限');
-    }
-    focusSilently(elements.menuButton);
-  }
-
-  function handleMenuAction(button) {
-    const action = button.dataset.action;
-    if (action === 'view-grid' || action === 'view-seats') {
-      closeDrawer({ restoreFocus: false });
-      setPage(REGISTER_PAGE_INDEX);
-      setSub(REGISTER_PAGE_INDEX, action === 'view-grid' ? GRID_SUBVIEW_INDEX : SEAT_SUBVIEW_INDEX);
-      showToast(action === 'view-grid' ? '已切换到网格' : '已切换到座位表');
-      return;
-    }
-    if (action === 'mark-all') {
-      closeDrawer({ restoreFocus: false });
-      showToast(store.markAllCompleted() ? '已全部标记完成' : '当前作业已全部完成');
-      focusSilently(elements.menuButton);
-      return;
-    }
-    if (action === 'clear-all') {
-      const assignmentName = store.getCurrentAssignment()?.name ?? '当前作业';
-      confirm({
-        title: '清除全部标记',
-        message: `将清除「${assignmentName}」的全部完成状态和分数。`,
-        action: () => showToast(store.clearCurrentAssignment() ? '已清除当前作业记录' : '当前作业没有记录'),
-        returnFocus: elements.menuButton
-      });
-      return;
-    }
-    if (action === 'copy-missing') {
-      copyMissingStudents();
-      return;
-    }
-    if (action === 'reset-roster') {
-      confirm({
-        title: '恢复默认数据',
-        message: '将恢复默认名单、座位、班干、值日、课表与科目，并清除所有作业登记、作业分数与课程成绩。',
-        action: () => { store.resetRoster(); seatCanvas.reset(); showToast('已恢复默认名单和座位'); },
-        returnFocus: elements.menuButton
-      });
-    }
-  }
-
   elements.moreButton.addEventListener('click', open);
   elements.moreMenu.addEventListener('click', (event) => {
     if (event.target === elements.moreMenu) close();
@@ -322,7 +265,6 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
       });
     }
   }));
-  elements.menuItems.forEach((button) => button.addEventListener('click', () => handleMenuAction(button)));
   elements.cancelConfirmButton.addEventListener('click', () => closeConfirm());
   elements.acceptConfirmButton.addEventListener('click', () => {
     const action = confirmAction;
