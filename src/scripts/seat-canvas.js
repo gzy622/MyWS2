@@ -13,7 +13,6 @@ const MIN_SCALE = 0.18;
 const MAX_SCALE = 2.5;
 const LONG_PRESS_MS = 480;
 const CARD_MOVE_DISTANCE = 9;
-const HINT_DURATION = 2600;
 const PAN_SAMPLE_WINDOW = 100;
 const MAX_INERTIA_SPEED = 2.5;
 const MIN_INERTIA_SPEED = 0.02;
@@ -27,7 +26,6 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
   const {
     seatViewport: viewport,
     seatStage: stage,
-    seatHint: hint,
     seatFitButton: fitButton,
     seatLandscapeButton: landscapeButton,
     seatModeBar: modeBar,
@@ -40,7 +38,6 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
   let dropTarget = null;
   let seatCellCache = null;
   let initialized = false;
-  let hintTimer;
   let inertiaFrame;
   let resizeFrame;
   let pendingResizeConstraint = false;
@@ -79,11 +76,6 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
     stage.style.transform = `translate3d(${transform.x}px, ${transform.y}px, 0) scale(${transform.scale})`;
   }
 
-  function hideHintSoon() {
-    clearTimeout(hintTimer);
-    hintTimer = setTimeout(() => hint.classList.add('is-hidden'), HINT_DURATION);
-  }
-
   function reset() {
     if (!viewport.clientWidth || !viewport.clientHeight) return;
     stopInertia();
@@ -101,8 +93,6 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
       scale
     );
     initialized = true;
-    hint.classList.remove('is-hidden');
-    hideHintSoon();
   }
 
   function seatPosition(seatIndex) {
@@ -348,7 +338,6 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
     stopInertia();
     viewport.setPointerCapture?.(event.pointerId);
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
-    hint.classList.add('is-hidden');
     if (pointers.size === 2) {
       beginPinch();
       return;
@@ -501,7 +490,6 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
       localY - ((localY - transform.y) / transform.scale) * nextScale,
       nextScale
     );
-    hint.classList.add('is-hidden');
   }
 
   function contextMenu(event) {
@@ -572,9 +560,6 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
     modeBar.hidden = !state.seatEditing;
     landscapeButton.disabled = state.seatEditing;
     setEditStatus();
-    hint.textContent = state.seatEditing
-      ? '拖动调整 · 拖到学生处交换'
-      : '轻点登记 · 长按打分';
     syncCardAccessibility();
     reset();
   }
@@ -616,7 +601,6 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
     destroy() {
       stopInertia();
       cancelAnimationFrame(resizeFrame);
-      clearTimeout(hintTimer);
       cancelCardInteraction();
       clearKeyboardSelection({ resetStatus: false });
       observer.disconnect();

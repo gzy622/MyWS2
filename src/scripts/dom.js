@@ -26,7 +26,6 @@ export const elements = {
   seatViewport: required('#seatViewport'),
   seatStage: required('#seatStage'),
   seatGrid: required('#seatGrid'),
-  seatHint: required('#seatHint'),
   seatFitButton: required('#seatFitButton'),
   seatLandscapeButton: required('#seatLandscapeButton'),
   seatModeBar: required('#seatModeBar'),
