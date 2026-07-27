@@ -29,6 +29,7 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
     seatStage: stage,
     seatHint: hint,
     seatFitButton: fitButton,
+    seatLandscapeButton: landscapeButton,
     seatModeBar: modeBar,
     seatEditStatus: editStatus,
     exitSeatEditButton: exitEditButton
@@ -569,6 +570,7 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
     stage.classList.toggle('is-edit-mode', state.seatEditing);
     stage.classList.toggle('is-view-mode', !state.seatEditing);
     modeBar.hidden = !state.seatEditing;
+    landscapeButton.disabled = state.seatEditing;
     setEditStatus();
     hint.textContent = state.seatEditing
       ? '拖动调整 · 拖到学生处交换'

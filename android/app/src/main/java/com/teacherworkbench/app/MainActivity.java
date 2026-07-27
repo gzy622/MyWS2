@@ -1,5 +1,7 @@
 package com.teacherworkbench.app;
 
+import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
@@ -14,6 +16,8 @@ public class MainActivity extends BridgeActivity {
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
+    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+    registerPlugin(SeatOrientationPlugin.class);
     super.onCreate(savedInstanceState);
     applyInitialStatusBarAppearance();
   }
@@ -22,6 +26,12 @@ public class MainActivity extends BridgeActivity {
   public void onStart() {
     super.onStart();
     configureWebViewTouchAndHaptics();
+    applyInitialStatusBarAppearance();
+  }
+
+  @Override
+  public void onConfigurationChanged(Configuration newConfig) {
+    super.onConfigurationChanged(newConfig);
     applyInitialStatusBarAppearance();
   }
 

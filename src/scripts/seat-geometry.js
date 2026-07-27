@@ -18,6 +18,12 @@ export const SEAT_VIEW_CARD_WIDTH = 64;
 export const SEAT_VIEW_CARD_HEIGHT = 104;
 export const SEAT_VIEW_FOOTER_HEIGHT = 120;
 export const SEAT_VIEW_MIN_SCALE = 44 / SEAT_VIEW_CARD_WIDTH;
+export const SEAT_LANDSCAPE_OCCUPIED_COLUMN_WIDTH = 104;
+export const SEAT_LANDSCAPE_EMPTY_COLUMN_WIDTH = 20;
+export const SEAT_LANDSCAPE_OCCUPIED_ROW_HEIGHT = 64;
+export const SEAT_LANDSCAPE_CARD_WIDTH = 104;
+export const SEAT_LANDSCAPE_CARD_HEIGHT = 64;
+export const SEAT_LANDSCAPE_FOOTER_HEIGHT = 80;
 
 export function getAdjacentSeatIndex(seatIndex, key) {
   if (!Number.isInteger(seatIndex) || seatIndex < 0 || seatIndex >= SEAT_COLUMNS * SEAT_ROWS) return null;
@@ -30,32 +36,46 @@ export function getAdjacentSeatIndex(seatIndex, key) {
   return seatIndex;
 }
 
-export function getSeatViewGeometry(seats = []) {
+export function getSeatViewGeometry(seats = [], { landscape = false } = {}) {
+  const occupiedColumnWidth = landscape ? SEAT_LANDSCAPE_OCCUPIED_COLUMN_WIDTH : SEAT_VIEW_OCCUPIED_COLUMN_WIDTH;
+  const emptyColumnWidth = landscape ? SEAT_LANDSCAPE_EMPTY_COLUMN_WIDTH : SEAT_VIEW_EMPTY_COLUMN_WIDTH;
+  const occupiedRowHeight = landscape ? SEAT_LANDSCAPE_OCCUPIED_ROW_HEIGHT : SEAT_VIEW_OCCUPIED_ROW_HEIGHT;
+  const footerHeight = landscape ? SEAT_LANDSCAPE_FOOTER_HEIGHT : SEAT_VIEW_FOOTER_HEIGHT;
   const occupiedColumns = new Set();
   const occupiedRows = new Set();
+  const occupiedColumnsByRow = Array.from({ length: SEAT_ROWS }, () => new Set());
   for (const seat of seats) {
     if (!Number.isInteger(seat?.seatIndex) || seat.seatIndex < 0 || seat.seatIndex >= SEAT_COLUMNS * SEAT_ROWS) continue;
-    occupiedColumns.add(seat.seatIndex % SEAT_COLUMNS);
-    occupiedRows.add(Math.floor(seat.seatIndex / SEAT_COLUMNS));
+    const column = seat.seatIndex % SEAT_COLUMNS;
+    const row = Math.floor(seat.seatIndex / SEAT_COLUMNS);
+    occupiedColumns.add(column);
+    occupiedRows.add(row);
+    occupiedColumnsByRow[row].add(column);
   }
   const firstOccupiedColumn = occupiedColumns.size ? Math.min(...occupiedColumns) : 0;
   const lastOccupiedColumn = occupiedColumns.size ? Math.max(...occupiedColumns) : SEAT_COLUMNS - 1;
   const columns = Array.from({ length: SEAT_COLUMNS }, (_, column) => {
-    if (occupiedColumns.has(column)) return SEAT_VIEW_OCCUPIED_COLUMN_WIDTH;
+    if (occupiedColumns.has(column)) return occupiedColumnWidth;
     return column < firstOccupiedColumn || column > lastOccupiedColumn
       ? SEAT_VIEW_OUTER_COLUMN_WIDTH
-      : SEAT_VIEW_EMPTY_COLUMN_WIDTH;
+      : emptyColumnWidth;
   });
   const rows = Array.from({ length: SEAT_ROWS }, (_, row) => (
-    occupiedRows.has(row) ? SEAT_VIEW_OCCUPIED_ROW_HEIGHT : SEAT_VIEW_EMPTY_ROW_HEIGHT
+    occupiedRows.has(row) ? occupiedRowHeight : SEAT_VIEW_EMPTY_ROW_HEIGHT
   ));
+  const rowOffsets = occupiedColumnsByRow.map((rowColumns) => {
+    if (!rowColumns.size) return 0;
+    const firstRowColumn = Math.min(...rowColumns);
+    return columns.slice(firstOccupiedColumn, firstRowColumn).reduce((sum, value) => sum + value, 0);
+  });
   const width = columns.reduce((sum, value) => sum + value, 0);
   const gridHeight = rows.reduce((sum, value) => sum + value, 0);
   return {
     columns,
     rows,
+    rowOffsets,
     width,
     gridHeight,
-    height: gridHeight + SEAT_VIEW_FOOTER_HEIGHT
+    height: gridHeight + footerHeight
   };
 }

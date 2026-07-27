@@ -286,20 +286,23 @@
 .seat-stage.is-view-mode .podium {
   top: calc(var(--seat-view-grid-height) + 10px); width: 46%; height: 84px; font-size: 22px;
 }
-.seat-view-controls {
-  position: absolute; z-index: 4; top: 10px; left: 12px; right: 38px;
-  display: flex; align-items: flex-start; gap: 8px; pointer-events: none;
+.seat-view-controls { position: absolute; z-index: 4; inset: 0; pointer-events: none; }
+.seat-view-actions {
+  position: absolute; right: 12px; bottom: max(12px, env(safe-area-inset-bottom));
+  display: flex; align-items: center; gap: 8px; pointer-events: none;
 }
-.seat-fit-button, .seat-mode-bar {
+.seat-fit-button, .seat-landscape-button, .seat-mode-bar {
   min-height: 44px; border: .5px solid var(--line); background: color-mix(in srgb, var(--card) 92%, transparent);
   box-shadow: var(--shadow-soft); color: var(--ink); backdrop-filter: blur(12px);
 }
-.seat-fit-button {
+.seat-fit-button, .seat-landscape-button {
   min-width: 56px; padding: 0 12px; border-radius: 16px; font-size: 12px; font-weight: 600;
   pointer-events: auto;
 }
+.seat-landscape-button[disabled] { color: var(--disabled); cursor: default; }
 .seat-mode-bar {
-  flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  position: absolute; top: 10px; left: 12px; right: 38px;
+  min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px;
   padding: 4px 4px 4px 12px; border-radius: 16px; pointer-events: auto;
 }
 .seat-mode-bar[hidden] { display: none; }
@@ -319,6 +322,31 @@
   opacity: 1; transform: translateX(50%); transition: opacity .3s var(--ease); pointer-events: none;
 }
 .seat-hint.is-hidden { opacity: 0; }
+
+.app.seat-landscape .seat-stage.is-view-mode {
+  width: var(--seat-landscape-stage-width); height: var(--seat-landscape-stage-height);
+}
+.app.seat-landscape .seat-stage.is-view-mode .seat-grid {
+  width: var(--seat-landscape-stage-width); height: var(--seat-landscape-grid-height);
+  grid-template-columns: var(--landscape-seat-columns); grid-template-rows: var(--landscape-seat-rows);
+}
+.app.seat-landscape .seat-stage.is-view-mode .seat-card {
+  left: calc(-1 * var(--seat-landscape-row-offset, 0px));
+  width: var(--seat-landscape-card-width); height: var(--seat-landscape-card-height);
+}
+.app.seat-landscape .seat-stage.is-view-mode .seat-name { flex-direction: row; gap: 0; }
+.app.seat-landscape .seat-stage.is-view-mode .podium {
+  top: calc(var(--seat-landscape-grid-height) + 8px); height: 56px; font-size: 18px;
+}
+.app.seat-landscape .seat-view-actions {
+  right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom));
+}
+.app.seat-landscape .seat-mode-bar {
+  top: max(10px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left));
+  right: max(38px, calc(env(safe-area-inset-right) + 38px));
+}
+.app.seat-landscape .seat-hint { bottom: max(10px, env(safe-area-inset-bottom)); }
+
 .section-title { margin: 0 2px 11px; display: flex; justify-content: space-between; align-items: center; font-size: 17px; font-weight: 600; }
 .section-title span { color: var(--muted); font-size: 12px; font-weight: 500; }
 .card { background: var(--card); border: 0; border-radius: var(--radius-card); padding: 18px 16px; margin: 0; box-shadow: var(--shadow-card); }

@@ -28,6 +28,7 @@ export const elements = {
   seatGrid: required('#seatGrid'),
   seatHint: required('#seatHint'),
   seatFitButton: required('#seatFitButton'),
+  seatLandscapeButton: required('#seatLandscapeButton'),
   seatModeBar: required('#seatModeBar'),
   seatEditStatus: required('#seatEditStatus'),
   exitSeatEditButton: required('#exitSeatEdit'),

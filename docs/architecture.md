@@ -57,7 +57,7 @@ Capacitor 依赖只用于原生壳。浏览器代码通过 `globalThis.Capacitor
 
 ### UI 瞬时状态
 
-`src/scripts/state.js` 保存当前页面、各页子视图、浮层、姓名字号控件、座位编辑模式和点击抑制等 UI 状态。除姓名字号值外，这些状态刷新后重置。
+`src/scripts/state.js` 保存当前页面、各页子视图、浮层、姓名字号控件、座位编辑模式、座位横屏模式和点击抑制等 UI 状态。除姓名字号值外，这些状态刷新后重置。
 
 ### 业务状态
 
@@ -103,7 +103,7 @@ Capacitor 依赖只用于原生壳。浏览器代码通过 `globalThis.Capacitor
 | 领域 | 模块 |
 | --- | --- |
 | 登记 | `roster-store.js`、`roster-storage.js`、`roster-renderer.js`、`student-interactions.js`、`student-record.js`、`assignments.js`、`student-font-size.js` |
-| 座位 | `seat-geometry.js`、`seat-canvas.js` |
+| 座位 | `seat-geometry.js`、`seat-canvas.js`、`seat-landscape.js` |
 | 姓名索引 | `name-initial.js`、`letter-index.js` |
 | 人员 | `people-renderer.js`、`people-interactions.js` |
 | 课程 | `courses-renderer.js`、`courses-interactions.js`、`highlight-subjects-model.js`、`highlight-subjects.js` |

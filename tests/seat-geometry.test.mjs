@@ -9,6 +9,12 @@ import {
   SEAT_CELL_HEIGHT,
   SEAT_CELL_WIDTH,
   SEAT_GRID_HEIGHT,
+  SEAT_LANDSCAPE_CARD_HEIGHT,
+  SEAT_LANDSCAPE_CARD_WIDTH,
+  SEAT_LANDSCAPE_EMPTY_COLUMN_WIDTH,
+  SEAT_LANDSCAPE_FOOTER_HEIGHT,
+  SEAT_LANDSCAPE_OCCUPIED_COLUMN_WIDTH,
+  SEAT_LANDSCAPE_OCCUPIED_ROW_HEIGHT,
   SEAT_STAGE_FOOTER_HEIGHT,
   SEAT_STAGE_HEIGHT,
   SEAT_STAGE_WIDTH,
@@ -46,6 +52,17 @@ test('查看模式压缩空行列并保留可读缩放下限', () => {
   assert.equal(SEAT_VIEW_CARD_WIDTH, 64);
   assert.equal(SEAT_VIEW_CARD_HEIGHT, 104);
   assert.equal(SEAT_VIEW_CARD_WIDTH * SEAT_VIEW_MIN_SCALE, 44);
+});
+
+test('主动横屏模式使用横向座位比例并保留压缩关系', () => {
+  const geometry = getSeatViewGeometry(createDefaultRosterState().seats, { landscape: true });
+  assert.equal(geometry.columns.filter((value) => value === SEAT_LANDSCAPE_OCCUPIED_COLUMN_WIDTH).length, 8);
+  assert.equal(geometry.rows.filter((value) => value === SEAT_LANDSCAPE_OCCUPIED_ROW_HEIGHT).length, 6);
+  assert.equal(geometry.gridHeight, 6 * SEAT_LANDSCAPE_OCCUPIED_ROW_HEIGHT);
+  assert.equal(geometry.rowOffsets[1], 2 * SEAT_LANDSCAPE_OCCUPIED_COLUMN_WIDTH + SEAT_LANDSCAPE_EMPTY_COLUMN_WIDTH);
+  assert.equal(geometry.rowOffsets[2], 0);
+  assert.equal(geometry.height, geometry.gridHeight + SEAT_LANDSCAPE_FOOTER_HEIGHT);
+  assert.ok(SEAT_LANDSCAPE_CARD_WIDTH > SEAT_LANDSCAPE_CARD_HEIGHT);
 });
 
 test('查看模式忽略非法座位索引', () => {

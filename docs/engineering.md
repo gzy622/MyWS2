@@ -46,7 +46,7 @@
 | 网格和座位共享渲染 | `src/scripts/roster-renderer.js` |
 | 学生点击、长按和记录面板 | `src/scripts/student-interactions.js`、`src/scripts/student-record.js` |
 | 作业管理 | `src/scripts/assignments.js` |
-| 座位几何与画布手势 | `src/scripts/seat-geometry.js`、`src/scripts/seat-canvas.js` |
+| 座位几何、画布手势与主动横屏 | `src/scripts/seat-geometry.js`、`src/scripts/seat-canvas.js`、`src/scripts/seat-landscape.js` |
 | 姓名首字母和侧边索引 | `src/scripts/name-initial.js`、`src/scripts/letter-index.js` |
 | 人员渲染与交互 | `src/scripts/people-renderer.js`、`src/scripts/people-interactions.js` |
 | 课程渲染与交互 | `src/scripts/courses-renderer.js`、`src/scripts/courses-interactions.js` |
@@ -98,7 +98,7 @@
 `src/scripts/dom.js` 是跨模块必需 selector 的事实来源。当前不可删除或复用的 ID 包括：
 
 - 外壳与导航：`#app`、`#viewport`、`#pages`、`#nav`、`#glider`、`#topbarTitle`、`#topbarTitleLabel`、`#menuButton`、`#moreButton`；
-- 登记与座位：`#studentGrid`、`#gridLetterIndex`、`#studentFontSize`、`#studentFontSizeValue`、`#seatViewport`、`#seatStage`、`#seatGrid`、`#seatHint`、`#seatFitButton`、`#seatModeBar`、`#seatEditStatus`、`#exitSeatEdit`、`#seatLetterIndex`；
+- 登记与座位：`#studentGrid`、`#gridLetterIndex`、`#studentFontSize`、`#studentFontSizeValue`、`#seatViewport`、`#seatStage`、`#seatGrid`、`#seatHint`、`#seatFitButton`、`#seatLandscapeButton`、`#seatModeBar`、`#seatEditStatus`、`#exitSeatEdit`、`#seatLetterIndex`；
 - 人员与课程：`#roleList`、`#dutyList`、`#weekStrip`、`#gradeTable`；
 - 通用菜单与反馈：`#fontSizePopover`、`#menuDrawer`、`#menuDrawerHandle`、`#menuDrawerBuild`、`#closeMenuDrawer`、`#scrim`、`#toast`；
 - 学生记录：`#studentRecordSheet`、`#studentRecordPanel`、`#studentRecordHandle`、`#closeStudentRecord`、`#studentRecordTitle`、`#studentRecordStatus`、`#studentScoreControls`、`#studentScoreInput`、`#studentScoreError`、`#clearStudentRecord`、`#saveStudentRecord`；
@@ -229,7 +229,7 @@
 - [ ] 姓名字号、业务数据、主题和高亮科目按契约恢复；导航、浮层、编辑模式和 transform 不持久化。
 - [ ] 网格与座位的完成、作业分数和活动作业始终同步。
 - [ ] 作业分数与课程成绩互不污染。
-- [ ] 320px、390px、430px、短横屏、软键盘和 reduced motion 下功能完整；座位查看模式姓名与状态可读，编辑模式可通过拖动和键盘完成移动/交换。
+- [ ] 320px、390px、430px、短横屏、主动座位横屏、软键盘和 reduced motion 下功能完整；座位查看模式姓名与状态可读，主动横屏在系统方向确认后隐藏顶栏/底栏、保持真实横屏比例、清除行首多余空白并自动适应回中，编辑模式可通过拖动和键盘完成移动/交换。
 - [ ] 任务之外的页面、文案、视觉和行为没有改变。
 
 ### 10.4 可选 Android 检查

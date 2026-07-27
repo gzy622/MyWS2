@@ -8,6 +8,8 @@ import {
   SEAT_CELL_HEIGHT,
   SEAT_CELL_WIDTH,
   SEAT_GRID_HEIGHT,
+  SEAT_LANDSCAPE_CARD_HEIGHT,
+  SEAT_LANDSCAPE_CARD_WIDTH,
   SEAT_STAGE_HEIGHT,
   SEAT_STAGE_WIDTH,
   SEAT_VIEW_CARD_HEIGHT,
@@ -56,6 +58,8 @@ export function initRosterRenderer(store) {
     '--seat-card-height': `${SEAT_CARD_HEIGHT}px`,
     '--seat-view-card-width': `${SEAT_VIEW_CARD_WIDTH}px`,
     '--seat-view-card-height': `${SEAT_VIEW_CARD_HEIGHT}px`,
+    '--seat-landscape-card-width': `${SEAT_LANDSCAPE_CARD_WIDTH}px`,
+    '--seat-landscape-card-height': `${SEAT_LANDSCAPE_CARD_HEIGHT}px`,
     '--seat-grid-height': `${SEAT_GRID_HEIGHT}px`,
     '--seat-stage-width': `${SEAT_STAGE_WIDTH}px`,
     '--seat-stage-height': `${SEAT_STAGE_HEIGHT}px`
@@ -112,12 +116,20 @@ export function initRosterRenderer(store) {
     const studentById = new Map(state.students.map((student) => [student.id, student]));
     const seatByIndex = new Map(state.seats.map((seat) => [seat.seatIndex, seat]));
     const viewGeometry = getSeatViewGeometry(state.seats);
+    const landscapeGeometry = getSeatViewGeometry(state.seats, { landscape: true });
     elements.seatStage.style.setProperty('--seat-view-stage-width', `${viewGeometry.width}px`);
     elements.seatStage.style.setProperty('--seat-view-grid-height', `${viewGeometry.gridHeight}px`);
     elements.seatStage.style.setProperty('--seat-view-stage-height', `${viewGeometry.height}px`);
+    elements.seatStage.style.setProperty('--seat-landscape-stage-width', `${landscapeGeometry.width}px`);
+    elements.seatStage.style.setProperty('--seat-landscape-grid-height', `${landscapeGeometry.gridHeight}px`);
+    elements.seatStage.style.setProperty('--seat-landscape-stage-height', `${landscapeGeometry.height}px`);
     elements.seatGrid.style.setProperty('--view-seat-columns', viewGeometry.columns.map((value) => `${value}px`).join(' '));
     elements.seatGrid.style.setProperty('--view-seat-rows', viewGeometry.rows.map((value) => `${value}px`).join(' '));
+    elements.seatGrid.style.setProperty('--landscape-seat-columns', landscapeGeometry.columns.map((value) => `${value}px`).join(' '));
+    elements.seatGrid.style.setProperty('--landscape-seat-rows', landscapeGeometry.rows.map((value) => `${value}px`).join(' '));
     seatCells.forEach((cell, seatIndex) => {
+      const row = Math.floor(seatIndex / SEAT_COLUMNS);
+      cell.style.setProperty('--seat-landscape-row-offset', `${landscapeGeometry.rowOffsets[row]}px`);
       const seat = seatByIndex.get(seatIndex);
       const student = seat ? studentById.get(seat.studentId) : undefined;
       if (!student) {

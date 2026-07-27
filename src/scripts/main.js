@@ -5,6 +5,7 @@ import { closeDrawer, initDrawer } from './drawer.js';
 import { showToast } from './toast.js';
 import { initStudentFontSize } from './student-font-size.js';
 import { initSeatCanvas } from './seat-canvas.js';
+import { initSeatLandscape } from './seat-landscape.js';
 import { createRosterStore } from './roster-store.js';
 import { initRosterRenderer } from './roster-renderer.js';
 import { initPeopleRenderer } from './people-renderer.js';
@@ -72,6 +73,7 @@ assignments = initAssignments({
 });
 initStudentInteractions({ store: rosterStore, showToast, openStudentRecord: studentRecord.open });
 export const seatCanvas = initSeatCanvas({ store: rosterStore, showToast, openStudentRecord: studentRecord.open });
+const seatLandscape = initSeatLandscape({ seatCanvas, showToast });
 moreSheet = initMoreSheet({
   store: rosterStore,
   showToast,
@@ -105,5 +107,6 @@ createSystemBackController({
   closeMore: () => moreSheet.close(),
   closeFontSize: () => fontSize.close(),
   closeDrawer: () => closeDrawer(),
+  exitSeatLandscape: () => seatLandscape.exit(),
 });
 renderNavigation({ animate: false });
