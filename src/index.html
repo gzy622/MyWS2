@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
     <meta name="theme-color" content="#f2f2f4" />
     <link rel="icon" href="data:," />
-    <title>教师工作台 · UI/UX Demo</title>
+    <title>教师工作台</title>
     <link rel="stylesheet" href="./styles/main.css" />
   </head>
   <body>
@@ -25,7 +25,7 @@
             </svg>
           </span>
         </button>
-        <button class="topbar-action topbar-more" id="moreButton" aria-label="更多功能" aria-controls="moreMenu" aria-expanded="false" aria-haspopup="menu">
+        <button class="topbar-action topbar-more" id="moreButton" aria-label="更多功能" aria-controls="moreMenu" aria-expanded="false" aria-haspopup="true">
           <span>更多</span>
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="12" cy="7" r="2.2" /><circle cx="12" cy="17" r="2.2" />
@@ -48,16 +48,16 @@
             <div class="page-inner">
               <div class="segments" role="tablist" aria-label="人员分类">
                 <div class="segment-glider" aria-hidden="true"></div>
-                <button class="segment active" data-sub="0">班干</button>
-                <button class="segment" data-sub="1">值日</button>
+                <button class="segment active" role="tab" aria-selected="true" data-sub="0">班干</button>
+                <button class="segment" role="tab" aria-selected="false" data-sub="1">值日</button>
               </div>
               <div class="subview active" data-view="0">
                 <div class="section-title">班干名单</div>
-                <div class="people-stack role-list" id="roleList" role="list" aria-label="班干职位"></div>
+                <div class="people-stack role-list" id="roleList" aria-label="班干职位"></div>
               </div>
               <div class="subview" data-view="1">
                 <div class="section-title">本周值日</div>
-                <div class="people-stack duty-list" id="dutyList" role="list" aria-label="值日轮换"></div>
+                <div class="people-stack duty-list" id="dutyList" aria-label="值日轮换"></div>
               </div>
             </div>
           </section>
@@ -66,7 +66,7 @@
             <div class="page-inner">
               <div class="subview active" data-view="0">
                 <div class="roster-grid-shell">
-                  <div class="student-grid" id="studentGrid" role="list" aria-label="学生名单"></div>
+                  <div class="student-grid" id="studentGrid" aria-label="学生名单"></div>
                   <nav class="letter-index" id="gridLetterIndex" aria-label="姓名首字母" aria-hidden="true"></nav>
                 </div>
               </div>
@@ -74,7 +74,7 @@
                 <section class="seat-view" aria-label="座位表">
                   <div class="seat-viewport" id="seatViewport">
                     <div class="seat-stage is-view-mode" id="seatStage">
-                      <div class="seat-grid" id="seatGrid" role="list" aria-label="学生座位"></div>
+                      <div class="seat-grid" id="seatGrid" aria-label="学生座位"></div>
                       <div class="podium">讲台</div>
                     </div>
                     <div class="seat-view-controls">
@@ -98,8 +98,8 @@
             <div class="page-inner">
               <div class="segments" role="tablist" aria-label="课程分类">
                 <div class="segment-glider" aria-hidden="true"></div>
-                <button class="segment active" data-sub="0">课表</button>
-                <button class="segment" data-sub="1">成绩</button>
+                <button class="segment active" role="tab" aria-selected="true" data-sub="0">课表</button>
+                <button class="segment" role="tab" aria-selected="false" data-sub="1">成绩</button>
               </div>
               <div class="subview active" data-view="0">
                 <div class="card week-strip" id="weekStrip" aria-label="本周课表"></div>
@@ -169,22 +169,22 @@
           <div class="student-record-actions"><button type="button" id="clearStudentRecord">清除记录</button><button type="button" id="saveStudentRecord">保存</button></div>
         </div>
       </section>
-      <section class="more-menu" id="moreMenu" role="menu" aria-label="更多" aria-hidden="true" inert>
+      <section class="more-menu" id="moreMenu" aria-label="更多" aria-hidden="true" inert>
         <div class="more-menu-panel">
           <div class="more-actions">
-            <button type="button" role="menuitem" data-more-action="register-view">切换至座位视图</button>
-            <button type="button" role="menuitem" data-more-action="clear-assignment">清除当前作业</button>
-            <button type="button" role="menuitem" data-more-action="font-size">调整姓名字号</button>
-            <button type="button" role="menuitem" data-more-action="seat-edit" aria-pressed="false">编辑座位表</button>
-            <button type="button" role="menuitem" data-more-action="seat-reset">复位座位视图</button>
-            <button type="button" role="menuitem" data-more-action="add-role">新增班干</button>
-            <button type="button" role="menuitem" data-more-action="clear-roles">清空班干指派</button>
-            <button type="button" role="menuitem" data-more-action="add-duty">新增值日</button>
-            <button type="button" role="menuitem" data-more-action="clear-duties">清空值日安排</button>
-            <button type="button" role="menuitem" data-more-action="clear-schedule">清空本周课表</button>
-            <button type="button" role="menuitem" data-more-action="highlight-subjects">高亮科目</button>
-            <button type="button" role="menuitem" data-more-action="add-subject">新增科目</button>
-            <button type="button" role="menuitem" data-more-action="clear-grades">清空成绩</button>
+            <button type="button" data-more-action="register-view">切换至座位视图</button>
+            <button type="button" data-more-action="clear-assignment">清除当前作业</button>
+            <button type="button" data-more-action="font-size">调整姓名字号</button>
+            <button type="button" data-more-action="seat-edit" aria-pressed="false">编辑座位表</button>
+            <button type="button" data-more-action="seat-reset">复位座位视图</button>
+            <button type="button" data-more-action="add-role">新增班干</button>
+            <button type="button" data-more-action="clear-roles">清空班干指派</button>
+            <button type="button" data-more-action="add-duty">新增值日</button>
+            <button type="button" data-more-action="clear-duties">清空值日安排</button>
+            <button type="button" data-more-action="clear-schedule">清空本周课表</button>
+            <button type="button" data-more-action="highlight-subjects">高亮科目</button>
+            <button type="button" data-more-action="add-subject">新增科目</button>
+            <button type="button" data-more-action="clear-grades">清空成绩</button>
           </div>
         </div>
       </section>

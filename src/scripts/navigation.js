@@ -32,6 +32,7 @@ export function renderNavigation({ animate = true } = {}) {
     : elements.pageElements[state.currentPage].getAttribute('aria-label');
   elements.topbarTitleLabel.textContent = pageTitle;
   elements.topbarTitle.classList.toggle('is-assignment', isAssignmentTitle);
+  elements.topbarTitle.disabled = !isAssignmentTitle;
   elements.topbarTitle.setAttribute(
     'aria-label',
     isAssignmentTitle ? `当前作业：${pageTitle}，点击管理作业` : pageTitle
@@ -47,7 +48,11 @@ export function renderNavigation({ animate = true } = {}) {
   elements.pageElements.forEach((page, pageIndex) => {
     const activeSubview = state.subviews[pageIndex];
     page.querySelectorAll('.segment').forEach((segment, index) => {
-      segment.classList.toggle('active', index === activeSubview);
+      const selected = index === activeSubview;
+      segment.classList.toggle('active', selected);
+      if (segment.getAttribute('role') === 'tab') {
+        segment.setAttribute('aria-selected', String(selected));
+      }
     });
     const segmentGlider = page.querySelector('.segment-glider');
     if (segmentGlider) {

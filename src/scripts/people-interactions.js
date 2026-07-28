@@ -198,7 +198,7 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
       option.setAttribute('role', 'option');
       option.dataset.studentId = String(student.id);
       const selected = selectedSet.has(student.id);
-      option.setAttribute('aria-selected', String(selected));
+      option.setAttribute('aria-pressed', String(selected));
       option.textContent = student.name;
       if (selected) option.classList.add('is-selected');
       option.addEventListener('click', () => {

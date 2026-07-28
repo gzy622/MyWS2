@@ -34,6 +34,11 @@
 }
 button.topbar-title { cursor: default; }
 .topbar-title.is-assignment { cursor: pointer; }
+.topbar-title:disabled {
+  cursor: default;
+  opacity: 1;
+  color: var(--ink);
+}
 .topbar-title-core {
   display: inline-flex;
   align-items: center;

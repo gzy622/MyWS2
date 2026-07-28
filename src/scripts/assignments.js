@@ -1,7 +1,7 @@
 import { elements } from './dom.js';
 import { state, setActiveOverlay } from './state.js';
 import { createSheetController } from './sheet-drag.js';
-import { blurIfSheetChrome, focusSilently } from './focus.js';
+import { blurIfSheetChrome, focusSilently, syncChromeInert } from './focus.js';
 
 export function initAssignments({ store, showToast, viewport, closeOthers, confirm }) {
   const layer = document.createElement('div');
@@ -37,6 +37,7 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
     // register page owns the assignment topbar title; elsewhere restore page label.
     if (state.currentPage !== 1) {
       elements.topbarTitle.classList.remove('is-assignment');
+      elements.topbarTitle.disabled = true;
       const pageTitle = elements.pageElements[state.currentPage]?.getAttribute('aria-label');
       if (pageTitle != null) {
         elements.topbarTitleLabel.textContent = pageTitle;
@@ -47,6 +48,7 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
     const name = active().name;
     elements.topbarTitleLabel.textContent = name;
     elements.topbarTitle.classList.add('is-assignment');
+    elements.topbarTitle.disabled = false;
     elements.topbarTitle.setAttribute('aria-label', `当前作业：${name}，点击管理作业`);
   }
 
@@ -58,6 +60,7 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
       nameLayer.classList.remove('show');
       nameLayer.inert = true;
       viewport.unlockStudentGrid();
+      syncChromeInert();
       const focus = nameReturnFocus;
       nameMode = null;
       renameTarget = null;
@@ -76,6 +79,7 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
       listPanel.style.transform = '';
       listPanel.style.visibility = '';
       setActiveOverlay(null);
+      syncChromeInert();
       const focus = returnFocus;
       returnFocus = null;
       if (focus) focusSilently(focus);
