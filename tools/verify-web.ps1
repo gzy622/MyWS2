@@ -318,6 +318,33 @@ function Invoke-TouchSwipe {
   Start-Sleep -Milliseconds 500
 }
 
+function Invoke-TouchVerticalSwipe {
+  param(
+    [Parameter(Mandatory)] [double]$X,
+    [Parameter(Mandatory)] [double]$StartY,
+    [Parameter(Mandatory)] [double]$EndY,
+    [int]$WaitMilliseconds = 500
+  )
+
+  $touchId = 19
+  Send-CdpMessage -Method 'Input.dispatchTouchEvent' -Params @{
+    type = 'touchStart'
+    touchPoints = @(@{ x = $X; y = $StartY; id = $touchId; radiusX = 1; radiusY = 1; force = 1 })
+  } | Out-Null
+  for ($step = 1; $step -le 5; $step += 1) {
+    $y = $StartY + (($EndY - $StartY) * $step / 5)
+    Send-CdpMessage -Method 'Input.dispatchTouchEvent' -Params @{
+      type = 'touchMove'
+      touchPoints = @(@{ x = $X; y = $y; id = $touchId; radiusX = 1; radiusY = 1; force = 1 })
+    } | Out-Null
+  }
+  Send-CdpMessage -Method 'Input.dispatchTouchEvent' -Params @{
+    type = 'touchEnd'
+    touchPoints = @()
+  } | Out-Null
+  if ($WaitMilliseconds -gt 0) { Start-Sleep -Milliseconds $WaitMilliseconds }
+}
+
 function Get-BrowserErrors {
   Send-CdpMessage -Method 'Runtime.evaluate' -Params @{ expression = 'true'; returnByValue = $true } | Out-Null
   $errors = [Collections.Generic.List[string]]::new()
@@ -537,8 +564,36 @@ try {
   $activeAfterSwipe = Invoke-JavaScript -Expression 'document.querySelector(".nav-btn.active")?.dataset.index'
   Assert-Verification -Condition ($activeAfterSwipe -eq '1') -Message '成绩表不溢出时横拖仍可切换主页面'
 
+  Open-Page -Uri "$baseUri/?verify=grade-outside-page-swipe" -Width 390
+  Assert-Verification -Condition ([bool](Open-CourseGrades)) -Message '390px 可重新进入课程成绩视图'
+  $gradeOutside = Invoke-JavaScript -Expression @'
+(() => {
+  const subview = document.querySelector('.page[data-page="2"] .subview[data-view="1"]');
+  const title = subview.querySelector('.section-title');
+  const rect = title.getBoundingClientRect();
+  return {
+    y: rect.top + rect.height / 2,
+    touchAction: getComputedStyle(subview).touchAction
+  };
+})()
+'@
+  Assert-Verification -Condition ($gradeOutside.touchAction -eq 'pan-y') -Message '成绩子视图仅保留原生纵向手势'
+  Invoke-TouchSwipe -StartX 75 -EndX 300 -Y $gradeOutside.y
+  $activeAfterOutsideSwipe = Invoke-JavaScript -Expression 'document.querySelector(".nav-btn.active")?.dataset.index'
+  Assert-Verification -Condition ($activeAfterOutsideSwipe -eq '1') -Message '成绩表外区域横拖可切换主页面'
+
   Write-Host 'Sheet 合成层与幽灵点击' -ForegroundColor Cyan
-  Assert-Verification -Condition ([bool](Open-CourseGrades)) -Message '重新进入课程成绩视图'
+  Open-Page -Uri "$baseUri/?verify=sheet-compositor" -Width 390
+  $sheetCourseGradesOpened = Invoke-JavaScript -Expression @'
+(() => {
+  Object.defineProperty(navigator, 'vibrate', { configurable: true, value: () => true });
+  document.querySelector('.nav-btn[data-index="2"]').click();
+  document.querySelector('.page[data-page="2"] .segment[data-sub="1"]').click();
+  return document.querySelector('.nav-btn.active')?.dataset.index === '2'
+    && document.querySelector('.page[data-page="2"] .segment[data-sub="1"]').classList.contains('active');
+})()
+'@
+  Assert-Verification -Condition ([bool]$sheetCourseGradesOpened) -Message '重新进入课程成绩视图'
   $openedGrade = Invoke-JavaScript -Expression @'
 (() => {
   document.querySelector('.grade-score-cell').click();
@@ -617,6 +672,30 @@ try {
   && !document.querySelector('#scrim').classList.contains('sheet-scrim-compositing'))()
 '@
   Assert-Verification -Condition ([bool]$drawerReleased) -Message '通用菜单落位后释放合成层提示'
+
+  Open-Page -Uri "$baseUri/?verify=drawer-nav-after-close" -Width 390
+  $registerNavPoint = Invoke-JavaScript -Expression @'
+(() => {
+  const rect = document.querySelector('.nav-btn[data-index="1"]').getBoundingClientRect();
+  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+})()
+'@
+  Invoke-TouchVerticalSwipe -X $registerNavPoint.x -StartY $registerNavPoint.y -EndY 350
+  $drawerOpenedByNavSwipe = Invoke-JavaScript -Expression 'document.querySelector("#app").classList.contains("drawer-open")'
+  Assert-Verification -Condition ([bool]$drawerOpenedByNavSwipe) -Message '从底栏上滑可打开通用菜单'
+  $drawerHandlePoint = Invoke-JavaScript -Expression @'
+(() => {
+  const rect = document.querySelector('#menuDrawerHandle').getBoundingClientRect();
+  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+})()
+'@
+  # The 300ms close is visually complete while the 450ms trailing-click guard is still armed.
+  Invoke-TouchVerticalSwipe -X $drawerHandlePoint.x -StartY $drawerHandlePoint.y -EndY 820 -WaitMilliseconds 330
+  Invoke-TouchTap -X $registerNavPoint.x -Y $registerNavPoint.y
+  $registerSubviewSwitched = Invoke-JavaScript -Expression @'
+(() => document.querySelector('.page[data-page="1"] .subview[data-view="1"]').classList.contains('active'))()
+'@
+  Assert-Verification -Condition ([bool]$registerSubviewSwitched) -Message '手势关闭通用菜单后立即点击登记可首次切换子视图'
 
   $browserErrors = @(Get-BrowserErrors)
   if ($browserErrors.Count -gt 0) {
