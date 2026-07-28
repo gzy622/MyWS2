@@ -191,9 +191,12 @@ activeOverlay: null | 'assignments' | 'student-record' | 'people-pick' | 'people
 
 - 原生交互优先使用 `<button>`，不可用可点击 `<div>` 代替。
 - 纯装饰 SVG 使用 `aria-hidden="true"`；无可见文案的按钮必须有 `aria-label`。
-- 当前主导航项维护 `aria-current="page"`；通用菜单和姓名字号维护 `aria-hidden`，“更多”维护 `aria-expanded`。
+- 当前主导航项维护 `aria-current="page"`；通用菜单和姓名字号维护 `aria-hidden`，“更多”维护 `aria-expanded`（更多为普通按钮组，不使用 `role="menu"`）。
+- 人员页与课程页分段控件使用 `role="tablist"` / `role="tab"`，并以 `aria-selected` 同步当前子视图。
+- 顶栏中间标题仅在登记页可点（打开作业列表）；人员页与课程页为禁用态，不进入作业操作。
 - 无可见文字的主导航项必须用 `aria-label` 提供页面名称。
 - 键盘可触发所有按钮和字号滑杆；Escape 与系统返回键须能关闭当前最上层浮层（见「更多菜单与 Toast」关闭栈）。
+- 业务浮层（含确认、作业、学生记录、人员/课程 Sheet、通用菜单、更多菜单、姓名字号）打开期间，顶栏、主内容视口与底栏设为不可操作（`inert`），避免键盘焦点落到遮罩后的壳层控件；多层叠开时仅在全部关闭后解除。
 - 不阻止非必要的键盘默认行为。
 - 新增定时动效或位移动效时，必须兼容 reduced motion。
 

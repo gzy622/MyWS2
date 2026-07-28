@@ -1,4 +1,5 @@
 import { isSheetDebugEnabled, logSheetDebug } from './sheet-debug.js';
+import { syncChromeInert } from './focus.js';
 
 /** Minimum finger travel (px) before a slow drag may dismiss an open sheet. */
 export const SHEET_CLOSE_DISTANCE = 180;
@@ -348,12 +349,14 @@ export function createSheetController({
       layer.inert = false;
     }
     panel.style.visibility = 'visible';
+    syncChromeInert();
   }
 
   function announceOpened() {
     if (hasAnnouncedOpen) return;
     hasAnnouncedOpen = true;
     onOpened?.({ source: openSource ?? 'control' });
+    syncChromeInert();
   }
 
   function leavePresented() {
@@ -377,6 +380,7 @@ export function createSheetController({
     setScrimProgress?.(null, 'clear');
     syncSheetGestureChrome();
     onClosed?.({ source: closedSource });
+    syncChromeInert();
   }
 
   function beginDrag() {

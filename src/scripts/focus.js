@@ -18,3 +18,42 @@ export function blurIfSheetChrome(element = document.activeElement) {
     element.blur();
   }
 }
+
+/**
+ * Business overlays that keep the app chrome (topbar / viewport / bottom nav) inert
+ * while any one of them is presented — including nested sheets.
+ */
+const CHROME_LOCK_SELECTORS = [
+  '.student-record-sheet.show',
+  '.confirm-sheet.show',
+  '.assignment-sheet.show',
+  '.assignment-name-sheet.show',
+  '.people-pick-sheet.show',
+  '.people-edit-sheet.show',
+  '.course-slot-sheet.show',
+  '.course-period-sheet.show',
+  '.course-subject-sheet.show',
+  '.course-grade-sheet.show',
+  '.course-highlight-sheet.show',
+  '.more-menu.show',
+  '.font-size-popover.show',
+];
+
+function isBusinessOverlayOpen(app) {
+  if (app.classList.contains('drawer-open')) return true;
+  return CHROME_LOCK_SELECTORS.some((selector) => app.querySelector(selector));
+}
+
+/** Lock or unlock topbar, viewport, and bottom shell based on open overlays. */
+export function syncChromeInert() {
+  const app = document.getElementById('app');
+  if (!app) return;
+  const locked = isBusinessOverlayOpen(app);
+  for (const node of [
+    app.querySelector('.topbar'),
+    app.querySelector('#viewport'),
+    app.querySelector('.bottom-shell'),
+  ]) {
+    if (node) node.inert = locked;
+  }
+}

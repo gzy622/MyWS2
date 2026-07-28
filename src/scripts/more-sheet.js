@@ -4,7 +4,7 @@ import { setSub } from './navigation.js';
 import { state, setActiveOverlay } from './state.js';
 import { haptic, Haptic } from './haptics.js';
 import { createSheetController } from './sheet-drag.js';
-import { blurIfSheetChrome, focusSilently } from './focus.js';
+import { blurIfSheetChrome, focusSilently, syncChromeInert } from './focus.js';
 
 const PEOPLE_PAGE_INDEX = 0;
 const REGISTER_PAGE_INDEX = 1;
@@ -37,6 +37,7 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
     elements.moreMenu.inert = true;
     elements.moreButton.setAttribute('aria-expanded', 'false');
     setActiveOverlay(null);
+    syncChromeInert();
     if (restoreFocus) focusSilently(trigger);
     trigger = null;
   }
@@ -50,6 +51,7 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
       elements.confirmSheet.setAttribute('aria-hidden', 'true');
       elements.confirmSheet.inert = true;
       setActiveOverlay(null);
+      syncChromeInert();
       const focus = confirmReturnFocus;
       confirmAction = null;
       confirmReturnFocus = null;
@@ -160,6 +162,7 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
     elements.moreMenu.setAttribute('aria-hidden', 'false');
     elements.moreMenu.inert = false;
     elements.moreButton.setAttribute('aria-expanded', 'true');
+    syncChromeInert();
     const firstAction = [...elements.moreActions].find((button) => !button.hidden);
     focusSilently(firstAction);
   }

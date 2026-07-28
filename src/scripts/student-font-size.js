@@ -1,5 +1,6 @@
 import { elements } from './dom.js';
 import { state, setFontSizePopoverOpen, setStudentFontSize } from './state.js';
+import { syncChromeInert } from './focus.js';
 
 const STORAGE_KEY = 'teacher-workbench.student-name-font-size';
 const REGISTER_PAGE_INDEX = 1;
@@ -28,6 +29,7 @@ function renderPopover() {
   if (!elements.moreMenu.classList.contains('show')) {
     elements.moreButton.setAttribute('aria-expanded', String(isOpen));
   }
+  syncChromeInert();
 }
 
 function persistStudentFontSize() {

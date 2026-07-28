@@ -2,7 +2,7 @@ import { elements } from './dom.js';
 import { setActiveOverlay } from './state.js';
 import { haptic, Haptic } from './haptics.js';
 import { createSheetController } from './sheet-drag.js';
-import { blurIfSheetChrome, focusSilently } from './focus.js';
+import { blurIfSheetChrome, focusSilently, syncChromeInert } from './focus.js';
 
 export function initStudentRecord({ store, showToast, viewport, closeOthers }) {
   let studentId = null;
@@ -28,6 +28,7 @@ export function initStudentRecord({ store, showToast, viewport, closeOthers }) {
       elements.studentRecordSheet.inert = true;
       setActiveOverlay(null);
       viewport.unlockStudentGrid();
+      syncChromeInert();
       restoreRecordFocus();
     }
   }
@@ -66,6 +67,7 @@ export function initStudentRecord({ store, showToast, viewport, closeOthers }) {
       elements.studentRecordSheet.setAttribute('aria-hidden', 'true');
       setActiveOverlay(null);
       viewport.unlockStudentGrid();
+      syncChromeInert();
       restoreRecordFocus();
     }
   });

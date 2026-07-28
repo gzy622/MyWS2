@@ -1,7 +1,7 @@
 import { elements } from './dom.js';
 import { setDrawerOpen } from './state.js';
 import { createSheetController } from './sheet-drag.js';
-import { blurIfSheetChrome, focusSilently } from './focus.js';
+import { blurIfSheetChrome, focusSilently, syncChromeInert } from './focus.js';
 import { refreshBuildId } from './build-id.js';
 
 let closeBusinessOverlays = () => {};
@@ -42,6 +42,7 @@ function syncDrawerChrome(open) {
     elements.menuDrawer.style.transform = '';
     elements.menuDrawer.style.visibility = '';
   }
+  syncChromeInert();
 }
 
 export function openDrawer() {
@@ -59,6 +60,7 @@ export function closeDrawer({ restoreFocus = true } = {}) {
   else {
     syncDrawerChrome(false);
     setDrawerScrimProgress(null, 'clear');
+    syncChromeInert();
     const focus = drawerTrigger;
     drawerTrigger = null;
     if (restoreFocus && focus) focusSilently(focus);
