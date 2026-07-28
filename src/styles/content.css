@@ -38,6 +38,7 @@
 .page[data-page="2"] .subview[data-view="1"].active {
   overflow-y: auto;
   overscroll-behavior-y: contain;
+  touch-action: pan-y;
 }
 .roster-grid-shell {
   position: relative;
