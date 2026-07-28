@@ -63,7 +63,7 @@ npm run code:id
 
 内容指纹只覆盖 `src/index.html`、`src/styles/` 和 `src/scripts/`，用于对比电脑源码、LAN 服务和 APK 内 Web 资源是否一致。
 
-App 内长按左上菜单、连续点击菜单 3 次，或使用 `?sheetDebug=1` 可查看 build 信息。`origin` 为局域网地址时使用 Live Reload；原生 `https://localhost` 一类地址通常表示使用 APK 内资源。
+打开通用菜单即可在面板右下角看到当前内容指纹及生成时间（UTC+8，精确到秒）。长按左上菜单、连续点击菜单 3 次，或使用 `?sheetDebug=1` 可查看更完整的 build 调试信息。`origin` 为局域网地址时使用 Live Reload；原生 `https://localhost` 一类地址通常表示使用 APK 内资源。
 
 ## 4. 单文件导出
 

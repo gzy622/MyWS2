@@ -1,5 +1,5 @@
 /**
- * Load content fingerprint shown in menu drawer foot / debug UI / data-twb-build.
+ * Load content fingerprint shown in menu drawer corner / debug UI / data-twb-build.
  * LAN: /__build-id or /__health (live hash of PC source)
  * APK: /build-id.json (written by sync:www)
  */
@@ -18,12 +18,36 @@ export async function loadBuildId() {
   return null;
 }
 
+/** Format ISO time as UTC+8 wall clock, second precision: YYYY-MM-DD HH:mm:ss */
+function formatBuildAtUtc8(iso) {
+  if (!iso || typeof iso !== 'string') return '';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  const shifted = new Date(date.getTime() + 8 * 60 * 60 * 1000);
+  const pad = (n) => String(n).padStart(2, '0');
+  return [
+    `${shifted.getUTCFullYear()}-${pad(shifted.getUTCMonth() + 1)}-${pad(shifted.getUTCDate())}`,
+    `${pad(shifted.getUTCHours())}:${pad(shifted.getUTCMinutes())}:${pad(shifted.getUTCSeconds())}`,
+  ].join(' ');
+}
+
 function applyBuildId(data) {
-  if (!data?.id || typeof document === 'undefined') return;
+  if (typeof document === 'undefined') return;
+  const foot = document.getElementById('menuDrawerBuild');
+  if (!data?.id) {
+    if (foot) {
+      foot.hidden = true;
+      foot.textContent = '—';
+    }
+    return;
+  }
   document.documentElement.dataset.twbBuild = data.id;
   if (data.at) document.documentElement.dataset.twbBuildAt = data.at;
-  const foot = document.getElementById('menuDrawerBuild');
-  if (foot) foot.textContent = `版本 ${data.id}`;
+  if (foot) {
+    const stamp = formatBuildAtUtc8(data.at);
+    foot.textContent = stamp ? `${data.id} · ${stamp}` : data.id;
+    foot.hidden = false;
+  }
 }
 
 export function refreshBuildId() {
