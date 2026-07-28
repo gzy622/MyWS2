@@ -25,13 +25,6 @@
 .assignment-sheet.show.is-dragging,
 .assignment-sheet.show.is-settling { pointer-events: auto; }
 .assignment-sheet.show.is-revealing::before,
-.assignment-sheet.show.is-settling::before,
-.assignment-sheet.is-revealing::before,
-.assignment-sheet.is-settling::before,
-.assignment-sheet.show.is-dragging::before {
-  opacity: var(--sheet-reveal-progress, 0);
-}
-.assignment-sheet.show.is-revealing::before,
 .assignment-sheet.is-revealing::before,
 .assignment-sheet.show.is-dragging::before {
   transition: opacity var(--duration-scrim-track) linear;
@@ -234,13 +227,6 @@
 .assignment-name-sheet.is-revealing:not(.is-dragging) { pointer-events: none; }
 .assignment-name-sheet.show.is-dragging,
 .assignment-name-sheet.show.is-settling { pointer-events: auto; }
-.assignment-name-sheet.show.is-revealing::before,
-.assignment-name-sheet.show.is-settling::before,
-.assignment-name-sheet.is-revealing::before,
-.assignment-name-sheet.is-settling::before,
-.assignment-name-sheet.show.is-dragging::before {
-  opacity: var(--sheet-reveal-progress, 0);
-}
 .assignment-name-sheet.show.is-revealing::before,
 .assignment-name-sheet.is-revealing::before,
 .assignment-name-sheet.show.is-dragging::before {

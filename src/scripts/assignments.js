@@ -50,29 +50,6 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
     elements.topbarTitle.setAttribute('aria-label', `当前作业：${name}，点击管理作业`);
   }
 
-  function setListScrimProgress(progress, mode = 'drag') {
-    if (mode === 'clear' || (progress == null && mode !== 'settle')) {
-      layer.classList.remove('is-revealing', 'is-settling', 'is-dragging');
-      layer.style.removeProperty('--sheet-reveal-progress');
-      return;
-    }
-    if (mode === 'settle') {
-      if (!layer.classList.contains('is-settling')) {
-        layer.classList.remove('is-revealing');
-        layer.classList.add('is-settling');
-      }
-    } else if (!layer.classList.contains('is-revealing')) {
-      layer.classList.add('is-revealing');
-      layer.classList.remove('is-settling');
-    }
-    if (progress != null) {
-      const token = (Math.round(progress * 1000) / 1000).toFixed(3);
-      if (layer.style.getPropertyValue('--sheet-reveal-progress') !== token) {
-        layer.style.setProperty('--sheet-reveal-progress', token);
-      }
-    }
-  }
-
   function closeNameEditor({ restoreFocus = true } = {}) {
     if (!nameSheet?.isPresented() && !nameLayer.classList.contains('show')) return;
     if (!restoreFocus) nameReturnFocus = null;
@@ -98,7 +75,6 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
       layer.inert = true;
       listPanel.style.transform = '';
       listPanel.style.visibility = '';
-      setListScrimProgress(null, 'clear');
       setActiveOverlay(null);
       const focus = returnFocus;
       returnFocus = null;
@@ -218,7 +194,6 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
     },
     onOpened({ source } = {}) {
       setActiveOverlay('assignments');
-      setListScrimProgress(null, 'clear');
       if (source === 'control') {
         focusSilently(layer.querySelector('.assignment-select'));
       }
@@ -229,8 +204,7 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
       returnFocus = null;
       if (focus) focusSilently(focus);
       else blurIfSheetChrome();
-    },
-    setScrimProgress: setListScrimProgress
+    }
   });
 
   nameSheet = createSheetController({

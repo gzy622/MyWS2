@@ -27,8 +27,7 @@ function setDrawerScrimProgress(progress, mode = 'drag') {
 
   if (progress != null) {
     const token = (Math.round(progress * 1000) / 1000).toFixed(3);
-    // Keep per-frame work on the composited scrim itself. Updating a custom
-    // property on .app invalidates every descendant while the Sheet is dragged.
+    // Inline opacity only — never set a CSS variable on .app (invalidates the tree).
     if (elements.scrim.style.opacity !== token) elements.scrim.style.opacity = token;
   }
 }

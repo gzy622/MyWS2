@@ -1,6 +1,11 @@
 /* Shared sheet primitives — concrete panels compose these tokens / classes */
 
-.sheet-panel.dragging,
+.sheet-panel.dragging {
+  transition: none;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
 .sheet-compositing {
   will-change: transform;
   backface-visibility: hidden;
@@ -29,7 +34,10 @@
   opacity: 0;
   transition: opacity var(--duration-fade) linear;
 }
-.sheet-has-managed-scrim.show > .sheet-scrim { opacity: 1; }
+/* Resting open only — during scrub/settle opacity is inline-driven. */
+.sheet-has-managed-scrim.show:not(.is-revealing):not(.is-settling):not(.is-dragging) > .sheet-scrim {
+  opacity: 1;
+}
 .sheet-has-managed-scrim.is-revealing > .sheet-scrim,
 .sheet-has-managed-scrim.is-dragging > .sheet-scrim {
   transition: opacity var(--duration-scrim-track) linear;

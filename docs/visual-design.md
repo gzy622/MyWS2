@@ -169,6 +169,7 @@
 - Sheet 本体不参与遮罩的透明度渐变，只做位移；遮罩与面板层分离。关闭动画完成后隐藏面板，禁止阴影回溢到底栏。
 - 面板拖动期间必须取消 transition（严格跟手），松手后恢复。面板与遮罩仅在打开、跟手和落位期间临时提升为合成层，动画完成后立即释放，禁止为全部隐藏 Sheet 长期保留 `will-change`。
 - 遮罩跟手期保留 `--duration-scrim-track`（90ms）线性过渡，用于吸收接管动画时的不连续值，避免闪烁跳变；该时长不得增大到可察觉的迟滞。
+- 跟手帧只改面板 `transform` 与遮罩元素自身的 `opacity`（通用菜单写 `#scrim`，其它 Sheet 写注入的 `.sheet-scrim`）；禁止在 `.app` / overlay 上用 `--sheet-reveal-progress` 等继承型自定义属性驱动遮罩，以免每帧失效整棵子树。跟手/落位期间 `#app` 可临时加上 `is-sheet-gesturing` 以关闭顶栏 `backdrop-filter`。
 - 动效只解释状态变化，不添加循环浮动、弹跳或粒子特效。
 - 必须保留 `prefers-reduced-motion` 降级。
 

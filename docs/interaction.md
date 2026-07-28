@@ -128,7 +128,7 @@ activeOverlay: null | 'assignments' | 'student-record' | 'people-pick' | 'people
 - 任一上述 Sheet 呈现时：除自滚动容器（且该方向尚未到边）与文本输入控件外，全屏任意位置均可纵向拖动，实时驱动该 Sheet 的 progress（0～1）与遮罩透明度；把手不再是唯一关闭入口。
 - 例外：人员选择 Sheet 的学生名单使用原生纵向滚动；跟手关闭仅从把手/标题等非列表区域发起（见 §4.1）。
 - 多层同时存在时只驱动最上层（顺序与返回键关闭栈一致，见 §10）；同一次手势不转移到下层。
-- 松手：已打开 Sheet 慢拖关闭须位移约 `max(180px, 行程 40%)`；快速向外甩动时结合速度与惯性，短距离（约 36px+、关闭向速度约 `0.4px/ms`）亦可关闭。打开态按约 34% / 58px / 甩开阈值。`pointercancel` 等中断时已打开 Sheet 回弹。面板/列表/遮罩用 `touch-action: none`（人员选择名单除外，保留原生滚动），其余列表滚动由脚本接管。落位用 CSS transition；`prefers-reduced-motion: reduce` 时直接到位。跟手位移按动画帧合并绘制（`translate3d`），避免每 pointermove 重复触发布局。
+- 松手：已打开 Sheet 慢拖关闭须位移约 `max(180px, 行程 40%)`；快速向外甩动时结合速度与惯性，短距离（约 36px+、关闭向速度约 `0.4px/ms`）亦可关闭。打开态按约 34% / 58px / 甩开阈值。`pointercancel` 等中断时已打开 Sheet 回弹。面板/列表/遮罩用 `touch-action: none`（人员选择名单除外，保留原生滚动），其余列表滚动由脚本接管。落位用 CSS transition；`prefers-reduced-motion: reduce` 时直接到位。跟手位移与遮罩透明度、列表 `scrollTop` 均按动画帧合并绘制（面板用 `translate3d`），避免每 pointermove 重复触发布局或整树样式失效。
 - 有纵向 Sheet 呈现或跟手进行中时，禁止横向切页。
 - 手势打开的 Sheet 关闭/取消时不得把焦点还回顶栏标题；程序化焦点使用静默聚焦（不显示 `:focus-visible` 环）。半程回弹落位不得再次触发打开时的抢焦点。
 

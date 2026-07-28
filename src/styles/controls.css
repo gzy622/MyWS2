@@ -36,17 +36,18 @@
   padding: 0 18px 18px; overflow-y: auto; overscroll-behavior: contain; touch-action: none; border-radius: var(--radius-sheet); background: var(--card); box-shadow: var(--shadow-sheet-up);
   visibility: hidden; transform: translateY(calc(100% + 72px)); transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet);
 }
-.app.drawer-open .scrim { opacity: 1; pointer-events: auto; touch-action: none; }
+/* Resting open — scrub/settle opacity is inline on #scrim (never a CSS var on .app). */
+.app.drawer-open:not(.drawer-revealing):not(.drawer-settling) .scrim {
+  opacity: 1;
+  pointer-events: auto;
+  touch-action: none;
+}
 .app.drawer-open .menu-drawer { visibility: visible; transform: translateY(0); transition-delay: 0s; }
-.app.drawer-open.drawer-revealing .scrim,
 .app.drawer-revealing .scrim {
-  opacity: var(--sheet-reveal-progress, 0);
   pointer-events: none;
   transition: opacity var(--duration-scrim-track) linear;
 }
-.app.drawer-open.drawer-settling .scrim,
 .app.drawer-settling .scrim {
-  opacity: var(--sheet-reveal-progress, 0);
   pointer-events: auto;
   touch-action: none;
   transition: opacity var(--duration-sheet) var(--ease);
@@ -103,13 +104,6 @@
 .student-record-sheet.is-revealing:not(.is-dragging) { pointer-events: none; }
 .student-record-sheet.show.is-dragging,
 .student-record-sheet.show.is-settling { pointer-events: auto; }
-.student-record-sheet.show.is-revealing::before,
-.student-record-sheet.show.is-settling::before,
-.student-record-sheet.is-revealing::before,
-.student-record-sheet.is-settling::before,
-.student-record-sheet.show.is-dragging::before {
-  opacity: var(--sheet-reveal-progress, 0);
-}
 .student-record-sheet.show.is-revealing::before,
 .student-record-sheet.is-revealing::before,
 .student-record-sheet.show.is-dragging::before {
@@ -334,13 +328,6 @@
 .confirm-sheet.show.is-dragging,
 .confirm-sheet.show.is-settling { pointer-events: auto; }
 .confirm-sheet.show.is-revealing::before,
-.confirm-sheet.show.is-settling::before,
-.confirm-sheet.is-revealing::before,
-.confirm-sheet.is-settling::before,
-.confirm-sheet.show.is-dragging::before {
-  opacity: var(--sheet-reveal-progress, 0);
-}
-.confirm-sheet.show.is-revealing::before,
 .confirm-sheet.is-revealing::before,
 .confirm-sheet.show.is-dragging::before {
   transition: opacity var(--duration-scrim-track) linear;
@@ -405,18 +392,6 @@
 .people-pick-sheet.show.is-settling,
 .people-edit-sheet.show.is-dragging,
 .people-edit-sheet.show.is-settling { pointer-events: auto; }
-.people-pick-sheet.show.is-revealing::before,
-.people-pick-sheet.show.is-settling::before,
-.people-pick-sheet.is-revealing::before,
-.people-pick-sheet.is-settling::before,
-.people-pick-sheet.show.is-dragging::before,
-.people-edit-sheet.show.is-revealing::before,
-.people-edit-sheet.show.is-settling::before,
-.people-edit-sheet.is-revealing::before,
-.people-edit-sheet.is-settling::before,
-.people-edit-sheet.show.is-dragging::before {
-  opacity: var(--sheet-reveal-progress, 0);
-}
 .people-pick-sheet.show.is-revealing::before,
 .people-pick-sheet.is-revealing::before,
 .people-pick-sheet.show.is-dragging::before,
@@ -632,28 +607,6 @@
 .course-highlight-sheet.show.is-dragging,
 .course-highlight-sheet.show.is-settling { pointer-events: auto; }
 .course-slot-sheet.show.is-revealing::before,
-.course-slot-sheet.show.is-settling::before,
-.course-slot-sheet.is-revealing::before,
-.course-slot-sheet.is-settling::before,
-.course-slot-sheet.show.is-dragging::before,
-.course-period-sheet.show.is-revealing::before,
-.course-period-sheet.show.is-settling::before,
-.course-period-sheet.is-revealing::before,
-.course-period-sheet.is-settling::before,
-.course-period-sheet.show.is-dragging::before,
-.course-subject-sheet.show.is-revealing::before,
-.course-subject-sheet.show.is-settling::before,
-.course-subject-sheet.is-revealing::before,
-.course-subject-sheet.is-settling::before,
-.course-subject-sheet.show.is-dragging::before,
-.course-grade-sheet.show.is-revealing::before,
-.course-grade-sheet.show.is-settling::before,
-.course-grade-sheet.is-revealing::before,
-.course-grade-sheet.is-settling::before,
-.course-grade-sheet.show.is-dragging::before {
-  opacity: var(--sheet-reveal-progress, 0);
-}
-.course-slot-sheet.show.is-revealing::before,
 .course-slot-sheet.is-revealing::before,
 .course-slot-sheet.show.is-dragging::before,
 .course-period-sheet.show.is-revealing::before,
@@ -664,7 +617,10 @@
 .course-subject-sheet.show.is-dragging::before,
 .course-grade-sheet.show.is-revealing::before,
 .course-grade-sheet.is-revealing::before,
-.course-grade-sheet.show.is-dragging::before {
+.course-grade-sheet.show.is-dragging::before,
+.course-highlight-sheet.show.is-revealing::before,
+.course-highlight-sheet.is-revealing::before,
+.course-highlight-sheet.show.is-dragging::before {
   transition: opacity var(--duration-scrim-track) linear;
 }
 .course-slot-sheet.show.is-settling::before,
@@ -674,7 +630,9 @@
 .course-subject-sheet.show.is-settling::before,
 .course-subject-sheet.is-settling::before,
 .course-grade-sheet.show.is-settling::before,
-.course-grade-sheet.is-settling::before {
+.course-grade-sheet.is-settling::before,
+.course-highlight-sheet.show.is-settling::before,
+.course-highlight-sheet.is-settling::before {
   transition: opacity var(--duration-sheet) var(--ease);
 }
 .course-slot-sheet-panel,

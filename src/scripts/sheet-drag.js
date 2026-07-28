@@ -26,8 +26,57 @@ const SCROLL_INERTIA_DECAY = 325;
 
 /** @type {WeakMap<Element, number>} */
 const scrollInertiaFrames = new WeakMap();
+/** Pending scrollTop targets coalesced to one write per frame. */
+/** @type {WeakMap<Element, number>} */
+const scrollPortMirror = new WeakMap();
+/** @type {WeakMap<Element, number>} */
+const scrollPortPaintRaf = new WeakMap();
 /** Strong refs while a coast is running so WeakMap frames stay reachable. */
 const scrollingPorts = new Set();
+/** Ports with a coalesced scrollTop paint queued. */
+const pendingScrollPorts = new Set();
+
+function syncSheetGestureChrome() {
+  const app = document.getElementById('app');
+  if (!app) return;
+  let active = false;
+  for (const sheet of registry.values()) {
+    if (sheet.isDragging() || sheet.isSettling()) {
+      active = true;
+      break;
+    }
+  }
+  app.classList.toggle('is-sheet-gesturing', active);
+}
+
+function flushScrollPortPaint(port) {
+  if (!port) return;
+  const raf = scrollPortPaintRaf.get(port);
+  if (raf) {
+    cancelAnimationFrame(raf);
+    scrollPortPaintRaf.delete(port);
+  }
+  pendingScrollPorts.delete(port);
+  if (!scrollPortMirror.has(port)) return;
+  const next = scrollPortMirror.get(port);
+  scrollPortMirror.delete(port);
+  if (port.scrollTop !== next) port.scrollTop = next;
+}
+
+function scheduleScrollPortPaint(port, next) {
+  scrollPortMirror.set(port, next);
+  pendingScrollPorts.add(port);
+  if (scrollPortPaintRaf.has(port)) return;
+  const raf = requestAnimationFrame(() => {
+    scrollPortPaintRaf.delete(port);
+    pendingScrollPorts.delete(port);
+    if (!scrollPortMirror.has(port)) return;
+    const target = scrollPortMirror.get(port);
+    scrollPortMirror.delete(port);
+    if (port.scrollTop !== target) port.scrollTop = target;
+  });
+  scrollPortPaintRaf.set(port, raf);
+}
 
 /** Top-most first; matches system-back dismiss order for vertical sheets. */
 export const SHEET_STACK_ORDER = [
@@ -181,6 +230,7 @@ export function createSheetController({
     panel.classList.remove('sheet-compositing');
     layer?.classList.remove('sheet-scrim-compositing');
     scrimElement?.classList.remove('sheet-scrim-compositing');
+    syncSheetGestureChrome();
   }
 
   /** Promote only the active panel/scrim, then release the GPU layers after settling. */
@@ -318,7 +368,6 @@ export function createSheetController({
       layer.classList.remove('show', 'is-revealing', 'is-settling', 'is-dragging');
       layer.inert = true;
       if (managedScrim) managedScrim.style.removeProperty('opacity');
-      else layer.style.removeProperty('--sheet-reveal-progress');
     }
     panel.style.transform = '';
     panel.style.visibility = '';
@@ -326,6 +375,7 @@ export function createSheetController({
     paintedProgress = NaN;
     paintedScrimToken = '';
     setScrimProgress?.(null, 'clear');
+    syncSheetGestureChrome();
     onClosed?.({ source: closedSource });
   }
 
@@ -359,6 +409,7 @@ export function createSheetController({
     promoteCompositorLayers({ autoRelease: false });
     dragging = true;
     setDraggingClass(true);
+    syncSheetGestureChrome();
     if (useShowClass && layer) {
       layer.classList.add('show', 'is-revealing');
       layer.classList.remove('is-settling');
@@ -490,9 +541,9 @@ export function createSheetController({
       layer.classList.add('is-settling');
       layer.classList.remove('is-revealing');
       if (managedScrim) writeManagedScrimProgress(progress);
-      else layer.style.setProperty('--sheet-reveal-progress', progressToken(progress));
     }
     setScrimProgress?.(progress, 'settle');
+    syncSheetGestureChrome();
 
     let finished = false;
     const finish = () => {
@@ -519,11 +570,11 @@ export function createSheetController({
       if (useShowClass && layer) {
         layer.classList.remove('is-revealing', 'is-settling');
         if (managedScrim) managedScrim.style.removeProperty('opacity');
-        else layer.style.removeProperty('--sheet-reveal-progress');
         layer.classList.add('show');
         layer.inert = false;
       }
       setScrimProgress?.(null, 'clear');
+      syncSheetGestureChrome();
       announceOpened();
     };
 
@@ -547,9 +598,8 @@ export function createSheetController({
         panel.style.transform = shouldOpen
           ? 'translate3d(0, 0, 0)'
           : `translate3d(0, ${closedOffset}px, 0)`;
-        if (useShowClass && layer) {
-          if (managedScrim) writeManagedScrimProgress(targetProgress);
-          else layer.style.setProperty('--sheet-reveal-progress', progressToken(targetProgress));
+        if (useShowClass && layer && managedScrim) {
+          writeManagedScrimProgress(targetProgress);
         }
         setScrimProgress?.(targetProgress, 'settle');
         // Keep JS progress at the release value until finish/interrupt so a new
@@ -620,10 +670,10 @@ export function createSheetController({
       layer.classList.add('show');
       layer.classList.remove('is-revealing', 'is-settling', 'is-dragging');
       if (managedScrim) managedScrim.style.removeProperty('opacity');
-      else layer.style.removeProperty('--sheet-reveal-progress');
       layer.inert = false;
     }
     setScrimProgress?.(null, 'clear');
+    syncSheetGestureChrome();
     announceOpened();
   }
 
@@ -647,9 +697,9 @@ export function createSheetController({
     if (!dragging && !settling && !presented) return;
     invalidateSettle();
     cancelDragRaf();
-    clearCompositorHints();
     dragging = false;
     settling = false;
+    clearCompositorHints();
     leavePresented();
   }
 
@@ -721,9 +771,10 @@ export function scrollPortCanScroll(port, deltaY) {
   if (!port) return false;
   const max = port.scrollHeight - port.clientHeight;
   if (max <= 1) return false;
+  const top = scrollPortMirror.has(port) ? scrollPortMirror.get(port) : port.scrollTop;
   // Finger up (deltaY < 0) increases scrollTop; finger down decreases it.
-  if (deltaY < 0) return port.scrollTop < max - 1;
-  if (deltaY > 0) return port.scrollTop > 0;
+  if (deltaY < 0) return top < max - 1;
+  if (deltaY > 0) return top > 0;
   return false;
 }
 
@@ -732,7 +783,8 @@ export function applyScrollPortDelta(port, deltaYFromStart, startScrollTop) {
   const max = Math.max(0, port.scrollHeight - port.clientHeight);
   const next = Math.min(max, Math.max(0, startScrollTop - deltaYFromStart));
   const applied = startScrollTop - next;
-  port.scrollTop = next;
+  // Coalesce DOM scrollTop writes; mirror keeps edge-handoff checks accurate.
+  scheduleScrollPortPaint(port, next);
   // Return unused delta in screen space (positive deltaY = finger moved down).
   return deltaYFromStart - applied;
 }
@@ -747,9 +799,11 @@ export function stopScrollPortInertia(port = null) {
     if (frame !== undefined) cancelAnimationFrame(frame);
     scrollInertiaFrames.delete(port);
     scrollingPorts.delete(port);
+    flushScrollPortPaint(port);
     return;
   }
   for (const active of [...scrollingPorts]) stopScrollPortInertia(active);
+  for (const pending of [...pendingScrollPorts]) flushScrollPortPaint(pending);
 }
 
 /**
