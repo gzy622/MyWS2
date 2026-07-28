@@ -293,7 +293,9 @@ export function initHorizontalGestures() {
       }
     }
 
-    if (!handledSheet && !cancelled && axis === 'x' && !horizontalScrollPort && !getTopSheet()) {
+    // Settle page/segment swipes from the current delta even on pointercancel.
+    // Android may end a fit-width grade-table pan with cancel after pan-x claims x.
+    if (!handledSheet && axis === 'x' && !horizontalScrollPort && !getTopSheet()) {
       const distanceThreshold = Math.min(56, elements.viewport.clientWidth * 0.14);
       if (event.timeStamp - sampleTime > VELOCITY_STALE_MS) velocityX = 0;
       else velocityX = readTrailVelocity('x');

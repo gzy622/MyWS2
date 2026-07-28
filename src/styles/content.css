@@ -602,6 +602,7 @@
 .grade-table { padding: 14px 0 10px; overflow: hidden; }
 .grade-scroll {
   overflow-x: auto; -webkit-overflow-scrolling: touch;
+  /* Overflow keeps pan-x; Android fit-width overrides to none in courses-renderer.js. */
   padding: 0 16px; touch-action: pan-x;
 }
 .grade-matrix {

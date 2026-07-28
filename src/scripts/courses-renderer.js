@@ -111,6 +111,26 @@ function renderWeekStrip({ periods, scheduleSlots }, matchesHighlight) {
   elements.weekStrip.replaceChildren(root);
 }
 
+function isAndroidTouchSurface() {
+  try {
+    if (globalThis.Capacitor?.getPlatform?.() === 'android') return true;
+  } catch {
+    // Optional bridge may throw if partially injected.
+  }
+  return /Android/i.test(navigator.userAgent || '');
+}
+
+function syncGradeScrollTouchAction(scroller) {
+  if (!scroller?.isConnected) return;
+  const overflow = scroller.scrollWidth > scroller.clientWidth + 1;
+  if (overflow) {
+    scroller.style.touchAction = 'pan-x';
+    return;
+  }
+  // Android cancels pan-x when the scroller cannot move; free x for JS page swipe.
+  scroller.style.touchAction = isAndroidTouchSurface() ? 'none' : 'pan-x';
+}
+
 function renderGradeTable({ students, subjects, courseGrades }) {
   const grades = gradeMap(courseGrades);
   const scroller = document.createElement('div');
@@ -171,6 +191,8 @@ function renderGradeTable({ students, subjects, courseGrades }) {
 
   scroller.append(table);
   elements.gradeTable.replaceChildren(scroller);
+  syncGradeScrollTouchAction(scroller);
+  requestAnimationFrame(() => syncGradeScrollTouchAction(scroller));
 }
 
 export function initCoursesRenderer(store, highlightSubjects) {
@@ -178,6 +200,12 @@ export function initCoursesRenderer(store, highlightSubjects) {
     renderWeekStrip(snapshot, (subject) => highlightSubjects?.matches?.(subject));
     renderGradeTable(snapshot);
   }
+
+  const gradeResizeObserver = new ResizeObserver(() => {
+    const scroller = elements.gradeTable.querySelector('.grade-scroll');
+    if (scroller) syncGradeScrollTouchAction(scroller);
+  });
+  gradeResizeObserver.observe(elements.gradeTable);
 
   store.subscribe(render);
   highlightSubjects?.subscribe?.(render);

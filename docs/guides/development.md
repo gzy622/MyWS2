@@ -40,6 +40,7 @@ node lan-server.js
 node --test tests/*.test.mjs
 
 # 浏览器自动验收（PowerShell 7 + Microsoft Edge）
+# 节奏见 engineering.md §10.0：日常小改可跳过；大型改动提交前必须跑。
 .\tools\verify-web.ps1
 
 # 浏览器模块与服务器语法
@@ -149,12 +150,13 @@ npm run deploy:apk -- -Serial <序列号> -Fresh
    adb -s $deviceSerial shell dumpsys activity activities | Select-String 'topResumedActivity'
    ```
 
-2. 先运行与改动相称的本地检查。部署前检查 `git status --short`，不得覆盖用户已有的工作区改动。
+2. 先运行与改动相称的本地检查。部署前检查 `git status --short`，不得覆盖用户已有的工作区改动。日常小改以单元测试与 `git diff --check` 为主；`verify-web.ps1` 按 [`engineering.md`](../engineering.md) §10.0，仅在大型改动提交前或触及脚本覆盖面时执行。
 
    ```powershell
    node --test tests/*.test.mjs
-   .\tools\verify-web.ps1
    git diff --check
+   # 大型改动提交前再执行：
+   # .\tools\verify-web.ps1
    ```
 
 3. 构建并覆盖安装当前 Debug APK。默认**不要**传 `-Fresh`，以保留设备上的业务数据；只有已获明确授权时才使用它。
