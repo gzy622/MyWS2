@@ -2,6 +2,7 @@
 /www/
 /node_modules/
 .idea/
+.cursor/
 *.iml
 .gradle/
 local.properties
