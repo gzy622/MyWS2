@@ -10,7 +10,13 @@ import {
 import { haptic, Haptic } from './haptics.js';
 import { getTopSheet, isAnySheetDragging } from './sheet-drag.js';
 import { createSheetGestureBridge } from './sheet-gestures.js';
-import { describeDebugTarget, logCourseDebug } from './sheet-debug.js';
+import {
+  describeDebugTarget,
+  getMotionDebugSnapshot,
+  isSheetDebugEnabled,
+  logCourseDebug,
+  logGestureDebug
+} from './sheet-debug.js';
 import { setLetterIndexPageDragging, syncLetterIndexPageVisibility } from './letter-index.js';
 
 const AXIS_LOCK_DISTANCE = 6;
@@ -57,6 +63,10 @@ export function initHorizontalGestures() {
   let claim = null;
   let postDrawerCloseNavUntil = 0;
   let postDrawerCloseNavButton = null;
+  let startPage = 0;
+  let startSubview = 0;
+  let gestureTarget = '';
+  let gesturePointerType = '';
 
   const clearClickSuppression = () => {
     blockGestureClick = false;
@@ -141,6 +151,22 @@ export function initHorizontalGestures() {
       ? gradeScroll
       : null;
     startHorizontalScrollLeft = horizontalScrollPort?.scrollLeft || 0;
+    startPage = state.currentPage;
+    startSubview = state.subviews[state.currentPage];
+    gestureTarget = describeDebugTarget(event.target);
+    gesturePointerType = event.pointerType || 'unknown';
+    if (isSheetDebugEnabled()) {
+      logGestureDebug('pointer start', {
+        pointerType: gesturePointerType,
+        claim: claim ?? 'pass',
+        target: gestureTarget,
+        page: startPage,
+        subview: startSubview,
+        nav: isNav,
+        segments: isSegments,
+        horizontalScroll: Boolean(horizontalScrollPort)
+      });
+    }
   });
 
   element.addEventListener('pointermove', (event) => {
@@ -160,6 +186,16 @@ export function initHorizontalGestures() {
       element.setPointerCapture?.(pointerId);
       if (axis === 'x' && !isSegments && !horizontalScrollPort && claim !== 'sheet') {
         setLetterIndexPageDragging(true);
+      }
+      if (isSheetDebugEnabled()) {
+        logGestureDebug('axis locked', {
+          axis,
+          deltaX: Math.round(deltaX),
+          deltaY: Math.round(deltaY),
+          velocityX: Number(velocityX.toFixed(3)),
+          velocityY: Number(velocityY.toFixed(3)),
+          claim: claim ?? 'pass'
+        });
       }
     }
 
@@ -299,6 +335,24 @@ export function initHorizontalGestures() {
       syncLetterIndexPageVisibility();
     } else {
       syncLetterIndexPageVisibility();
+    }
+
+    if (isSheetDebugEnabled()) {
+      logGestureDebug('pointer release', {
+        pointerType: gesturePointerType,
+        target: gestureTarget,
+        cancelled,
+        axis: axis ?? 'none',
+        claim: claim ?? 'pass',
+        handledSheet,
+        deltaX: Math.round(deltaX),
+        deltaY: Math.round(deltaY),
+        velocityX: Number(velocityX.toFixed(3)),
+        velocityY: Number(velocityY.toFixed(3)),
+        started: { page: startPage, subview: startSubview },
+        ended: { page: state.currentPage, subview: state.subviews[state.currentPage] },
+        motion: getMotionDebugSnapshot(elements.pages)
+      });
     }
 
     isNav = false;

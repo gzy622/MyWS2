@@ -1,0 +1,22 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "android-webview",
+      "request": "attach",
+      "name": "Attach to Android WebView",
+      "application": "com.teacherworkbench.app",
+      "device": "192.168.1.123:37803",
+      "webRoot": "${workspaceFolder}/src",
+      "connectTimeout": 30000
+    },
+    {
+      "type": "chrome",
+      "request": "attach",
+      "name": "Attach via CDP :9222",
+      "port": 9222,
+      "webRoot": "${workspaceFolder}/src",
+      "urlFilter": "*://192.168.1.69:8080/*"
+    }
+  ]
+}

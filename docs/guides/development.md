@@ -63,7 +63,14 @@ npm run code:id
 
 内容指纹只覆盖 `src/index.html`、`src/styles/` 和 `src/scripts/`，用于对比电脑源码、LAN 服务和 APK 内 Web 资源是否一致。
 
-打开通用菜单即可在面板右下角看到当前内容指纹及生成时间（UTC+8，精确到秒）。长按左上菜单、连续点击菜单 3 次，或使用 `?sheetDebug=1` 可查看更完整的 build 调试信息。`origin` 为局域网地址时使用 Live Reload；原生 `https://localhost` 一类地址通常表示使用 APK 内资源。
+打开通用菜单即可在面板右下角看到当前内容指纹及生成时间（UTC+8，精确到秒）。长按左上菜单、连续点击菜单 3 次，或使用 `?sheetDebug=1` 可开启按需诊断：调试条会保留最近 120 条手势边界、Sheet 落位与计算动效、登记业务结果，以及未捕获异常；它不记录逐帧触摸、姓名、分数值或输入原文。调试开启时控制台只输出以 `[twb-debug]` 开头的单行 JSON，方便过滤；`?courseDebug=1` 保持兼容但启用同一套诊断。`origin` 为局域网地址时使用 Live Reload；原生 `https://localhost` 一类地址通常表示使用 APK 内资源。
+
+PowerShell 7 中仅查看本应用的结构化调试输出：
+
+```powershell
+$deviceSerial = '192.168.1.123:37803'
+adb -s $deviceSerial logcat -v threadtime Capacitor/Console:I '*:S' | Select-String -SimpleMatch '[twb-debug]'
+```
 
 ## 4. 单文件导出
 

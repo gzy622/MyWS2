@@ -1,13 +1,14 @@
 /**
- * Sheet / version / course-input diagnostics. Off by default.
+ * On-demand runtime diagnostics. Off by default.
  * Enable: 长按左上角菜单约 0.5s  |  连点菜单 3 次  |  ?sheetDebug=1  |  ?courseDebug=1  |  __sheetDebug.toggle()
  * Disable: 再次长按/连点  |  条上「×」  |  ?sheetDebug=0
  *
  * Default UI is a compact top-right chip (build + log count). Tap chip to expand logs.
- * courseDebug=1 enables tracing but does not force the log list open.
+ * courseDebug=1 remains as a compatibility alias for the former course-only trace.
  */
 
-const MAX_ENTRIES = 60;
+const MAX_ENTRIES = 120;
+const CONSOLE_PREFIX = '[twb-debug]';
 const MENU_TAP_WINDOW_MS = 1400;
 const MENU_TAP_COUNT = 3;
 const MENU_LONG_PRESS_MS = 520;
@@ -239,18 +240,26 @@ function render() {
 }
 
 function setEnabled(on) {
-  enabled = Boolean(on);
+  const next = Boolean(on);
+  const changed = enabled !== next;
+  enabled = next;
   if (!enabled) expanded = false;
   persist(enabled);
   ensurePanel();
   render();
+  if (enabled && changed) {
+    logSheetDebug({ kind: 'runtime', message: 'diagnostics enabled', detail: { maxEntries: MAX_ENTRIES } });
+  }
 }
 
 function formatEntry(data) {
   const t = new Date(data.t || Date.now());
   const stamp = `${String(t.getMinutes()).padStart(2, '0')}:${String(t.getSeconds()).padStart(2, '0')}.${String(t.getMilliseconds()).padStart(3, '0')}`;
   if (data.kind === 'begin') {
-    return `${stamp} BEGIN ${data.id} origin=${data.dragOriginProgress?.toFixed?.(2)} presented=${data.presented} isOpen=${data.isOpen}`;
+    return [
+      `${stamp} BEGIN ${data.id} origin=${data.dragOriginProgress?.toFixed?.(2)} presented=${data.presented} isOpen=${data.isOpen}`,
+      formatMotion(data.motion)
+    ].filter(Boolean).join('\n');
   }
   if (data.kind === 'end') {
     const stay = data.shouldOpen ? 'STAY' : 'CLOSE';
@@ -260,14 +269,65 @@ function formatEntry(data) {
       `  p=${Number(data.progress).toFixed(3)} origin=${Number(data.dragOriginProgress).toFixed(3)} startedOpen=${data.startedOpen}`,
       `  closedPx=${Math.round(data.closedPx)} minClose=${Math.round(data.minClosePx)}`,
       `  vY=${Number(data.velocityY).toFixed(3)} openV=${Number(data.openVelocity).toFixed(3)} closeV=${Number(data.closeVelocity ?? 0).toFixed(3)} travel=${Math.round(data.travel)}`,
-      `  projected=${Number(data.projected).toFixed(3)} projClosed=${Math.round(data.projectedClosedPx ?? 0)} openPx=${Math.round(data.openPx)} cancelled=${data.cancelled}`
-    ].join('\n');
+      `  projected=${Number(data.projected).toFixed(3)} projClosed=${Math.round(data.projectedClosedPx ?? 0)} openPx=${Math.round(data.openPx)} cancelled=${data.cancelled}`,
+      formatMotion(data.motion)
+    ].filter(Boolean).join('\n');
   }
-  if (data.kind === 'course') {
-    const extra = data.detail ? ` · ${data.detail}` : '';
-    return `${stamp} COURSE ${data.message || ''}${extra}`;
+  if (data.kind === 'course' || data.kind === 'gesture' || data.kind === 'logic' || data.kind === 'runtime' || data.kind === 'motion') {
+    const extra = formatDetail(data.detail);
+    return `${stamp} ${data.kind.toUpperCase()} ${data.message || ''}${extra}`;
   }
-  return `${stamp} ${data.message || JSON.stringify(data)}`;
+  return `${stamp} ${data.message || safeStringify(data)}`;
+}
+
+function formatDetail(detail) {
+  if (detail === undefined || detail === '') return '';
+  return ` · ${typeof detail === 'string' ? detail : safeStringify(detail)}`;
+}
+
+function formatMotion(motion) {
+  if (!motion) return '';
+  return `  motion=${motion.property} ${motion.duration} ${motion.timing} reduced=${motion.reduced}`;
+}
+
+function safeStringify(value) {
+  const seen = new WeakSet();
+  try {
+    return JSON.stringify(value, (_key, current) => {
+      if (typeof Element !== 'undefined' && current instanceof Element) return describeDebugTarget(current);
+      if (current instanceof Error) {
+        return { name: current.name, message: current.message, stack: current.stack?.split('\n').slice(0, 2).join('\n') };
+      }
+      if (typeof current === 'number' && !Number.isFinite(current)) return String(current);
+      if (current && typeof current === 'object') {
+        if (seen.has(current)) return '[circular]';
+        seen.add(current);
+      }
+      return current;
+    });
+  } catch {
+    return '"[unserializable]"';
+  }
+}
+
+function writeConsoleEntry(data, timestamp) {
+  const record = {
+    source: 'teacher-workbench',
+    timestamp: new Date(timestamp).toISOString(),
+    kind: data.kind || 'event',
+    event: data.message || '',
+    detail: data.detail ?? null
+  };
+  for (const [key, value] of Object.entries(data)) {
+    if (!(key in record) && key !== 't') record[key] = value;
+  }
+  try {
+    // Android WebView drops secondary console arguments. One structured string
+    // keeps the payload intact in Capacitor/Console and avoids "Msg: undefined".
+    console.info(`${CONSOLE_PREFIX} ${safeStringify(record)}`);
+  } catch {
+    /* diagnostics must never affect application flow */
+  }
 }
 
 function clearLongPress() {
@@ -332,12 +392,11 @@ export function describeDebugTarget(target) {
 export function logSheetDebug(data) {
   if (!enabled) return;
   ensurePanel();
-  const entry = { t: Date.now(), data, text: formatEntry({ ...data, t: Date.now() }) };
+  const timestamp = Date.now();
+  const entry = { t: timestamp, data, text: formatEntry({ ...data, t: timestamp }) };
   entries.push(entry);
   while (entries.length > MAX_ENTRIES) entries.shift();
-  if (data.kind === 'course') {
-    try { console.info('[course-debug]', data.message || '', data.detail || data); } catch { /* ignore */ }
-  }
+  writeConsoleEntry(data, timestamp);
   // Keep chip count fresh; never auto-expand (covers sheets / IME).
   if (chipEl) chipEl.textContent = `build ${buildId()} · ${entries.length}`;
   else render();
@@ -350,6 +409,53 @@ export function logSheetDebug(data) {
 /** Course-input trace: no-op unless debug panel is on. */
 export function logCourseDebug(message, detail = '') {
   logSheetDebug({ kind: 'course', message, detail });
+}
+
+/** Gesture boundaries only; deliberately never used for pointermove frames. */
+export function logGestureDebug(message, detail = {}) {
+  logSheetDebug({ kind: 'gesture', message, detail });
+}
+
+/** User-visible business actions without names, score values, or raw input text. */
+export function logLogicDebug(message, detail = {}) {
+  logSheetDebug({ kind: 'logic', message, detail });
+}
+
+export function getMotionDebugSnapshot(element) {
+  if (!element || typeof globalThis.getComputedStyle !== 'function') return null;
+  const styles = globalThis.getComputedStyle(element);
+  return {
+    property: styles.transitionProperty,
+    duration: styles.transitionDuration,
+    timing: styles.transitionTimingFunction,
+    delay: styles.transitionDelay,
+    reduced: globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true
+  };
+}
+
+function errorDetail(value) {
+  if (value instanceof Error) {
+    return { name: value.name, message: value.message, stack: value.stack?.split('\n').slice(0, 2).join('\n') };
+  }
+  return { value: typeof value === 'string' ? value : safeStringify(value) };
+}
+
+function bindRuntimeDiagnostics() {
+  globalThis.addEventListener?.('error', (event) => {
+    logSheetDebug({
+      kind: 'runtime',
+      message: 'uncaught error',
+      detail: {
+        ...errorDetail(event.error || event.message),
+        source: event.filename || '',
+        line: event.lineno || 0,
+        column: event.colno || 0
+      }
+    });
+  });
+  globalThis.addEventListener?.('unhandledrejection', (event) => {
+    logSheetDebug({ kind: 'runtime', message: 'unhandled rejection', detail: errorDetail(event.reason) });
+  });
 }
 
 export function initSheetDebug() {
@@ -367,6 +473,7 @@ export function initSheetDebug() {
   if (typeof document !== 'undefined') {
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-twb-build'] });
   }
+  bindRuntimeDiagnostics();
 
   globalThis.__sheetDebug = {
     isEnabled: () => enabled,

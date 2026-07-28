@@ -1,4 +1,4 @@
-import { isSheetDebugEnabled, logSheetDebug } from './sheet-debug.js';
+import { getMotionDebugSnapshot, isSheetDebugEnabled, logSheetDebug } from './sheet-debug.js';
 import { syncChromeInert } from './focus.js';
 
 /** Minimum finger travel (px) before a slow drag may dismiss an open sheet. */
@@ -432,7 +432,8 @@ export function createSheetController({
         presented,
         isOpen: isOpen(),
         startingFromClosed,
-        travel
+        travel,
+        motion: getMotionDebugSnapshot(panel)
       });
     }
     return progress;
@@ -548,6 +549,19 @@ export function createSheetController({
     }
     setScrimProgress?.(progress, 'settle');
     syncSheetGestureChrome();
+    if (isSheetDebugEnabled()) {
+      logSheetDebug({
+        kind: 'motion',
+        message: 'sheet settle',
+        detail: {
+          id,
+          target: shouldOpen ? 'open' : 'closed',
+          progress: Number(progress.toFixed(3)),
+          targetProgress,
+          motion: getMotionDebugSnapshot(panel)
+        }
+      });
+    }
 
     let finished = false;
     const finish = () => {
@@ -649,7 +663,8 @@ export function createSheetController({
         travel: decision.travelPx,
         projected: decision.projected,
         projectedClosedPx: decision.projectedClosedPx,
-        openPx: decision.openPx
+        openPx: decision.openPx,
+        motion: getMotionDebugSnapshot(panel)
       });
     }
     settle({ open: shouldOpen });

@@ -8,6 +8,7 @@ import {
   SEAT_VIEW_MIN_SCALE
 } from './seat-geometry.js';
 import { haptic, Haptic } from './haptics.js';
+import { logLogicDebug } from './sheet-debug.js';
 
 const MIN_SCALE = 0.18;
 const MAX_SCALE = 2.5;
@@ -462,6 +463,13 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
       } else {
         const wasCompleted = cardGesture.card.getAttribute('aria-pressed') === 'true';
         if (store.toggleCompletion(cardGesture.studentId)) {
+          logLogicDebug('completion toggled', {
+            source: 'seat-tap',
+            assignmentId: store.getCurrentAssignment().id,
+            studentId: cardGesture.studentId,
+            fromCompleted: wasCompleted,
+            toCompleted: !wasCompleted
+          });
           haptic(Haptic.light);
           showToast(wasCompleted ? '已取消完成' : '已标记完成');
         }
@@ -510,6 +518,13 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
     const studentId = Number(card.dataset.studentId);
     const wasCompleted = card.getAttribute('aria-pressed') === 'true';
     if (store.toggleCompletion(studentId)) {
+      logLogicDebug('completion toggled', {
+        source: 'seat-keyboard',
+        assignmentId: store.getCurrentAssignment().id,
+        studentId,
+        fromCompleted: wasCompleted,
+        toCompleted: !wasCompleted
+      });
       haptic(Haptic.light);
       showToast(wasCompleted ? '已取消完成' : '已标记完成');
     }

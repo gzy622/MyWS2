@@ -10,7 +10,7 @@ import {
 } from './sheet-drag.js';
 import { haptic, Haptic } from './haptics.js';
 import { blurIfSheetChrome } from './focus.js';
-import { describeDebugTarget, isSheetDebugEnabled, logCourseDebug } from './sheet-debug.js';
+import { describeDebugTarget, isSheetDebugEnabled, logGestureDebug } from './sheet-debug.js';
 
 const REGISTER_PAGE_INDEX = 1;
 const GRID_SUBVIEW_INDEX = 0;
@@ -73,15 +73,16 @@ export function createSheetGestureBridge() {
     stopScrollPortInertia();
 
     const hit = describeDebugTarget(event.target);
-    const courseRelated = isInteractiveField(event.target)
-      || isCourseControl(event.target)
-      || Boolean(event.target.closest?.(
-        '.course-slot-sheet, .course-period-sheet, .course-subject-sheet, .course-grade-sheet, .course-highlight-sheet, #weekStrip, #gradeTable'
-      ));
-
     const finish = (result, reason) => {
-      if (courseRelated && isSheetDebugEnabled()) {
-        logCourseDebug('gesture claim', `${result ?? 'null'} · ${reason} · hit=${hit} overlay=${state.activeOverlay ?? 'none'}`);
+      if (isSheetDebugEnabled()) {
+        logGestureDebug('sheet claim', {
+          result: result ?? 'pass',
+          reason,
+          target: hit,
+          overlay: state.activeOverlay ?? 'none',
+          page: state.currentPage,
+          subview: state.subviews[state.currentPage]
+        });
       }
       return result;
     };
@@ -221,6 +222,17 @@ export function createSheetGestureBridge() {
       const shouldOpen = sheet.endDrag({ velocityY, cancelled });
       if (shouldOpen && sheet.id === 'drawer') openedDrawer = true;
       if (!shouldOpen && session.mode === 'scrub') closedSheetId = sheet.id;
+    }
+
+    if (isSheetDebugEnabled() && (session.started || cancelled)) {
+      logGestureDebug('sheet release', {
+        sheet: sheet?.id ?? 'none',
+        mode: session.mode,
+        handled: wasSheet,
+        scrollOnly: wasScrollOnly,
+        cancelled,
+        velocityY: Number(velocityY.toFixed(3))
+      });
     }
 
     clear();
