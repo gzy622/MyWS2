@@ -55,6 +55,8 @@ export function initHorizontalGestures() {
   let clickSuppressTimer = 0;
   let lastSegment = 0;
   let claim = null;
+  let postDrawerCloseNavUntil = 0;
+  let postDrawerCloseNavButton = null;
 
   const clearClickSuppression = () => {
     blockGestureClick = false;
@@ -91,6 +93,11 @@ export function initHorizontalGestures() {
   const element = elements.app;
 
   element.addEventListener('pointerdown', (event) => {
+    const now = performance.now();
+    postDrawerCloseNavButton = now <= postDrawerCloseNavUntil
+      ? event.target.closest?.('#nav .nav-btn') ?? null
+      : null;
+    if (postDrawerCloseNavUntil) postDrawerCloseNavUntil = 0;
     claim = sheets.claimPointerDown(event);
     if (claim === 'blocked') return;
 
@@ -237,12 +244,17 @@ export function initHorizontalGestures() {
     active = false;
 
     const wasGesture = Math.hypot(deltaX, deltaY) > 10;
+    const immediateNavButton = !cancelled && !wasGesture ? postDrawerCloseNavButton : null;
     let handledSheet = false;
 
     if (claim === 'sheet') {
       if (event.timeStamp - sampleTime > VELOCITY_STALE_MS) velocityY = 0;
       else velocityY = readTrailVelocity('y');
-      handledSheet = sheets.endPointer({ velocityY, cancelled });
+      const sheetResult = sheets.endPointer({ velocityY, cancelled });
+      handledSheet = sheetResult.handled;
+      if (sheetResult.closedSheetId === 'drawer') {
+        postDrawerCloseNavUntil = performance.now() + CLICK_SUPPRESS_MS;
+      }
     }
 
     if (!handledSheet && !cancelled && axis === 'x' && !horizontalScrollPort && !getTopSheet()) {
@@ -294,9 +306,14 @@ export function initHorizontalGestures() {
     horizontalScrollPort = null;
     startHorizontalScrollLeft = 0;
     claim = null;
+    postDrawerCloseNavButton = null;
+
+    // Android WebView can omit click for the first contact after a Sheet swipe.
+    // Complete that one deliberate nav tap here and block any late duplicate click.
+    immediateNavButton?.click();
 
     // Suppress the trailing click after touch drag/sheet scrub (do not clear via microtask).
-    if (wasGesture || handledSheet) {
+    if (wasGesture || handledSheet || immediateNavButton) {
       const courseHit = event.target?.closest?.(
         '.week-slot-cell, .week-period-label, .course-edit-field, .course-slot-sheet, #weekStrip'
       );
@@ -315,6 +332,10 @@ export function initHorizontalGestures() {
   element.addEventListener('lostpointercapture', (event) => {
     if (event.target === element) endGesture(event, true);
   });
+  // Clear a previous gesture's trailing-click guard at the earliest boundary
+  // of a deliberate new contact, before any child can stop propagation.
+  document.addEventListener('pointerdown', clearClickSuppression, true);
+  document.addEventListener('touchstart', clearClickSuppression, { capture: true, passive: true });
   element.addEventListener('keydown', clearClickSuppression, true);
   element.addEventListener('click', (event) => {
     if (!blockGestureClick) return;

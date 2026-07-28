@@ -207,7 +207,7 @@ export function createSheetGestureBridge() {
   }
 
   function endPointer({ velocityY = 0, cancelled = false } = {}) {
-    if (!session) return false;
+    if (!session) return { handled: false, closedSheetId: null };
     const sheet = session.sheet;
     const wasSheet = Boolean(session.started && sheet && sheet.isDragging());
     const wasScrollOnly = Boolean(
@@ -215,16 +215,18 @@ export function createSheetGestureBridge() {
     );
     const scrollPort = session.scrollPort;
     let openedDrawer = false;
+    let closedSheetId = null;
 
     if (wasSheet) {
       const shouldOpen = sheet.endDrag({ velocityY, cancelled });
       if (shouldOpen && sheet.id === 'drawer') openedDrawer = true;
+      if (!shouldOpen && session.mode === 'scrub') closedSheetId = sheet.id;
     }
 
     clear();
     if (wasScrollOnly && !cancelled) startScrollPortInertia(scrollPort, velocityY);
     if (openedDrawer) haptic(Haptic.light);
-    return wasSheet;
+    return { handled: wasSheet, closedSheetId };
   }
 
   return {
