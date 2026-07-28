@@ -140,7 +140,7 @@
 }
 
 .assignment-select[aria-pressed="true"] {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .assignment-item small {
@@ -187,7 +187,7 @@
   justify-content: center;
   gap: 8px;
   color: var(--on-accent);
-  background: var(--accent) !important;
+  background: var(--accent);
   font-weight: 600;
 }
 
@@ -280,7 +280,7 @@
 .assignment-name-field input:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
 .assignment-name-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
 .assignment-name-actions button { min-height: 44px; border: 0; border-radius: 12px; background: var(--control); color: var(--ink); cursor: pointer; font-weight: 600; }
-.assignment-name-actions .primary { color: white; background: var(--accent); }
+.assignment-name-actions .primary { color: var(--on-accent); background: var(--accent); }
 
 /* IME: only the focused overlay yields to the keyboard; shell stays full height. */
 .assignment-name-sheet.is-ime-host,
