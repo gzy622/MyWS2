@@ -131,6 +131,62 @@ npm run deploy:apk
 npm run deploy:apk -- -Serial <序列号> -Fresh
 ```
 
+### 真机运行时调试（智能体执行清单）
+
+以下流程适用于已通过无线调试连接、且已打开本项目 Debug App 的设备。所有命令均在项目根目录的 PowerShell 7 中执行。
+
+1. 先确认 PowerShell 版本、依赖和设备状态。`adb devices -l` 可能同时显示 mDNS 与 IP 两条记录；必须选定其中一个可用序列号并在后续每条 adb 命令中传入 `-s $deviceSerial`，避免“more than one device/emulator”。
+
+   ```powershell
+   $PSVersionTable.PSVersion.ToString()
+   'adb', 'node', 'npm', 'java' | ForEach-Object {
+     Get-Command $_ -ErrorAction Stop | Select-Object -ExpandProperty Source
+   }
+
+   adb devices -l
+   $deviceSerial = '<设备序列号>'
+   adb -s $deviceSerial get-state
+   adb -s $deviceSerial shell dumpsys activity activities | Select-String 'topResumedActivity'
+   ```
+
+2. 先运行与改动相称的本地检查。部署前检查 `git status --short`，不得覆盖用户已有的工作区改动。
+
+   ```powershell
+   node --test tests/*.test.mjs
+   .\tools\verify-web.ps1
+   git diff --check
+   ```
+
+3. 构建并覆盖安装当前 Debug APK。默认**不要**传 `-Fresh`，以保留设备上的业务数据；只有已获明确授权时才使用它。
+
+   ```powershell
+   npm run deploy:apk -- -Serial $deviceSerial
+   ```
+
+4. 在 App 内长按左上角菜单约 0.5 秒，或连续点击该菜单 3 次，开启会话级诊断。右上角出现 `build <内容指纹> · <记录数>` 即表示已开启；点击 `×` 或重复上述手势可关闭。优先通过该可见控件开启，不要依赖特定设备的 ADB 坐标。
+
+5. 只读取项目的结构化日志。不要依据原始 Logcat 的 `E/W` 数量判断问题：Android 厂商、媒体和 WebView 会输出与项目无关的噪声。`[twb-debug]` 是本项目唯一的运行时诊断前缀。
+
+   ```powershell
+   # 持续观察：仅保留项目结构化诊断。
+   adb -s $deviceSerial logcat -v threadtime Capacitor/Console:I '*:S' |
+     Select-String -SimpleMatch '[twb-debug]'
+
+   # 读取当前进程已有的诊断，适合复现完成后保存证据。
+   $appPid = (adb -s $deviceSerial shell pidof com.teacherworkbench.app).Trim()
+   adb -s $deviceSerial logcat -d -v threadtime --pid $appPid |
+     Select-String -SimpleMatch '[twb-debug]'
+   ```
+
+6. 复现时记录触发路径和结构化事件。日志覆盖：
+
+   - `gesture`：Sheet 归属、按下、轴锁定、释放、位移、速度与落点；不逐帧记录 `pointermove`。
+   - `motion`：Sheet 进入落位时的实际 CSS `transition-property`、时长、缓动和 reduced-motion 状态。
+   - `logic`：网格/座位登记、学生记录打开、清除与保存的结果，只保留作业和学生 ID，不含姓名、分数值或输入原文。
+   - `runtime`：未捕获异常与未处理的 Promise 拒绝。
+
+7. 收尾时保留必要的截图、结构化日志片段和复现步骤；不执行 `adb logcat -c`（会清空整台设备的日志缓冲区）。若不需要继续观察，关闭 App 内诊断条，避免它遮挡顶栏。
+
 ### 原生 Live Reload
 
 ```powershell
