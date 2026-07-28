@@ -2,6 +2,8 @@
 
 本目录将**现行约束、事实说明、操作指南和历史档案**分开维护。文档文件名使用稳定的英文 kebab-case，不依赖数字序号表达优先级。
 
+智能体日常以仓库根目录 [`AGENTS.md`](../AGENTS.md) 的阅读路由为准；本文件是文档地图与冲突/维护规则。
+
 ## 现行文档
 
 | 文档 | 职责 | 何时阅读 |
@@ -9,7 +11,7 @@
 | [`product.md`](product.md) | 产品定义、固定信息架构、范围和文案原则 | 改页面、功能或业务范围前 |
 | [`visual-design.md`](visual-design.md) | 视觉 token、组件外观、布局和动效基线 | 改 CSS、图标或视觉状态前 |
 | [`interaction.md`](interaction.md) | 状态模型、业务交互、手势、返回栈与可访问性 | 改状态、事件或手势前 |
-| [`engineering.md`](engineering.md) | 技术边界、文件职责、DOM/存储契约和验收清单 | 所有代码改动前后 |
+| [`engineering.md`](engineering.md) | 技术边界、文件职责、DOM/存储契约和验收清单 | 所有代码改动：先读「最小必读」；其余章节按触发 |
 | [`architecture.md`](architecture.md) | 当前目录、模块关系、数据流和交付边界 | 改模块职责或跨模块依赖前 |
 | [`glossary.md`](glossary.md) | 产品、领域、界面和工程统一用语 | 写需求、评审、命名或文案时 |
 
