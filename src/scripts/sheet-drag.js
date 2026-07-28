@@ -58,6 +58,25 @@ function measureTravel(panel) {
 }
 
 /**
+ * A real scrim lets drag frames update only its composited opacity. Updating an
+ * inherited CSS variable on the overlay otherwise invalidates the entire Sheet
+ * subtree on every pointer frame.
+ */
+function ensureManagedScrim(layer, panel) {
+  if (!layer || !panel) return null;
+  let scrim = [...layer.children].find((child) => child.classList.contains('sheet-scrim'));
+  if (!scrim) {
+    scrim = document.createElement('div');
+    scrim.className = 'sheet-scrim';
+    scrim.setAttribute('aria-hidden', 'true');
+    if (panel.parentElement === layer) layer.insertBefore(scrim, panel);
+    else layer.prepend(scrim);
+  }
+  layer.classList.add('sheet-has-managed-scrim');
+  return scrim;
+}
+
+/**
  * Unified progress 0–1 sheet controller.
  * from-top: drag down opens; from-bottom: drag up opens.
  */
@@ -78,6 +97,7 @@ export function createSheetController({
   onClosed,
   setScrimProgress
 }) {
+  const managedScrim = useShowClass && layer ? ensureManagedScrim(layer, panel) : null;
   let progress = 0;
   let travel = 0;
   let dragging = false;
@@ -119,10 +139,20 @@ export function createSheetController({
    * the `.show` fallback (opacity: 1) can win for one style recalculation and
    * the scrim visibly jumps when a scrub starts.
    */
+  function writeManagedScrimProgress(value) {
+    if (!managedScrim) return false;
+    const token = progressToken(value);
+    if (paintedScrimToken !== token) {
+      paintedScrimToken = token;
+      managedScrim.style.opacity = token;
+    }
+    return true;
+  }
+
   function pinScrimToProgress(value) {
     const p = clamp01(value);
     if (useShowClass && layer) {
-      layer.style.setProperty('--sheet-reveal-progress', progressToken(p));
+      writeManagedScrimProgress(p);
       layer.classList.add('is-revealing');
       layer.classList.remove('is-settling');
       return;
@@ -154,12 +184,11 @@ export function createSheetController({
   }
 
   /** Promote only the active panel/scrim, then release the GPU layers after settling. */
-  function promoteCompositorLayers({ flush = false, autoRelease = true } = {}) {
+  function promoteCompositorLayers({ autoRelease = true } = {}) {
     clearCompositorHints();
     panel.classList.add('sheet-compositing');
     layer?.classList.add('sheet-scrim-compositing');
     scrimElement?.classList.add('sheet-scrim-compositing');
-    if (flush) void panel.offsetWidth;
     if (autoRelease) {
       compositorHintTimer = window.setTimeout(clearCompositorHints, COMPOSITOR_RELEASE_MS);
     }
@@ -179,13 +208,8 @@ export function createSheetController({
     }
     paintedProgress = p;
     applyTransform(p);
-    const token = progressToken(p);
     if (useShowClass && layer) {
-      if (paintedScrimToken !== token) {
-        paintedScrimToken = token;
-        layer.style.setProperty('--sheet-reveal-progress', token);
-      }
-      // Layer owns the CSS var while scrubbing; settle/clear still go through callback.
+      writeManagedScrimProgress(p);
       if (mode !== 'drag') setScrimProgress?.(p, mode);
     } else {
       setScrimProgress?.(p, mode);
@@ -214,7 +238,8 @@ export function createSheetController({
 
   function ensureTravel({ force = false } = {}) {
     if (travel > 0 && !force && (dragging || settling)) return travel;
-    void panel.offsetHeight;
+    // getBoundingClientRect is the only required layout read. Avoid a preceding
+    // offsetHeight read, which used to force the same layout twice at drag start.
     travel = measureTravel(panel);
     return travel;
   }
@@ -292,7 +317,8 @@ export function createSheetController({
     if (useShowClass && layer) {
       layer.classList.remove('show', 'is-revealing', 'is-settling', 'is-dragging');
       layer.inert = true;
-      layer.style.removeProperty('--sheet-reveal-progress');
+      if (managedScrim) managedScrim.style.removeProperty('opacity');
+      else layer.style.removeProperty('--sheet-reveal-progress');
     }
     panel.style.transform = '';
     panel.style.visibility = '';
@@ -326,8 +352,11 @@ export function createSheetController({
     // Pin before enterPresented / ensureTravel — both can force a reflow.
     pinScrimToProgress(progress);
     enterPresented({ source: openSource ?? (startingFromClosed ? 'gesture' : 'control') });
+    // Measure once after prepare has populated the panel, then promote it. Keeping
+    // these writes together avoids the previous extra synchronous layout flush.
+    ensureTravel({ force: true });
     // A drag may last indefinitely; retain only this active sheet's layers until release.
-    promoteCompositorLayers({ flush: true, autoRelease: false });
+    promoteCompositorLayers({ autoRelease: false });
     dragging = true;
     setDraggingClass(true);
     if (useShowClass && layer) {
@@ -336,7 +365,6 @@ export function createSheetController({
       layer.inert = false;
     }
     panel.style.visibility = 'visible';
-    ensureTravel({ force: true });
     paintedProgress = NaN;
     paintedScrimToken = '';
     paint(progress, 'drag');
@@ -461,7 +489,8 @@ export function createSheetController({
     if (useShowClass && layer) {
       layer.classList.add('is-settling');
       layer.classList.remove('is-revealing');
-      layer.style.setProperty('--sheet-reveal-progress', progressToken(progress));
+      if (managedScrim) writeManagedScrimProgress(progress);
+      else layer.style.setProperty('--sheet-reveal-progress', progressToken(progress));
     }
     setScrimProgress?.(progress, 'settle');
 
@@ -489,7 +518,8 @@ export function createSheetController({
       panel.style.visibility = '';
       if (useShowClass && layer) {
         layer.classList.remove('is-revealing', 'is-settling');
-        layer.style.removeProperty('--sheet-reveal-progress');
+        if (managedScrim) managedScrim.style.removeProperty('opacity');
+        else layer.style.removeProperty('--sheet-reveal-progress');
         layer.classList.add('show');
         layer.inert = false;
       }
@@ -518,7 +548,8 @@ export function createSheetController({
           ? 'translate3d(0, 0, 0)'
           : `translate3d(0, ${closedOffset}px, 0)`;
         if (useShowClass && layer) {
-          layer.style.setProperty('--sheet-reveal-progress', progressToken(targetProgress));
+          if (managedScrim) writeManagedScrimProgress(targetProgress);
+          else layer.style.setProperty('--sheet-reveal-progress', progressToken(targetProgress));
         }
         setScrimProgress?.(targetProgress, 'settle');
         // Keep JS progress at the release value until finish/interrupt so a new
@@ -576,8 +607,8 @@ export function createSheetController({
     cancelDragRaf();
     dragging = false;
     openSource = 'control';
-    // Flush the hint before toggling the visible state so the first frame is composited.
-    promoteCompositorLayers({ flush: true });
+    // Add the compositor hint before the state change without forcing layout.
+    promoteCompositorLayers();
     enterPresented({ source: 'control' });
     progress = 1;
     paintedProgress = NaN;
@@ -588,7 +619,8 @@ export function createSheetController({
     if (useShowClass && layer) {
       layer.classList.add('show');
       layer.classList.remove('is-revealing', 'is-settling', 'is-dragging');
-      layer.style.removeProperty('--sheet-reveal-progress');
+      if (managedScrim) managedScrim.style.removeProperty('opacity');
+      else layer.style.removeProperty('--sheet-reveal-progress');
       layer.inert = false;
     }
     setScrimProgress?.(null, 'clear');
@@ -607,7 +639,7 @@ export function createSheetController({
       setScrimProgress?.(null, 'clear');
       return;
     }
-    promoteCompositorLayers({ flush: true });
+    promoteCompositorLayers();
     leavePresented();
   }
 

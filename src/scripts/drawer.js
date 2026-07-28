@@ -10,7 +10,7 @@ let sheet;
 
 function setDrawerScrimProgress(progress, mode = 'drag') {
   if (mode === 'clear' || (progress == null && mode !== 'settle')) {
-    elements.app.style.removeProperty('--sheet-reveal-progress');
+    elements.scrim.style.removeProperty('opacity');
     elements.app.classList.remove('drawer-revealing', 'drawer-settling');
     return;
   }
@@ -27,9 +27,9 @@ function setDrawerScrimProgress(progress, mode = 'drag') {
 
   if (progress != null) {
     const token = (Math.round(progress * 1000) / 1000).toFixed(3);
-    if (elements.app.style.getPropertyValue('--sheet-reveal-progress') !== token) {
-      elements.app.style.setProperty('--sheet-reveal-progress', token);
-    }
+    // Keep per-frame work on the composited scrim itself. Updating a custom
+    // property on .app invalidates every descendant while the Sheet is dragged.
+    if (elements.scrim.style.opacity !== token) elements.scrim.style.opacity = token;
   }
 }
 

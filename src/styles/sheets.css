@@ -8,9 +8,34 @@
 
 /* Promote only during reveal/settle; the controller removes these hints afterward. */
 .sheet-scrim-compositing::before,
+.sheet-scrim-compositing > .sheet-scrim,
 .scrim.sheet-scrim-compositing {
   will-change: opacity;
   backface-visibility: hidden;
+}
+
+/*
+ * The controller injects this direct child for managed Sheets. It isolates the
+ * frame-by-frame opacity write from the panel subtree; legacy pseudo scrims are
+ * suppressed only after that child exists.
+ */
+.sheet-has-managed-scrim::before { display: none; }
+.sheet-scrim {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  background: var(--scrim);
+  opacity: 0;
+  transition: opacity var(--duration-fade) linear;
+}
+.sheet-has-managed-scrim.show > .sheet-scrim { opacity: 1; }
+.sheet-has-managed-scrim.is-revealing > .sheet-scrim,
+.sheet-has-managed-scrim.is-dragging > .sheet-scrim {
+  transition: opacity var(--duration-scrim-track) linear;
+}
+.sheet-has-managed-scrim.is-settling > .sheet-scrim {
+  transition: opacity var(--duration-sheet) var(--ease);
 }
 
 .sheet-overlay {

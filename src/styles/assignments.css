@@ -227,6 +227,7 @@
   opacity: 0;
   transition: opacity var(--duration-fade) linear;
 }
+.assignment-name-sheet > .sheet-scrim { background: var(--scrim-stacked); }
 
 .assignment-name-sheet.show { pointer-events: auto; touch-action: none; }
 .assignment-name-sheet.show::before { opacity: 1; }
