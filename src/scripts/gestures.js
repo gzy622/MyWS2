@@ -47,6 +47,8 @@ export function initHorizontalGestures() {
   let velocityTrail = [];
   let scrollPage = null;
   let startScrollTop = 0;
+  let horizontalScrollPort = null;
+  let startHorizontalScrollLeft = 0;
   let isNav = false;
   let isSegments = false;
   let blockGestureClick = false;
@@ -96,7 +98,7 @@ export function initHorizontalGestures() {
     const topSheet = getTopSheet();
     if (claim !== 'sheet' && topSheet) return;
     if (claim !== 'sheet' && (state.activeOverlay || state.drawerOpen || state.fontSizePopoverOpen)) return;
-    if (claim !== 'sheet' && event.target.closest?.('.seat-viewport, .grade-scroll, .letter-index')) return;
+    if (claim !== 'sheet' && event.target.closest?.('.seat-viewport, .letter-index')) return;
     if (event.button > 0) return;
 
     const courseHit = event.target.closest?.(
@@ -125,6 +127,13 @@ export function initHorizontalGestures() {
     lastSegment = isSegments ? state.subviews[state.currentPage] : state.currentPage;
     scrollPage = isNav ? null : elements.pageElements[state.currentPage];
     startScrollTop = scrollPage?.scrollTop || 0;
+    const gradeScroll = !isNav && !isSegments
+      ? event.target.closest?.('.grade-scroll')
+      : null;
+    horizontalScrollPort = gradeScroll?.scrollWidth > gradeScroll?.clientWidth + 1
+      ? gradeScroll
+      : null;
+    startHorizontalScrollLeft = horizontalScrollPort?.scrollLeft || 0;
   });
 
   element.addEventListener('pointermove', (event) => {
@@ -142,7 +151,7 @@ export function initHorizontalGestures() {
     if (!axis && Math.hypot(deltaX, deltaY) > AXIS_LOCK_DISTANCE) {
       axis = Math.abs(deltaX) >= Math.abs(deltaY) ? 'x' : 'y';
       element.setPointerCapture?.(pointerId);
-      if (axis === 'x' && !isSegments && claim !== 'sheet') {
+      if (axis === 'x' && !isSegments && !horizontalScrollPort && claim !== 'sheet') {
         setLetterIndexPageDragging(true);
       }
     }
@@ -175,6 +184,18 @@ export function initHorizontalGestures() {
     if (getTopSheet()) return;
 
     event.preventDefault();
+    if (horizontalScrollPort) {
+      const maxScrollLeft = Math.max(
+        0,
+        horizontalScrollPort.scrollWidth - horizontalScrollPort.clientWidth
+      );
+      horizontalScrollPort.scrollLeft = Math.min(
+        maxScrollLeft,
+        Math.max(0, startHorizontalScrollLeft - deltaX)
+      );
+      return;
+    }
+
     let resistedOffset = deltaX;
     const currentSub = state.subviews[state.currentPage];
     const isPastStart = isSegments
@@ -224,7 +245,7 @@ export function initHorizontalGestures() {
       handledSheet = sheets.endPointer({ velocityY, cancelled });
     }
 
-    if (!handledSheet && !cancelled && axis === 'x' && !getTopSheet()) {
+    if (!handledSheet && !cancelled && axis === 'x' && !horizontalScrollPort && !getTopSheet()) {
       const distanceThreshold = Math.min(56, elements.viewport.clientWidth * 0.14);
       if (event.timeStamp - sampleTime > VELOCITY_STALE_MS) velocityX = 0;
       else velocityX = readTrailVelocity('x');
@@ -270,6 +291,8 @@ export function initHorizontalGestures() {
 
     isNav = false;
     isSegments = false;
+    horizontalScrollPort = null;
+    startHorizontalScrollLeft = 0;
     claim = null;
 
     // Suppress the trailing click after touch drag/sheet scrub (do not clear via microtask).

@@ -202,25 +202,35 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
   const presses = new Map();
   let suppressClickUntil = 0;
   let ghostGuard = null;
+  let ghostPointerGuard = null;
+  let ghostGuardTimer = 0;
+
+  function clearGridClickSuppress() {
+    if (ghostGuard) document.removeEventListener('click', ghostGuard, true);
+    if (ghostPointerGuard) document.removeEventListener('pointerdown', ghostPointerGuard, true);
+    if (ghostGuardTimer) window.clearTimeout(ghostGuardTimer);
+    ghostGuard = null;
+    ghostPointerGuard = null;
+    ghostGuardTimer = 0;
+    suppressClickUntil = 0;
+  }
 
   /**
    * After save/clear/close on pointerdown, the trailing click can land on the
    * bottom nav (toggles 成绩→课表) or segment tabs / score cells underneath.
+   * A new pointerdown is a deliberate next action and must not be swallowed.
    */
   function armGridClickSuppress(ms = 500) {
+    clearGridClickSuppress();
     suppressClickUntil = performance.now() + ms;
-    if (ghostGuard) {
-      document.removeEventListener('click', ghostGuard, true);
-      ghostGuard = null;
-    }
     const until = suppressClickUntil;
     ghostGuard = (event) => {
       if (performance.now() >= until) {
-        document.removeEventListener('click', ghostGuard, true);
-        ghostGuard = null;
+        clearGridClickSuppress();
         return;
       }
       const hit = event.target;
+      clearGridClickSuppress();
       if (!(hit instanceof Element)) return;
       if (!hit.closest(
         '#nav, .nav-btn, .segment, #weekStrip, #gradeTable, .week-slot-cell, .week-period-label, .grade-score-cell, .grade-subject-head, .confirm-sheet'
@@ -231,7 +241,10 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
       event.stopImmediatePropagation();
       logCourseDebug('ghost click suppressed', describeDebugTarget(hit));
     };
+    ghostPointerGuard = clearGridClickSuppress;
     document.addEventListener('click', ghostGuard, true);
+    document.addEventListener('pointerdown', ghostPointerGuard, true);
+    ghostGuardTimer = window.setTimeout(clearGridClickSuppress, ms);
   }
 
   function closeSlot({ restoreFocus = true } = {}) {

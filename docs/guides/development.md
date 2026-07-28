@@ -39,6 +39,9 @@ node lan-server.js
 # 所有单元测试
 node --test tests/*.test.mjs
 
+# 浏览器自动验收（PowerShell 7 + Microsoft Edge）
+.\tools\verify-web.ps1
+
 # 浏览器模块与服务器语法
 Get-ChildItem src/scripts/*.js | ForEach-Object { node --check $_.FullName }
 node --check lan-server.js
@@ -49,6 +52,8 @@ git diff --check
 ```
 
 完整验收清单见 [`../engineering.md`](../engineering.md)。
+
+浏览器自动验收会自行选择空闲端口，启动隐藏的临时 LAN 服务与 Edge 实例，检查三档移动视口、DOM 契约、控制台错误、成绩表横拖优先级、课程成绩 Sheet 点击保护和 Sheet 合成层释放。Edge 使用系统临时目录中的专用隔离配置，不接触默认浏览器数据；成功后清理当次运行日志，失败时保留诊断目录并输出路径，可用 `-KeepArtifacts` 在成功时也保留。
 
 ## 3. 内容指纹
 

@@ -20,6 +20,9 @@ Windows 也可双击 `start-lan-server.bat`。
 # 单元测试
 node --test tests/*.test.mjs
 
+# 浏览器自动验收（PowerShell 7 + Microsoft Edge）
+.\tools\verify-web.ps1
+
 # 生成可直接打开的单文件版本
 .\tools\build-single-html.ps1
 

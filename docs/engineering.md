@@ -60,6 +60,7 @@
 | 主题、视口、触觉、焦点、Toast | 对应同名模块 |
 | 初始化和依赖注入 | `src/scripts/main.js` |
 | 内容指纹 | `tools/content-id.cjs`、`src/scripts/build-id.js` |
+| 浏览器自动验收 | `tools/verify-web.ps1` |
 | 单文件导出 | `tools/build-single-html.ps1` |
 | Web 资源同步 | `tools/sync-web-assets.ps1` |
 | Android 预览、部署、手机同步 | `tools/preview-native.ps1`、`tools/deploy-apk.ps1`、`tools/sync-phone.ps1` |
@@ -177,6 +178,7 @@
 
 - `tools/sync-web-assets.ps1` 只复制 `src/index.html`、`src/styles/` 和 `src/scripts/` 到 `www/`。
 - `tools/content-id.cjs` 只对上述 Web 源码计算指纹。
+- `tools/verify-web.ps1` 使用本机 PowerShell 7、Node.js 与 Microsoft Edge，通过临时 LAN 服务和 CDP 模拟 320px、390px、430px 视口，并检查 DOM、控制台、成绩表横拖、幽灵点击和 Sheet 合成层生命周期；不引入第三方依赖，不写入 Web 源码或业务存储。
 - `tools/build-single-html.ps1` 默认从 `src/index.html` 生成 `dist/teacher-workbench.single.html`。
 - 根目录 `.bat` 必须保持纯 ASCII + CRLF；`tools/*.ps1` 保持 UTF-8 BOM + CRLF。
 - 生成文件不得纳入日常源码评审；如需验证，重建后检查结果而非手工补丁。
@@ -207,6 +209,7 @@
 
 - [ ] `node --check` 检查全部 `src/scripts/*.js`、`lan-server.js` 和 `tools/content-id.cjs`。
 - [ ] `node --test tests/*.test.mjs` 全部通过。
+- [ ] `.\tools\verify-web.ps1` 全部通过。
 - [ ] 页面 ID 唯一；`data-page` / `data-index` 为 `0～2` 且一一对应；每页 `data-sub` / `data-view` 连续。
 - [ ] 浏览器运行后登记网格恰有 46 个 `.student-card`；座位表恰有 104 个 `.seat-cell` 和 46 张 `.seat-card`。
 - [ ] 无远程运行时资源、内联业务脚本样式或第三方 Web 依赖。

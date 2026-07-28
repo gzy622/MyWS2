@@ -102,6 +102,7 @@ export function initDrawer({ closeOverlays, theme, showToast, onBackupImport, on
     direction: 'from-bottom',
     useShowClass: false,
     scrollPorts: [elements.menuDrawer],
+    scrimElement: elements.scrim,
     isOpen: () => elements.app.classList.contains('drawer-open') && !sheet?.isActive(),
     onPrepare({ source } = {}) {
       closeBusinessOverlays('drawer');

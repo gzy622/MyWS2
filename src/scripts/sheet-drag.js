@@ -7,6 +7,8 @@ const CLOSE_TRAVEL_RATIO = 0.4;
 const SHEET_REVEAL_EXTRA = 72;
 const SETTLE_PROGRESS = 0.34;
 const SETTLE_MS = 360;
+/** Keep compositor hints through the settle fallback boundary, then release promptly. */
+const COMPOSITOR_RELEASE_MS = SETTLE_MS + 48;
 const SETTLE_DISTANCE = 58;
 /** How far a release coast may project progress (px/ms * ms / travel). */
 const SETTLE_COAST_MS = 180;
@@ -68,6 +70,8 @@ export function createSheetController({
   scrollPorts = [],
   /** Ports that keep browser-native pan/momentum instead of JS scrub scroll. */
   nativeScrollPorts = [],
+  /** Optional real scrim element (the drawer uses #scrim instead of a layer pseudo-element). */
+  scrimElement = null,
   isOpen: isOpenFn = null,
   onPrepare,
   onOpened,
@@ -83,6 +87,7 @@ export function createSheetController({
   let settleTimer = 0;
   let settleGeneration = 0;
   let settleOnEnd = null;
+  let compositorHintTimer = 0;
   let dragRaf = 0;
   let paintedProgress = NaN;
   let paintedScrimToken = '';
@@ -136,6 +141,28 @@ export function createSheetController({
   function setDraggingClass(on) {
     panel.classList.toggle('dragging', on);
     if (useShowClass && layer) layer.classList.toggle('is-dragging', on);
+  }
+
+  function clearCompositorHints() {
+    if (compositorHintTimer) {
+      window.clearTimeout(compositorHintTimer);
+      compositorHintTimer = 0;
+    }
+    panel.classList.remove('sheet-compositing');
+    layer?.classList.remove('sheet-scrim-compositing');
+    scrimElement?.classList.remove('sheet-scrim-compositing');
+  }
+
+  /** Promote only the active panel/scrim, then release the GPU layers after settling. */
+  function promoteCompositorLayers({ flush = false, autoRelease = true } = {}) {
+    clearCompositorHints();
+    panel.classList.add('sheet-compositing');
+    layer?.classList.add('sheet-scrim-compositing');
+    scrimElement?.classList.add('sheet-scrim-compositing');
+    if (flush) void panel.offsetWidth;
+    if (autoRelease) {
+      compositorHintTimer = window.setTimeout(clearCompositorHints, COMPOSITOR_RELEASE_MS);
+    }
   }
 
   function cancelDragRaf() {
@@ -299,6 +326,8 @@ export function createSheetController({
     // Pin before enterPresented / ensureTravel — both can force a reflow.
     pinScrimToProgress(progress);
     enterPresented({ source: openSource ?? (startingFromClosed ? 'gesture' : 'control') });
+    // A drag may last indefinitely; retain only this active sheet's layers until release.
+    promoteCompositorLayers({ flush: true, autoRelease: false });
     dragging = true;
     setDraggingClass(true);
     if (useShowClass && layer) {
@@ -423,6 +452,8 @@ export function createSheetController({
     const generation = ++settleGeneration;
 
     flushDragPaint();
+    // Keep the same compositor layers alive while drag hands off to CSS settle.
+    promoteCompositorLayers();
     dragging = false;
     settling = true;
     setDraggingClass(false);
@@ -447,6 +478,7 @@ export function createSheetController({
         settleTimer = 0;
       }
       settling = false;
+      clearCompositorHints();
       if (!shouldOpen) {
         progress = 0;
         leavePresented();
@@ -544,6 +576,8 @@ export function createSheetController({
     cancelDragRaf();
     dragging = false;
     openSource = 'control';
+    // Flush the hint before toggling the visible state so the first frame is composited.
+    promoteCompositorLayers({ flush: true });
     enterPresented({ source: 'control' });
     progress = 1;
     paintedProgress = NaN;
@@ -566,12 +600,14 @@ export function createSheetController({
     cancelDragRaf();
     dragging = false;
     if (!presented && !isOpenFn?.()) {
+      clearCompositorHints();
       setDraggingClass(false);
       panel.style.transform = '';
       panel.style.visibility = '';
       setScrimProgress?.(null, 'clear');
       return;
     }
+    promoteCompositorLayers({ flush: true });
     leavePresented();
   }
 
@@ -579,6 +615,7 @@ export function createSheetController({
     if (!dragging && !settling && !presented) return;
     invalidateSettle();
     cancelDragRaf();
+    clearCompositorHints();
     dragging = false;
     settling = false;
     leavePresented();

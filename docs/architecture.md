@@ -19,7 +19,7 @@ src/
 └─ styles/          CSS token 与组件样式
 
 tests/              Node 内置测试运行器用例
-tools/              Node/PowerShell 开发与交付工具
+tools/              Node/PowerShell 开发、自动验收与交付工具
 docs/               现行文档、指南和档案
 android/            可选 Capacitor Android 工程
 www/                 由 tools/sync-web-assets.ps1 生成
@@ -27,6 +27,8 @@ dist/                由 tools/build-single-html.ps1 生成
 ```
 
 `src/` 是 Web 资源的唯一源码。`www/` 和 `dist/` 是可删除、可重建的输出目录，不得反向编辑。`lan-server.js` 将 `src/` 作为站点根目录，并提供 Live Reload、健康检查和内容指纹端点。
+
+`tools/verify-web.ps1` 通过临时 LAN 服务与 Microsoft Edge CDP 执行零依赖浏览器验收；它只读取运行结果，不进入浏览器模块依赖图，也不写入 `src/`、`www/` 或 `dist/`。
 
 ## 3. 运行拓扑
 

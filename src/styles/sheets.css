@@ -1,7 +1,15 @@
 /* Shared sheet primitives — concrete panels compose these tokens / classes */
 
-.sheet-panel.dragging {
+.sheet-panel.dragging,
+.sheet-compositing {
   will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Promote only during reveal/settle; the controller removes these hints afterward. */
+.sheet-scrim-compositing::before,
+.scrim.sheet-scrim-compositing {
+  will-change: opacity;
   backface-visibility: hidden;
 }
 
