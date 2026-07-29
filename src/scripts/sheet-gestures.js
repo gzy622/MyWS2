@@ -52,6 +52,26 @@ function isSheetActionControl(target, sheet) {
 }
 
 /**
+ * Dismiss direction for a presented sheet (Material / iOS nested-sheet rule):
+ * from-top closes by dragging up; from-bottom closes by dragging down.
+ */
+function isDismissDeltaY(sheet, deltaY) {
+  return sheet?.getDirection?.() === 'from-top' ? deltaY < 0 : deltaY > 0;
+}
+
+/**
+ * Fully settled open sheets must not rubber-band further open. That false start
+ * steals taps (click suppress) and feels sticky on top sheets at list top.
+ * Mid-settle / mid-drag / partial reveal still allow both directions.
+ */
+function shouldLockSheetFromScrub(sheet, deltaY) {
+  if (isDismissDeltaY(sheet, deltaY)) return true;
+  if (sheet.isSettling?.() || sheet.isDragging?.()) return true;
+  if (!sheet.isOpen?.()) return true;
+  return false;
+}
+
+/**
  * Sheet Y scrub + open-from-grid helpers used by the app gesture router.
  */
 export function createSheetGestureBridge() {
@@ -185,24 +205,35 @@ export function createSheetGestureBridge() {
     if (!sheet) return false;
 
     if (!session.started) {
-      session.started = true;
       if (session.scrollPort && scrollPortCanScroll(session.scrollPort, deltaY)) {
+        session.started = true;
         session.scrollLocked = true;
-      } else {
+      } else if (shouldLockSheetFromScrub(sheet, deltaY)) {
+        session.started = true;
         lockSheet(clientY - deltaY);
+      } else {
+        // Open-direction overscroll while fully open: ignore (keep taps alive).
+        return true;
       }
     }
 
     if (session.scrollLocked && session.scrollPort) {
       const unused = applyScrollPortDelta(session.scrollPort, deltaY, session.startScrollTop);
-      if (Math.abs(unused) > 0.5 && !scrollPortCanScroll(session.scrollPort, deltaY)) {
+      if (
+        Math.abs(unused) > 0.5
+        && !scrollPortCanScroll(session.scrollPort, deltaY)
+        && shouldLockSheetFromScrub(sheet, deltaY)
+      ) {
         lockSheet(clientY);
         session.sheet.moveByDeltaY(0);
       }
       return true;
     }
 
-    if (!session.sheetLocked) lockSheet(clientY - deltaY);
+    if (!session.sheetLocked) {
+      if (!shouldLockSheetFromScrub(sheet, deltaY)) return true;
+      lockSheet(clientY - deltaY);
+    }
     session.sheet.moveByDeltaY(clientY - session.sheetStartClientY);
     return true;
   }
