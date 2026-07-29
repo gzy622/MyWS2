@@ -16,7 +16,7 @@ const DUTY_SUBVIEW_INDEX = 1;
 const SCHEDULE_SUBVIEW_INDEX = 0;
 const GRADES_SUBVIEW_INDEX = 1;
 
-const REGISTER_ACTIONS = new Set(['register-view', 'clear-assignment', 'font-size', 'seat-edit', 'seat-reset']);
+const REGISTER_ACTIONS = new Set(['register-view', 'create-assignment', 'clear-assignment', 'font-size', 'seat-edit', 'seat-reset']);
 const PEOPLE_ROLE_ACTIONS = new Set(['add-role', 'clear-roles']);
 const PEOPLE_DUTY_ACTIONS = new Set(['add-duty', 'clear-duties']);
 const PEOPLE_ACTIONS = new Set([...PEOPLE_ROLE_ACTIONS, ...PEOPLE_DUTY_ACTIONS]);
@@ -24,7 +24,7 @@ const COURSES_SCHEDULE_ACTIONS = new Set(['clear-schedule', 'highlight-subjects'
 const COURSES_GRADES_ACTIONS = new Set(['add-subject', 'clear-grades']);
 const COURSES_ACTIONS = new Set([...COURSES_SCHEDULE_ACTIONS, ...COURSES_GRADES_ACTIONS]);
 
-export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOthers, highlightSubjects }) {
+export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOthers, highlightSubjects, openCreateAssignment }) {
   let trigger = null;
   let confirmAction = null;
   let confirmReturnFocus = null;
@@ -181,6 +181,11 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
       close({ restoreFocus: false });
       setSub(REGISTER_PAGE_INDEX, targetSubview);
       focusSilently(elements.moreButton);
+      return;
+    }
+    if (action === 'create-assignment') {
+      close({ restoreFocus: false });
+      openCreateAssignment?.({ returnFocus: elements.moreButton });
       return;
     }
     if (action === 'clear-assignment') {

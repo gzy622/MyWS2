@@ -628,7 +628,6 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
       const press = presses.get(event.pointerId);
       if (!press || Math.hypot(event.clientX - press.x, event.clientY - press.y) <= MOVE_CANCEL_DISTANCE) return;
       clearPress(event.pointerId);
-      suppressClickUntil = performance.now() + CLICK_SUPPRESSION_MS;
     });
     for (const type of ['pointerup', 'pointercancel', 'lostpointercapture', 'pointerleave']) {
       root.addEventListener(type, (event) => clearPress(event.pointerId));

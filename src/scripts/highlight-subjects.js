@@ -166,21 +166,29 @@ export function initHighlightSubjects({ showToast, viewport, closeOthers }) {
 
   let ranAt = 0;
   let ghostGuard = null;
+  let ghostPointerGuard = null;
+  let ghostGuardTimer = 0;
+
+  function clearUnderlyingClickSuppress() {
+    if (ghostGuard) document.removeEventListener('click', ghostGuard, true);
+    if (ghostPointerGuard) document.removeEventListener('pointerdown', ghostPointerGuard, true);
+    if (ghostGuardTimer) window.clearTimeout(ghostGuardTimer);
+    ghostGuard = null;
+    ghostPointerGuard = null;
+    ghostGuardTimer = 0;
+  }
 
   /** IME dismiss + sheet close retargets the trailing click onto #weekStrip underneath. */
   function armUnderlyingClickSuppress(ms = 500) {
-    if (ghostGuard) {
-      document.removeEventListener('click', ghostGuard, true);
-      ghostGuard = null;
-    }
+    clearUnderlyingClickSuppress();
     const until = performance.now() + ms;
     ghostGuard = (event) => {
       if (performance.now() >= until) {
-        document.removeEventListener('click', ghostGuard, true);
-        ghostGuard = null;
+        clearUnderlyingClickSuppress();
         return;
       }
       const hit = event.target;
+      clearUnderlyingClickSuppress();
       if (!(hit instanceof Element)) return;
       if (!hit.closest('#weekStrip, #gradeTable, .week-slot-cell, .week-period-label, .grade-score-cell, .grade-subject-head')) {
         return;
@@ -188,7 +196,10 @@ export function initHighlightSubjects({ showToast, viewport, closeOthers }) {
       event.preventDefault();
       event.stopImmediatePropagation();
     };
+    ghostPointerGuard = clearUnderlyingClickSuppress;
     document.addEventListener('click', ghostGuard, true);
+    document.addEventListener('pointerdown', ghostPointerGuard, true);
+    ghostGuardTimer = window.setTimeout(clearUnderlyingClickSuppress, ms);
   }
 
   function bindAction(button, action) {

@@ -92,6 +92,7 @@ moreSheet = initMoreSheet({
   fontSize,
   closeOthers: closeOverlays,
   highlightSubjects,
+  openCreateAssignment: (options) => assignments.openCreate(options),
 });
 people = initPeopleInteractions({
   store: rosterStore,

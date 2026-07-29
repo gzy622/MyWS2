@@ -6,7 +6,6 @@ export const STUDENT_FONT_SIZE_DEFAULT = 16;
 export const state = {
   currentPage: 1,
   subviews: [0, 0, 0],
-  suppressNavClick: false,
   drawerOpen: false,
   studentFontSize: STUDENT_FONT_SIZE_DEFAULT,
   fontSizePopoverOpen: false,
@@ -30,10 +29,6 @@ export function setSubview(pageIndex, subIndex) {
 
 export function toggleSubview(pageIndex) {
   setSubview(pageIndex, 1 - state.subviews[pageIndex]);
-}
-
-export function setSuppressNavClick(value) {
-  state.suppressNavClick = value;
 }
 
 export function setDrawerOpen(value) {

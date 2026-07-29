@@ -237,6 +237,14 @@
   transition: opacity var(--duration-sheet) var(--ease);
 }
 
+/* Name-sheet IME action: keep underlay from taking mid-gesture :active / hits. */
+#app.is-assignment-name-ghost-guard .topbar,
+#app.is-assignment-name-ghost-guard #viewport,
+#app.is-assignment-name-ghost-guard #nav,
+#app.is-assignment-name-ghost-guard .letter-index {
+  pointer-events: none !important;
+}
+
 .assignment-name-panel {
   padding: 20px 20px 0;
   visibility: hidden;

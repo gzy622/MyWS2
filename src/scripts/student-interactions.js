@@ -33,7 +33,6 @@ export function initStudentInteractions({ store, showToast, openStudentRecord })
     const travel = press ? Math.hypot(event.clientX - press.x, event.clientY - press.y) : 0;
     if (!press || travel <= MOVE_CANCEL_DISTANCE) return;
     clearPress(event.pointerId);
-    suppressClickUntil = performance.now() + CLICK_SUPPRESSION_MS;
     logGestureDebug('long press cancelled', {
       target: 'student-grid',
       studentId: Number(press.card.dataset.studentId),

@@ -59,7 +59,7 @@ Capacitor 依赖只用于原生壳。浏览器代码通过 `globalThis.Capacitor
 
 ### UI 瞬时状态
 
-`src/scripts/state.js` 保存当前页面、各页子视图、浮层、姓名字号控件、座位编辑模式、座位横屏模式和点击抑制等 UI 状态。除姓名字号值外，这些状态刷新后重置。
+`src/scripts/state.js` 保存当前页面、各页子视图、浮层、姓名字号控件、座位编辑模式与座位横屏模式等 UI 状态；全局与局部点击抑制由手势与各模块守卫实现（见 [`interaction.md`](interaction.md)「点击抑制」），不写入 `state.js`。除姓名字号值外，这些状态刷新后重置。
 
 ### 业务状态
 

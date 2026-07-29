@@ -107,30 +107,44 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
   const presses = new Map();
   let suppressClickUntil = 0;
   let ghostGuard = null;
+  let ghostPointerGuard = null;
+  let ghostGuardTimer = 0;
+
+  function clearGhostClickSuppress() {
+    if (ghostGuard) document.removeEventListener('click', ghostGuard, true);
+    if (ghostPointerGuard) document.removeEventListener('pointerdown', ghostPointerGuard, true);
+    if (ghostGuardTimer) window.clearTimeout(ghostGuardTimer);
+    ghostGuard = null;
+    ghostPointerGuard = null;
+    ghostGuardTimer = 0;
+    suppressClickUntil = 0;
+  }
 
   /** Swallow the click that follows an IME-safe pointerdown action. */
   function armGhostClickSuppress(ms = IME_ACTION_DEDUP_MS) {
-    if (ghostGuard) {
-      document.removeEventListener('click', ghostGuard, true);
-      ghostGuard = null;
-    }
+    clearGhostClickSuppress();
     suppressClickUntil = performance.now() + ms;
     const until = suppressClickUntil;
     ghostGuard = (event) => {
       if (performance.now() >= until) {
-        document.removeEventListener('click', ghostGuard, true);
-        ghostGuard = null;
+        clearGhostClickSuppress();
         return;
       }
       const hit = event.target;
+      clearGhostClickSuppress();
       if (!(hit instanceof Element)) return;
-      // Confirm opened from delete; trailing click otherwise hits scrim / 取消.
-      if (hit.closest('.confirm-sheet, .people-row, .people-edit-sheet')) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
+      if (!hit.closest(
+        '#nav, .nav-btn, .segment, .confirm-sheet, .people-row, .people-edit-sheet'
+      )) {
+        return;
       }
+      event.preventDefault();
+      event.stopImmediatePropagation();
     };
+    ghostPointerGuard = clearGhostClickSuppress;
     document.addEventListener('click', ghostGuard, true);
+    document.addEventListener('pointerdown', ghostPointerGuard, true);
+    ghostGuardTimer = window.setTimeout(clearGhostClickSuppress, ms);
   }
 
   function closePick({ restoreFocus = true } = {}) {
@@ -414,7 +428,6 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
       const press = presses.get(event.pointerId);
       if (!press || Math.hypot(event.clientX - press.x, event.clientY - press.y) <= MOVE_CANCEL_DISTANCE) return;
       clearPress(event.pointerId);
-      suppressClickUntil = performance.now() + CLICK_SUPPRESSION_MS;
     });
     for (const type of ['pointerup', 'pointercancel', 'lostpointercapture', 'pointerleave']) {
       list.addEventListener(type, (event) => clearPress(event.pointerId));
