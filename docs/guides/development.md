@@ -40,7 +40,7 @@ node lan-server.js
 node --test tests/*.test.mjs
 
 # 浏览器自动验收（PowerShell 7 + Microsoft Edge）
-# 节奏见 engineering.md §10.0：日常小改可跳过；大型改动提交前必须跑。
+# 仅在用户于当前任务明确要求时执行。
 .\tools\verify-web.ps1
 
 # 浏览器模块与服务器语法
@@ -54,7 +54,7 @@ git diff --check
 
 完整验收清单见 [`../engineering.md`](../engineering.md)。
 
-浏览器自动验收会自行选择空闲端口，启动隐藏的临时 LAN 服务与 Edge 实例，检查三档移动视口、DOM 契约、控制台错误、成绩表横拖优先级、课程成绩 Sheet 点击保护和 Sheet 合成层释放。Edge 使用系统临时目录中的专用隔离配置，不接触默认浏览器数据；成功后清理当次运行日志，失败时保留诊断目录并输出路径，可用 `-KeepArtifacts` 在成功时也保留。
+浏览器自动验收仅在用户于当前任务明确要求时执行。它会自行选择空闲端口，启动隐藏的临时 LAN 服务与 Edge 实例，检查三档移动视口、DOM 契约、控制台错误、成绩表横拖优先级、课程成绩 Sheet 点击保护和 Sheet 合成层释放。Edge 使用系统临时目录中的专用隔离配置，不接触默认浏览器数据；成功后清理当次运行日志，失败时保留诊断目录并输出路径，可用 `-KeepArtifacts` 在成功时也保留。
 
 ## 3. 内容指纹
 
@@ -104,6 +104,8 @@ dist/teacher-workbench.single.html
 
 Android 是可选通道，不影响 Web Demo 启动。
 
+智能体仅在用户于当前任务明确要求时执行 Android 同步、构建、部署、真机检查或 adb 调试。
+
 ### 同步 Web 资源
 
 ```powershell
@@ -150,12 +152,12 @@ npm run deploy:apk -- -Serial <序列号> -Fresh
    adb -s $deviceSerial shell dumpsys activity activities | Select-String 'topResumedActivity'
    ```
 
-2. 先运行与改动相称的本地检查。部署前检查 `git status --short`，不得覆盖用户已有的工作区改动。日常小改以单元测试与 `git diff --check` 为主；`verify-web.ps1` 按 [`engineering.md`](../engineering.md) §10.0，仅在大型改动提交前或触及脚本覆盖面时执行。
+2. 先运行与改动直接相关的快速检查。部署前检查 `git status --short`，不得覆盖用户已有的工作区改动。浏览器自动验收只在用户于当前任务明确要求时执行。
 
    ```powershell
    node --test tests/*.test.mjs
    git diff --check
-   # 大型改动提交前再执行：
+   # 仅在用户明确要求时执行：
    # .\tools\verify-web.ps1
    ```
 
