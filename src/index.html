@@ -105,7 +105,7 @@
                 <div class="card week-strip" id="weekStrip" aria-label="本周课表"></div>
               </div>
               <div class="subview" data-view="1">
-                <div class="section-title">成绩一览</div>
+                <div class="grade-exam-tabs" id="gradeExamTabs" role="tablist" aria-label="考试切换"></div>
                 <div class="card grade-table" id="gradeTable" role="table" aria-label="成绩一览"></div>
               </div>
             </div>
@@ -185,7 +185,9 @@
             <button type="button" data-more-action="clear-schedule">清空本周课表</button>
             <button type="button" data-more-action="highlight-subjects">高亮科目</button>
             <button type="button" data-more-action="add-subject">新增科目</button>
-            <button type="button" data-more-action="clear-grades">清空成绩</button>
+            <button type="button" data-more-action="add-exam">新增考试</button>
+            <button type="button" data-more-action="grade-stats">成绩统计</button>
+            <button type="button" data-more-action="clear-grades">清空本场成绩</button>
           </div>
         </div>
       </section>

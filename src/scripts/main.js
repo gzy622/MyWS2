@@ -49,7 +49,9 @@ function closeOverlays(except) {
   if (except !== 'course-slot') courses?.closeSlot({ restoreFocus: false });
   if (except !== 'course-period') courses?.closePeriod({ restoreFocus: false });
   if (except !== 'course-subject') courses?.closeSubject({ restoreFocus: false });
+  if (except !== 'course-exam') courses?.closeExam({ restoreFocus: false });
   if (except !== 'course-grade') courses?.closeGrade({ restoreFocus: false });
+  if (except !== 'course-stats') courses?.closeStats({ restoreFocus: false });
   if (except !== 'course-highlight') highlightSubjects?.close({ restoreFocus: false });
   if (except !== 'student-record') studentRecord?.close();
   if (except !== 'assignments') assignments?.close();
@@ -63,7 +65,7 @@ highlightSubjects = initHighlightSubjects({
   viewport: appViewport,
   closeOthers: closeOverlays,
 });
-initCoursesRenderer(rosterStore, highlightSubjects);
+const coursesRenderer = initCoursesRenderer(rosterStore, highlightSubjects);
 studentRecord = initStudentRecord({ store: rosterStore, showToast, viewport: appViewport, closeOthers: closeOverlays });
 assignments = initAssignments({
   store: rosterStore,
@@ -93,6 +95,7 @@ moreSheet = initMoreSheet({
   closeOthers: closeOverlays,
   highlightSubjects,
   openCreateAssignment: (options) => assignments.openCreate(options),
+  openGradeStats: (...args) => courses?.openStats(...args),
 });
 people = initPeopleInteractions({
   store: rosterStore,
@@ -107,6 +110,7 @@ courses = initCoursesInteractions({
   viewport: appViewport,
   closeOthers: closeOverlays,
   confirm: (...args) => moreSheet.confirm(...args),
+  onGradesUiChange: () => coursesRenderer.render(),
 });
 initDrawer({ closeOverlays, theme, showToast, onBackupImport: () => backup.importBackup(), onBackupExport: () => backup.exportBackup() });
 initHorizontalGestures();

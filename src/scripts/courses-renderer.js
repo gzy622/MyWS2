@@ -1,5 +1,6 @@
 import { elements } from './dom.js';
 import { SCHEDULE_DAY_LABELS, formatPeriodColumnLabel } from './roster-model.js';
+import { state } from './state.js';
 
 function slotMap(scheduleSlots) {
   const map = new Map();
@@ -9,9 +10,10 @@ function slotMap(scheduleSlots) {
   return map;
 }
 
-function gradeMap(courseGrades) {
+function gradeMap(courseGrades, examId) {
   const map = new Map();
   for (const grade of courseGrades) {
+    if (grade.examId !== examId) continue;
     map.set(`${grade.subjectId}:${grade.studentId}`, grade.value);
   }
   return map;
@@ -29,6 +31,35 @@ function periodBand(index) {
 function todayDayIndex() {
   const weekday = new Date().getDay();
   return weekday >= 1 && weekday <= 5 ? weekday - 1 : -1;
+}
+
+export function resolveGradeExamId(snapshot, preferredId = state.gradeExamId) {
+  const exams = snapshot?.exams;
+  if (!Array.isArray(exams) || !exams.length) return null;
+  if (preferredId != null && exams.some((exam) => exam.id === preferredId)) return preferredId;
+  return exams[0].id;
+}
+
+function sortStudents(students, grades, sort) {
+  if (!sort) return students;
+  const { subjectId, direction } = sort;
+  const ranked = students.map((student, index) => ({
+    student,
+    index,
+    value: grades.get(`${subjectId}:${student.id}`)
+  }));
+  ranked.sort((a, b) => {
+    const aMissing = a.value === undefined;
+    const bMissing = b.value === undefined;
+    if (aMissing && bMissing) return a.index - b.index;
+    if (aMissing) return 1;
+    if (bMissing) return -1;
+    if (a.value !== b.value) {
+      return direction === 'asc' ? a.value - b.value : b.value - a.value;
+    }
+    return a.index - b.index;
+  });
+  return ranked.map(({ student }) => student);
 }
 
 function renderWeekStrip({ periods, scheduleSlots }, matchesHighlight) {
@@ -111,28 +142,48 @@ function renderWeekStrip({ periods, scheduleSlots }, matchesHighlight) {
   elements.weekStrip.replaceChildren(root);
 }
 
-function isAndroidTouchSurface() {
-  try {
-    if (globalThis.Capacitor?.getPlatform?.() === 'android') return true;
-  } catch {
-    // Optional bridge may throw if partially injected.
-  }
-  return /Android/i.test(navigator.userAgent || '');
-}
-
 function syncGradeScrollTouchAction(scroller) {
   if (!scroller?.isConnected) return;
-  const overflow = scroller.scrollWidth > scroller.clientWidth + 1;
-  if (overflow) {
-    scroller.style.touchAction = 'pan-x';
-    return;
-  }
-  // Android cancels pan-x when the scroller cannot move; free x for JS page swipe.
-  scroller.style.touchAction = isAndroidTouchSurface() ? 'none' : 'pan-x';
+  const canX = scroller.scrollWidth > scroller.clientWidth + 1;
+  const canY = scroller.scrollHeight > scroller.clientHeight + 1;
+  if (canX && canY) scroller.style.touchAction = 'pan-x pan-y';
+  else if (canX) scroller.style.touchAction = 'pan-x';
+  else if (canY) scroller.style.touchAction = 'pan-y';
+  else scroller.style.touchAction = 'none';
 }
 
-function renderGradeTable({ students, subjects, courseGrades }) {
-  const grades = gradeMap(courseGrades);
+function syncExamTabsTouchAction(tabs) {
+  if (!tabs?.isConnected) return;
+  tabs.style.touchAction = tabs.scrollWidth > tabs.clientWidth + 1 ? 'pan-x' : 'none';
+}
+
+function renderExamTabs({ exams }, activeExamId) {
+  const fragment = document.createDocumentFragment();
+  for (const exam of exams) {
+    const tab = document.createElement('button');
+    tab.type = 'button';
+    tab.className = 'grade-exam-tab';
+    tab.dataset.examId = String(exam.id);
+    tab.setAttribute('role', 'tab');
+    const active = exam.id === activeExamId;
+    tab.setAttribute('aria-selected', String(active));
+    if (active) tab.classList.add('is-active');
+    tab.textContent = exam.title;
+    tab.setAttribute('aria-label', `考试 ${exam.title}${active ? '，当前' : ''}，长按可编辑`);
+    fragment.append(tab);
+  }
+  elements.gradeExamTabs.replaceChildren(fragment);
+  syncExamTabsTouchAction(elements.gradeExamTabs);
+}
+
+function renderGradeTable({ students, subjects, courseGrades }, examId) {
+  const grades = gradeMap(courseGrades, examId);
+  const sort = state.gradeSort
+    && subjects.some((subject) => subject.id === state.gradeSort.subjectId)
+    ? state.gradeSort
+    : null;
+  const orderedStudents = sortStudents(students, grades, sort);
+
   const scroller = document.createElement('div');
   scroller.className = 'grade-scroll';
 
@@ -144,6 +195,7 @@ function renderGradeTable({ students, subjects, courseGrades }) {
   head.className = 'grade-head';
   head.setAttribute('role', 'row');
   const nameHead = document.createElement('span');
+  nameHead.className = 'grade-name-head';
   nameHead.setAttribute('role', 'columnheader');
   nameHead.textContent = '姓名';
   head.append(nameHead);
@@ -154,12 +206,18 @@ function renderGradeTable({ students, subjects, courseGrades }) {
     col.dataset.subjectId = String(subject.id);
     col.setAttribute('role', 'columnheader');
     col.textContent = subject.title;
-    col.setAttribute('aria-label', `科目 ${subject.title}，长按可编辑`);
+    if (sort?.subjectId === subject.id) {
+      col.dataset.sort = sort.direction;
+      const directionLabel = sort.direction === 'desc' ? '降序' : '升序';
+      col.setAttribute('aria-label', `科目 ${subject.title}，当前${directionLabel}，轻点切换排序，长按可编辑`);
+    } else {
+      col.setAttribute('aria-label', `科目 ${subject.title}，轻点排序，长按可编辑`);
+    }
     head.append(col);
   }
   table.append(head);
 
-  for (const student of students) {
+  for (const student of orderedStudents) {
     const row = document.createElement('div');
     row.className = 'grade-row';
     row.setAttribute('role', 'row');
@@ -198,14 +256,19 @@ function renderGradeTable({ students, subjects, courseGrades }) {
 export function initCoursesRenderer(store, highlightSubjects) {
   function render(snapshot = store.getSnapshot()) {
     renderWeekStrip(snapshot, (subject) => highlightSubjects?.matches?.(subject));
-    renderGradeTable(snapshot);
+    const examId = resolveGradeExamId(snapshot);
+    renderExamTabs(snapshot, examId);
+    if (examId != null) renderGradeTable(snapshot, examId);
+    else elements.gradeTable.replaceChildren();
   }
 
   const gradeResizeObserver = new ResizeObserver(() => {
     const scroller = elements.gradeTable.querySelector('.grade-scroll');
     if (scroller) syncGradeScrollTouchAction(scroller);
+    syncExamTabsTouchAction(elements.gradeExamTabs);
   });
   gradeResizeObserver.observe(elements.gradeTable);
+  gradeResizeObserver.observe(elements.gradeExamTabs);
 
   store.subscribe(render);
   highlightSubjects?.subscribe?.(render);

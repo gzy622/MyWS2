@@ -37,7 +37,7 @@ function isInteractiveField(target) {
 function isCourseControl(target) {
   if (!(target instanceof Element)) return false;
   return Boolean(target.closest(
-    '.week-slot-cell, .week-period-label, .grade-score-cell, .grade-subject-head'
+    '.week-slot-cell, .week-period-label, .grade-score-cell, .grade-subject-head, .grade-exam-tab'
   ));
 }
 

@@ -21,10 +21,10 @@ const PEOPLE_ROLE_ACTIONS = new Set(['add-role', 'clear-roles']);
 const PEOPLE_DUTY_ACTIONS = new Set(['add-duty', 'clear-duties']);
 const PEOPLE_ACTIONS = new Set([...PEOPLE_ROLE_ACTIONS, ...PEOPLE_DUTY_ACTIONS]);
 const COURSES_SCHEDULE_ACTIONS = new Set(['clear-schedule', 'highlight-subjects']);
-const COURSES_GRADES_ACTIONS = new Set(['add-subject', 'clear-grades']);
+const COURSES_GRADES_ACTIONS = new Set(['add-subject', 'add-exam', 'grade-stats', 'clear-grades']);
 const COURSES_ACTIONS = new Set([...COURSES_SCHEDULE_ACTIONS, ...COURSES_GRADES_ACTIONS]);
 
-export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOthers, highlightSubjects, openCreateAssignment }) {
+export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOthers, highlightSubjects, openCreateAssignment, openGradeStats }) {
   let trigger = null;
   let confirmAction = null;
   let confirmReturnFocus = null;
@@ -265,11 +265,34 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
       showToast(subject ? `已新增「${subject.title}」` : '无法新增科目');
       return;
     }
+    if (action === 'add-exam') {
+      close();
+      const exam = store.addExam();
+      showToast(exam ? `已新增「${exam.title}」` : '无法新增考试');
+      return;
+    }
+    if (action === 'grade-stats') {
+      close({ restoreFocus: false });
+      openGradeStats?.({ returnFocus: elements.moreButton });
+      return;
+    }
     if (action === 'clear-grades') {
+      const snapshot = store.getSnapshot();
+      const examId = state.gradeExamId != null
+        && snapshot.exams.some((exam) => exam.id === state.gradeExamId)
+        ? state.gradeExamId
+        : snapshot.exams[0]?.id;
+      const examName = snapshot.exams.find((exam) => exam.id === examId)?.title ?? '当前考试';
       confirm({
-        title: '清空成绩',
-        message: '将清除全部课程成绩，科目本身保留。',
-        action: () => showToast(store.clearAllCourseGrades() ? '已清空成绩' : '当前没有成绩'),
+        title: '清空本场成绩',
+        message: `将清除「${examName}」的全部成绩，科目与其他考试保留。`,
+        action: () => {
+          if (examId == null) {
+            showToast('当前没有考试');
+            return;
+          }
+          showToast(store.clearExamGrades(examId) ? '已清空本场成绩' : '当前没有成绩');
+        },
         returnFocus: elements.moreButton
       });
     }

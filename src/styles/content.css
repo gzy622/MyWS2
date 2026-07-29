@@ -3,6 +3,9 @@
   width: 100%; height: 40px; border: 0; padding: 2px; border-radius: 999px;
   background: var(--control); display: grid; grid-template-columns: 1fr 1fr; gap: 2px;
   margin-bottom: 20px;
+  /* JS owns segment / page axis lock; avoid browser cancel mid-swipe. */
+  touch-action: none;
+  user-select: none;
 }
 .segment-glider {
   position: absolute; z-index: 0; top: 2px; bottom: 2px; left: 2px;
@@ -14,6 +17,7 @@
 .segment {
   position: relative; z-index: 1; border: 0; background: transparent; border-radius: 999px;
   padding: 0 10px; font-weight: 600; font-size: 15px; cursor: pointer; color: var(--muted);
+  touch-action: none;
 }
 .segment.active { color: var(--ink); }
 .subview { display: none; animation: rise .35s var(--ease); }
@@ -36,9 +40,18 @@
   flex: 1; min-height: 0; overflow: hidden;
 }
 .page[data-page="2"] .subview[data-view="1"].active {
-  overflow-y: auto;
-  overscroll-behavior-y: contain;
-  touch-action: pan-y;
+  overflow: hidden;
+  min-height: 0;
+}
+.page[data-page="2"] .subview[data-view="1"].active .grade-exam-tabs {
+  flex: none;
+}
+.page[data-page="2"] .subview[data-view="1"].active .grade-table {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 .roster-grid-shell {
   position: relative;
@@ -599,27 +612,86 @@
     transition: none;
   }
 }
+.grade-exam-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  /* Overflow: pan-x; fit-width: none — synced in courses-renderer.js. */
+  touch-action: pan-x;
+  padding: 2px 2px 10px;
+  margin: 0 -2px 4px;
+  scrollbar-width: none;
+}
+.grade-exam-tabs::-webkit-scrollbar { display: none; }
+.grade-exam-tab {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+}
+.grade-exam-tab.is-active {
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .08);
+}
+.grade-exam-tab:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 1px;
+}
+
 .grade-table { padding: 14px 0 10px; overflow: hidden; }
 .grade-scroll {
-  overflow-x: auto; -webkit-overflow-scrolling: touch;
-  /* Overflow keeps pan-x; Android fit-width overrides to none in courses-renderer.js. */
-  padding: 0 16px; touch-action: pan-x;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  /* Dual-axis native scroll so sticky head/name work in one port; synced in renderer. */
+  padding: 0 16px;
+  touch-action: pan-x pan-y;
+  scrollbar-width: none;
 }
+.grade-scroll::-webkit-scrollbar { display: none; }
 .grade-matrix {
   --grade-cols: 3;
+  --grade-name-col: minmax(72px, 96px);
+  --grade-col-gap: 8px;
   min-width: calc(96px + var(--grade-cols) * 64px);
 }
 .grade-head, .grade-row {
   display: grid;
-  grid-template-columns: minmax(72px, 96px) repeat(var(--grade-cols), minmax(56px, 72px));
-  gap: 8px;
+  grid-template-columns: var(--grade-name-col) repeat(var(--grade-cols), minmax(56px, 72px));
+  gap: var(--grade-col-gap);
   align-items: center;
 }
 .grade-head {
   padding-bottom: 10px; border-bottom: 1px solid var(--line);
   color: var(--muted); font-size: 12px; font-weight: 600;
-  position: sticky; top: 0; background: var(--card); z-index: 1;
+  position: sticky; top: 0; background: var(--card); z-index: 2;
 }
+.grade-name-head,
+.grade-name {
+  position: sticky;
+  left: 0;
+  background: var(--card);
+  /* Span the grid gap so the hairline sits flush before the next column. */
+  margin-right: calc(var(--grade-col-gap) * -1);
+  padding-right: calc(var(--grade-col-gap) + 4px);
+  box-shadow: 1px 0 0 var(--line);
+  z-index: 1;
+}
+.grade-name-head { z-index: 3; }
 .grade-subject-head,
 .grade-score-cell {
   margin: 0; padding: 0; border: 0; background: transparent;
@@ -627,12 +699,57 @@
   -webkit-tap-highlight-color: transparent;
   text-align: right; font-variant-numeric: tabular-nums;
 }
-.grade-subject-head { color: var(--muted); font-size: 12px; font-weight: 600; }
+.grade-subject-head {
+  color: var(--muted); font-size: 12px; font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: flex-end; gap: 2px;
+}
+.grade-subject-head[data-sort]::after {
+  content: '';
+  width: 0; height: 0;
+  border-left: 3.5px solid transparent;
+  border-right: 3.5px solid transparent;
+  opacity: .85;
+}
+.grade-subject-head[data-sort="desc"]::after {
+  border-top: 5px solid currentColor;
+}
+.grade-subject-head[data-sort="asc"]::after {
+  border-bottom: 5px solid currentColor;
+}
 .grade-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .grade-row { padding: 12px 0 0; color: var(--ink); font-size: 15px; font-weight: 500; }
 .grade-row + .grade-row { padding-top: 12px; }
 .grade-score-cell { color: var(--disabled); min-height: 28px; }
 .grade-score-cell.is-filled { color: var(--ink); }
+
+.course-stats-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+}
+.course-stats-row {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--control);
+}
+.course-stats-subject {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 650;
+}
+.course-stats-metrics {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.course-stats-metrics strong {
+  color: var(--ink);
+  font-weight: 650;
+}
 
 @media (min-width: 500px) and (max-height: 500px) {
   .student-grid {

@@ -11,7 +11,11 @@ export const state = {
   fontSizePopoverOpen: false,
   seatEditing: false,
   seatLandscape: false,
-  activeOverlay: null
+  activeOverlay: null,
+  /** @type {number | null} null resolves to the first exam at render time */
+  gradeExamId: null,
+  /** @type {{ subjectId: number, direction: 'asc' | 'desc' } | null} */
+  gradeSort: null
 };
 
 export function clampPage(index) {
@@ -55,4 +59,27 @@ export function setSeatLandscape(value) {
 
 export function setActiveOverlay(value) {
   state.activeOverlay = value;
+}
+
+export function setGradeExamId(value) {
+  if (value === null) {
+    state.gradeExamId = null;
+    return;
+  }
+  if (!Number.isSafeInteger(value) || value <= 0) return;
+  state.gradeExamId = value;
+}
+
+export function setGradeSort(value) {
+  if (value === null) {
+    state.gradeSort = null;
+    return;
+  }
+  if (
+    !value
+    || !Number.isSafeInteger(value.subjectId)
+    || value.subjectId <= 0
+    || (value.direction !== 'asc' && value.direction !== 'desc')
+  ) return;
+  state.gradeSort = { subjectId: value.subjectId, direction: value.direction };
 }

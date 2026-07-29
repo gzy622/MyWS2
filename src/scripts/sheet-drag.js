@@ -83,6 +83,8 @@ function scheduleScrollPortPaint(port, next) {
 export const SHEET_STACK_ORDER = [
   'confirm',
   'course-highlight',
+  'course-stats',
+  'course-exam',
   'course-subject',
   'course-period',
   'course-slot',
