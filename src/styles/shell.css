@@ -38,7 +38,8 @@
   touch-action: none;
 }
 button.topbar-title { cursor: default; }
-.topbar-title.is-assignment { cursor: pointer; }
+.topbar-title.is-assignment,
+.topbar-title.is-exam { cursor: pointer; }
 .topbar-title:disabled {
   cursor: default;
   opacity: 1;
@@ -51,7 +52,8 @@ button.topbar-title { cursor: default; }
   transform: translateY(-2px);
 }
 /* 左侧占位与右侧箭头同宽，标题文字几何居中不受箭头影响 */
-.topbar-title.is-assignment .topbar-title-core::before {
+.topbar-title.is-assignment .topbar-title-core::before,
+.topbar-title.is-exam .topbar-title-core::before {
   content: '';
   width: 16px;
   flex: none;
@@ -72,7 +74,8 @@ button.topbar-title { cursor: default; }
   color: var(--ink);
   opacity: .72;
 }
-.topbar-title.is-assignment .topbar-title-caret { display: block; }
+.topbar-title.is-assignment .topbar-title-caret,
+.topbar-title.is-exam .topbar-title-caret { display: block; }
 .topbar-action {
   min-width: 44px; height: 44px; display: inline-flex; align-items: center; gap: 6px; width: max-content;
   padding: 0; border: 0; background: transparent; color: var(--ink); cursor: pointer;

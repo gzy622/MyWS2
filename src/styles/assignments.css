@@ -290,6 +290,299 @@
 .assignment-name-actions button { min-height: 44px; border: 0; border-radius: 12px; background: var(--control); color: var(--ink); cursor: pointer; font-weight: 600; }
 .assignment-name-actions .primary { color: var(--on-accent); background: var(--accent); }
 
+/* Exam list / name top sheets — mirrored from assignment sheets. */
+.exam-sheet {
+  position: absolute;
+  z-index: 31;
+  inset: 0;
+  display: grid;
+  place-items: start center;
+  padding: max(16px, env(safe-area-inset-top)) 12px 16px;
+  pointer-events: none;
+}
+
+.exam-sheet::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+  opacity: 0;
+  transition: opacity var(--duration-fade) linear;
+}
+
+.exam-sheet.show { pointer-events: auto; touch-action: none; }
+.exam-sheet.show::before { opacity: 1; }
+/* Revealing without an active scrub lets the page keep receiving the captured gesture. */
+.exam-sheet.is-revealing:not(.is-dragging) { pointer-events: none; }
+/* Scrub + settle must keep hit-testing so clicks do not fall through mid-animation. */
+.exam-sheet.show.is-dragging,
+.exam-sheet.show.is-settling { pointer-events: auto; }
+.exam-sheet.show.is-revealing::before,
+.exam-sheet.is-revealing::before,
+.exam-sheet.show.is-dragging::before {
+  transition: opacity var(--duration-scrim-track) linear;
+}
+.exam-sheet.show.is-settling::before,
+.exam-sheet.is-settling::before {
+  transition: opacity var(--duration-sheet) var(--ease);
+}
+
+.exam-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100% * 2 / 3);
+  overflow: hidden;
+  padding: 20px 20px 0;
+  visibility: hidden;
+  transform: translateY(calc(-100% - 72px));
+  transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet);
+  touch-action: none;
+}
+
+.exam-sheet.show .exam-panel {
+  visibility: visible;
+  transform: translateY(0);
+  transition-delay: 0s;
+}
+
+.exam-panel.dragging {
+  transition: none;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.exam-panel .sheet-head {
+  margin-bottom: 16px;
+}
+
+.exam-panel .exam-select,
+.exam-panel .exam-action,
+.exam-panel .exam-add {
+  min-height: 40px;
+  border: 0;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.exam-panel .exam-add {
+  border-radius: 12px;
+  background: var(--control);
+  padding: 9px 11px;
+}
+
+.exam-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: none;
+  border-radius: 16px;
+  background: var(--paper);
+  scrollbar-width: thin;
+  scrollbar-color: var(--disabled) color-mix(in srgb, var(--line) 70%, transparent);
+}
+
+.exam-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.exam-list::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.exam-list::-webkit-scrollbar-track {
+  background: color-mix(in srgb, var(--line) 70%, transparent);
+  border-radius: 999px;
+  margin: 8px 0;
+}
+
+.exam-list::-webkit-scrollbar-thumb {
+  background: var(--disabled);
+  border-radius: 999px;
+}
+
+.exam-list::-webkit-scrollbar-thumb:active {
+  background: var(--muted);
+}
+
+.exam-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0;
+  min-height: 48px;
+  padding: 0 4px 0 2px;
+}
+
+.exam-item + .exam-item {
+  border-top: .5px solid var(--line);
+}
+
+.exam-select {
+  min-width: 0;
+  min-height: 48px;
+  padding: 10px 12px;
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.exam-select[aria-pressed="true"] {
+  color: var(--accent-text);
+}
+
+.exam-item small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 450;
+}
+
+.exam-panel .exam-action {
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.exam-panel .exam-action:disabled {
+  color: var(--disabled);
+  cursor: default;
+}
+
+.exam-action svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.exam-panel .exam-add {
+  width: 100%;
+  flex: none;
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--on-accent);
+  background: var(--accent);
+  font-weight: 600;
+}
+
+.exam-add svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.exam-name-sheet {
+  position: absolute;
+  z-index: 32;
+  inset: 0;
+  display: grid;
+  place-items: start center;
+  padding: max(16px, env(safe-area-inset-top)) 12px 16px;
+  pointer-events: none;
+}
+
+/* 名称编辑始终叠在考试列表遮罩之上，用二级色避免叠加后整屏骤暗。 */
+.exam-name-sheet::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--scrim-stacked);
+  opacity: 0;
+  transition: opacity var(--duration-fade) linear;
+}
+.exam-name-sheet > .sheet-scrim { background: var(--scrim-stacked); }
+
+.exam-name-sheet.show { pointer-events: auto; touch-action: none; }
+.exam-name-sheet.show::before { opacity: 1; }
+.exam-name-sheet.is-revealing:not(.is-dragging) { pointer-events: none; }
+.exam-name-sheet.show.is-dragging,
+.exam-name-sheet.show.is-settling { pointer-events: auto; }
+.exam-name-sheet.show.is-revealing::before,
+.exam-name-sheet.is-revealing::before,
+.exam-name-sheet.show.is-dragging::before {
+  transition: opacity var(--duration-scrim-track) linear;
+}
+.exam-name-sheet.show.is-settling::before,
+.exam-name-sheet.is-settling::before {
+  transition: opacity var(--duration-sheet) var(--ease);
+}
+
+/* Name-sheet IME action: keep underlay from taking mid-gesture :active / hits. */
+#app.is-exam-name-ghost-guard .topbar,
+#app.is-exam-name-ghost-guard #viewport,
+#app.is-exam-name-ghost-guard #nav,
+#app.is-exam-name-ghost-guard .letter-index {
+  pointer-events: none !important;
+}
+
+.exam-name-panel {
+  padding: 20px 20px 0;
+  visibility: hidden;
+  transform: translateY(calc(-100% - 72px));
+  transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet);
+  touch-action: none;
+}
+
+.exam-name-sheet.show .exam-name-panel {
+  visibility: visible;
+  transform: translateY(0);
+  transition-delay: 0s;
+}
+
+.exam-name-panel.dragging {
+  transition: none;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.exam-name-panel .sheet-title {
+  margin-bottom: 2px;
+}
+
+.exam-name-panel p { margin: 6px 0 16px; color: var(--muted); font-size: 13px; }
+.exam-name-field { display: block; }
+.exam-name-field span { display: block; margin: 0 2px 7px; color: var(--muted); font-size: 12px; font-weight: 600; }
+.exam-name-field input {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  outline: 0;
+  background: var(--control);
+  color: var(--ink);
+  touch-action: manipulation;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.exam-name-field input:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.exam-name-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+.exam-name-actions button { min-height: 44px; border: 0; border-radius: 12px; background: var(--control); color: var(--ink); cursor: pointer; font-weight: 600; }
+.exam-name-actions .primary { color: var(--on-accent); background: var(--accent); }
+
 /* IME: only the focused overlay yields to the keyboard; shell stays full height. */
 .assignment-name-sheet.is-ime-host,
 .assignment-sheet.is-ime-host,
@@ -299,7 +592,8 @@
 .course-slot-sheet.is-ime-host,
 .course-period-sheet.is-ime-host,
 .course-subject-sheet.is-ime-host,
-.course-exam-sheet.is-ime-host,
+.exam-name-sheet.is-ime-host,
+.exam-sheet.is-ime-host,
 .course-grade-sheet.is-ime-host,
 .course-stats-sheet.is-ime-host,
 .course-highlight-sheet.is-ime-host,

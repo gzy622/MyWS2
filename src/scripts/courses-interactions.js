@@ -1,5 +1,5 @@
 import { elements } from './dom.js';
-import { setActiveOverlay, setGradeExamId, setGradeSort, state } from './state.js';
+import { setActiveOverlay, setGradeSort, state } from './state.js';
 import { createSheetController } from './sheet-drag.js';
 import { blurIfSheetChrome, focusSilently } from './focus.js';
 import { haptic, Haptic } from './haptics.js';
@@ -173,10 +173,9 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
   const slotLayer = createTextSheet('course-slot-sheet', 'courseSlotTitle', '课表');
   const periodLayer = createTextSheet('course-period-sheet', 'coursePeriodTitle', '课表');
   const subjectLayer = createTextSheet('course-subject-sheet', 'courseSubjectTitle', '成绩');
-  const examLayer = createTextSheet('course-exam-sheet', 'courseExamTitle', '考试');
   const gradeLayer = createGradeSheet();
   const statsLayer = createStatsSheet();
-  elements.app.append(slotLayer, periodLayer, subjectLayer, examLayer, gradeLayer, statsLayer);
+  elements.app.append(slotLayer, periodLayer, subjectLayer, gradeLayer, statsLayer);
 
   const slotPanel = slotLayer.querySelector('.course-slot-sheet-panel');
   const slotEyebrow = slotLayer.querySelector('[data-field="eyebrow"]');
@@ -199,12 +198,6 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
   const subjectInput = subjectLayer.querySelector('[data-field="input"]');
   const subjectDelete = subjectLayer.querySelector('[data-action="delete"]');
 
-  const examPanel = examLayer.querySelector('.course-exam-sheet-panel');
-  const examTitleEl = examLayer.querySelector('#courseExamTitle');
-  const examHint = examLayer.querySelector('[data-field="hint"]');
-  const examLabel = examLayer.querySelector('[data-field="label"]');
-  const examInput = examLayer.querySelector('[data-field="input"]');
-  const examDelete = examLayer.querySelector('[data-action="delete"]');
 
   const gradePanel = gradeLayer.querySelector('.course-grade-panel');
   const gradeEyebrow = gradeLayer.querySelector('[data-field="eyebrow"]');
@@ -221,18 +214,15 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
   let slotSheet;
   let periodSheet;
   let subjectSheet;
-  let examSheet;
   let gradeSheet;
   let statsSheet;
   let slotTarget = null;
   let periodTarget = null;
   let subjectTarget = null;
-  let examTarget = null;
   let gradeTarget = null;
   let slotReturnFocus = null;
   let periodReturnFocus = null;
   let subjectReturnFocus = null;
-  let examReturnFocus = null;
   let gradeReturnFocus = null;
   let statsReturnFocus = null;
   const presses = new Map();
@@ -269,7 +259,7 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
       clearGridClickSuppress();
       if (!(hit instanceof Element)) return;
       if (!hit.closest(
-        '#nav, .nav-btn, .segment, #weekStrip, #gradeTable, #gradeExamTabs, .week-slot-cell, .week-period-label, .grade-score-cell, .grade-subject-head, .grade-exam-tab, .confirm-sheet'
+        '#nav, .nav-btn, .segment, #weekStrip, #gradeTable, .week-slot-cell, .week-period-label, .grade-score-cell, .grade-subject-head, .confirm-sheet'
       )) {
         return;
       }
@@ -329,23 +319,6 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
       const focus = subjectReturnFocus;
       subjectTarget = null;
       subjectReturnFocus = null;
-      if (restoreFocus && focus) focusSilently(focus);
-      else blurIfSheetChrome();
-    }
-  }
-
-  function closeExam({ restoreFocus = true } = {}) {
-    if (!examSheet?.isPresented() && !examLayer.classList.contains('show')) return;
-    if (!restoreFocus) examReturnFocus = null;
-    if (examSheet?.isPresented()) examSheet.closeInstant();
-    else {
-      examLayer.classList.remove('show');
-      examLayer.inert = true;
-      viewport?.unlockStudentGrid?.();
-      setActiveOverlay(null);
-      const focus = examReturnFocus;
-      examTarget = null;
-      examReturnFocus = null;
       if (restoreFocus && focus) focusSilently(focus);
       else blurIfSheetChrome();
     }
@@ -445,22 +418,6 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     subjectSheet.openInstant();
   }
 
-  function openExam(examId, trigger) {
-    const snapshot = store.getSnapshot();
-    const exam = snapshot.exams.find((item) => item.id === examId);
-    if (!exam) return;
-    closeOthers?.('course-exam');
-    examTarget = { examId };
-    examReturnFocus = trigger;
-    examTitleEl.textContent = exam.title;
-    examHint.textContent = '删除后该场考试成绩一并清除，且不可恢复。';
-    examLabel.textContent = '考试名称';
-    examInput.value = exam.title;
-    examDelete.hidden = false;
-    examDelete.disabled = snapshot.exams.length <= 1;
-    viewport?.lockStudentGrid?.();
-    examSheet.openInstant();
-  }
 
   function openGrade(studentId, subjectId, trigger) {
     const snapshot = store.getSnapshot();
@@ -538,12 +495,6 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     notifyGradesUiChange();
   }
 
-  function selectExam(examId) {
-    if (!Number.isSafeInteger(examId)) return;
-    if (state.gradeExamId === examId) return;
-    setGradeExamId(examId);
-    notifyGradesUiChange();
-  }
 
   function saveSlot() {
     if (!slotTarget) {
@@ -612,42 +563,7 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     closeSubject({ restoreFocus: false });
   }
 
-  function saveExam() {
-    if (!examTarget) return;
-    if (!store.renameExam(examTarget.examId, examInput.value.trim())) {
-      showToast('请输入有效且不同的考试名称');
-      return;
-    }
-    showToast('已更新考试名称');
-    closeExam();
-  }
 
-  function deleteExamCurrent() {
-    if (!examTarget) return;
-    const snapshot = store.getSnapshot();
-    const exam = snapshot.exams.find((item) => item.id === examTarget.examId);
-    if (!exam) return;
-    const id = exam.id;
-    const label = exam.title;
-    confirm?.({
-      title: '删除考试',
-      message: `将删除考试「${label}」及其全部成绩。`,
-      returnFocus: examReturnFocus,
-      action: () => {
-        const ok = store.deleteExam(id);
-        if (!ok) {
-          showToast('至少保留一场考试');
-          return;
-        }
-        if (state.gradeExamId === id) {
-          setGradeExamId(null);
-          notifyGradesUiChange();
-        }
-        showToast(`已删除「${label}」`);
-      }
-    });
-    closeExam({ restoreFocus: false });
-  }
 
   function updateGradeDraft(key) {
     const current = gradeInput.value;
@@ -776,36 +692,6 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     }
   });
 
-  examSheet = createSheetController({
-    id: 'course-exam',
-    layer: examLayer,
-    panel: examPanel,
-    direction: 'from-bottom',
-    scrollPorts: [examPanel],
-    isOpen: () => examLayer.classList.contains('show') && !examSheet?.isActive(),
-    onPrepare() {
-      setActiveOverlay('course-exam');
-      examLayer.setAttribute('aria-hidden', 'false');
-    },
-    onOpened() {
-      setActiveOverlay('course-exam');
-      examLayer.inert = false;
-      examLayer.classList.add('show');
-      focusCourseTextInput(examInput, 'exam');
-    },
-    onClosed() {
-      examLayer.classList.remove('show');
-      examLayer.inert = true;
-      examLayer.setAttribute('aria-hidden', 'true');
-      viewport?.unlockStudentGrid?.();
-      setActiveOverlay(null);
-      const focus = examReturnFocus;
-      examTarget = null;
-      examReturnFocus = null;
-      if (focus) focusSilently(focus);
-      else blurIfSheetChrome();
-    }
-  });
 
   gradeSheet = createSheetController({
     id: 'course-grade',
@@ -939,25 +825,14 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     openSubject(Number(target.dataset.subjectId), target);
   });
 
-  elements.gradeExamTabs.addEventListener('click', (event) => {
-    if (performance.now() < suppressClickUntil) return;
-    const tab = event.target.closest('.grade-exam-tab');
-    if (!tab || !elements.gradeExamTabs.contains(tab)) return;
-    selectExam(Number(tab.dataset.examId));
-  });
 
-  bindLongPress(elements.gradeExamTabs, '.grade-exam-tab', (target) => {
-    openExam(Number(target.dataset.examId), target);
-  });
 
   guardTextFieldFocus(slotLayer, slotInput, 'slot');
   guardTextFieldFocus(periodLayer, periodInput, 'period');
   guardTextFieldFocus(subjectLayer, subjectInput, 'subject');
-  guardTextFieldFocus(examLayer, examInput, 'exam');
   bindInputTrace(slotInput, 'slot');
   bindInputTrace(periodInput, 'period');
   bindInputTrace(subjectInput, 'subject');
-  bindInputTrace(examInput, 'exam');
 
   bindImmediateAction(slotLayer.querySelector('[data-action="cancel"]'), () => closeSlot(), 'slot cancel', armGridClickSuppress);
   bindImmediateAction(slotLayer.querySelector('[data-action="save"]'), () => {
@@ -1005,18 +880,6 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     }
   });
 
-  bindImmediateAction(examLayer.querySelector('[data-action="cancel"]'), () => closeExam(), 'exam cancel', armGridClickSuppress);
-  bindImmediateAction(examLayer.querySelector('[data-action="save"]'), () => saveExam(), 'exam save', armGridClickSuppress);
-  bindImmediateAction(examDelete, () => deleteExamCurrent(), 'exam delete', armGridClickSuppress);
-  examLayer.addEventListener('click', (event) => {
-    if (event.target === examLayer && !examSheet.isActive()) closeExam();
-  });
-  examInput.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      saveExam();
-    }
-  });
 
   bindImmediateAction(gradeLayer.querySelector('[data-action="close"]'), () => closeGrade(), 'grade close', armGridClickSuppress);
   bindImmediateAction(gradeLayer.querySelector('[data-action="save"]'), () => saveGrade(), 'grade save', armGridClickSuppress);
@@ -1046,10 +909,6 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
       closeStats();
       return true;
     }
-    if (examSheet.isPresented()) {
-      closeExam();
-      return true;
-    }
     if (subjectSheet.isPresented()) {
       closeSubject();
       return true;
@@ -1073,7 +932,6 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     closeSlot,
     closePeriod,
     closeSubject,
-    closeExam,
     closeGrade,
     closeStats,
     openStats,
@@ -1081,7 +939,6 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     slotSheet,
     periodSheet,
     subjectSheet,
-    examSheet,
     gradeSheet,
     statsSheet
   };

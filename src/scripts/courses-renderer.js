@@ -152,30 +152,6 @@ function syncGradeScrollTouchAction(scroller) {
   else scroller.style.touchAction = 'none';
 }
 
-function syncExamTabsTouchAction(tabs) {
-  if (!tabs?.isConnected) return;
-  tabs.style.touchAction = tabs.scrollWidth > tabs.clientWidth + 1 ? 'pan-x' : 'none';
-}
-
-function renderExamTabs({ exams }, activeExamId) {
-  const fragment = document.createDocumentFragment();
-  for (const exam of exams) {
-    const tab = document.createElement('button');
-    tab.type = 'button';
-    tab.className = 'grade-exam-tab';
-    tab.dataset.examId = String(exam.id);
-    tab.setAttribute('role', 'tab');
-    const active = exam.id === activeExamId;
-    tab.setAttribute('aria-selected', String(active));
-    if (active) tab.classList.add('is-active');
-    tab.textContent = exam.title;
-    tab.setAttribute('aria-label', `考试 ${exam.title}${active ? '，当前' : ''}，长按可编辑`);
-    fragment.append(tab);
-  }
-  elements.gradeExamTabs.replaceChildren(fragment);
-  syncExamTabsTouchAction(elements.gradeExamTabs);
-}
-
 function renderGradeTable({ students, subjects, courseGrades }, examId) {
   const grades = gradeMap(courseGrades, examId);
   const sort = state.gradeSort
@@ -257,7 +233,6 @@ export function initCoursesRenderer(store, highlightSubjects) {
   function render(snapshot = store.getSnapshot()) {
     renderWeekStrip(snapshot, (subject) => highlightSubjects?.matches?.(subject));
     const examId = resolveGradeExamId(snapshot);
-    renderExamTabs(snapshot, examId);
     if (examId != null) renderGradeTable(snapshot, examId);
     else elements.gradeTable.replaceChildren();
   }
@@ -265,10 +240,8 @@ export function initCoursesRenderer(store, highlightSubjects) {
   const gradeResizeObserver = new ResizeObserver(() => {
     const scroller = elements.gradeTable.querySelector('.grade-scroll');
     if (scroller) syncGradeScrollTouchAction(scroller);
-    syncExamTabsTouchAction(elements.gradeExamTabs);
   });
   gradeResizeObserver.observe(elements.gradeTable);
-  gradeResizeObserver.observe(elements.gradeExamTabs);
 
   store.subscribe(render);
   highlightSubjects?.subscribe?.(render);

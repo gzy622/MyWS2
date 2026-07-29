@@ -14,10 +14,17 @@ import { describeDebugTarget, isSheetDebugEnabled, logGestureDebug } from './she
 
 const REGISTER_PAGE_INDEX = 1;
 const GRID_SUBVIEW_INDEX = 0;
+const COURSE_PAGE_INDEX = 2;
+const GRADES_SUBVIEW_INDEX = 1;
 
 function isRegisterGrid() {
   return state.currentPage === REGISTER_PAGE_INDEX
     && state.subviews[REGISTER_PAGE_INDEX] === GRID_SUBVIEW_INDEX;
+}
+
+function isCourseGrades() {
+  return state.currentPage === COURSE_PAGE_INDEX
+    && state.subviews[COURSE_PAGE_INDEX] === GRADES_SUBVIEW_INDEX;
 }
 
 function isInteractiveField(target) {
@@ -25,7 +32,7 @@ function isInteractiveField(target) {
   if (target.closest('input, textarea, select, [contenteditable="true"]')) return true;
   // Android WebView often hit-tests label / field chrome instead of the <input>.
   // Claiming those as sheet drags steals the tap and blocks the soft keyboard.
-  const field = target.closest('label, .course-edit-field, .people-edit-field, .assignment-name-field');
+  const field = target.closest('label, .course-edit-field, .people-edit-field, .assignment-name-field, .exam-name-field');
   return Boolean(field?.querySelector('input, textarea, select, [contenteditable="true"]'));
 }
 
@@ -37,7 +44,7 @@ function isInteractiveField(target) {
 function isCourseControl(target) {
   if (!(target instanceof Element)) return false;
   return Boolean(target.closest(
-    '.week-slot-cell, .week-period-label, .grade-score-cell, .grade-subject-head, .grade-exam-tab'
+    '.week-slot-cell, .week-period-label, .grade-score-cell, .grade-subject-head'
   ));
 }
 
@@ -151,12 +158,15 @@ export function createSheetGestureBridge() {
 
     if (event.target.closest?.('.seat-viewport')) return finish('blocked', 'seatViewport');
 
-    if (isRegisterGrid() || event.target.closest?.('#nav')) {
+    const onGradeScroll = Boolean(event.target.closest?.('.grade-scroll'));
+    const allowExams = isCourseGrades() && !onGradeScroll;
+    if (isRegisterGrid() || allowExams || event.target.closest?.('#nav')) {
       session = {
         sheet: null,
         mode: 'open',
         started: false,
         allowAssignments: isRegisterGrid(),
+        allowExams,
         allowDrawer: true,
         scrollPort: null,
         startScrollTop: 0,
@@ -164,7 +174,7 @@ export function createSheetGestureBridge() {
         sheetLocked: false,
         sheetStartClientY: 0
       };
-      return finish('sheet', 'open-from-grid/nav');
+      return finish('sheet', 'open-from-grid/grades/nav');
     }
 
     return finish(null, 'no-claim');
@@ -186,6 +196,8 @@ export function createSheetGestureBridge() {
       if (!session.started) {
         if (deltaY > 0 && session.allowAssignments) {
           session.sheet = getSheet('assignments');
+        } else if (deltaY > 0 && session.allowExams) {
+          session.sheet = getSheet('exams');
         } else if (deltaY < 0 && session.allowDrawer) {
           session.sheet = getSheet('drawer');
         } else {

@@ -56,10 +56,10 @@ function canScrollY(element) {
   return Boolean(element) && element.scrollHeight > element.clientHeight + 1;
 }
 
-/** Grade table / exam chips: horizontal drag scrolls the port when it overflows. */
+/** Grade table: horizontal drag scrolls the port when it overflows. */
 function findHorizontalScrollPort(target) {
   if (!(target instanceof Element)) return null;
-  const port = target.closest('.grade-scroll, .grade-exam-tabs');
+  const port = target.closest('.grade-scroll');
   return canScrollX(port) ? port : null;
 }
 

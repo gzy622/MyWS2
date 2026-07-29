@@ -43,9 +43,6 @@
   overflow: hidden;
   min-height: 0;
 }
-.page[data-page="2"] .subview[data-view="1"].active .grade-exam-tabs {
-  flex: none;
-}
 .page[data-page="2"] .subview[data-view="1"].active .grade-table {
   flex: 1;
   min-height: 0;
@@ -612,44 +609,6 @@
     transition: none;
   }
 }
-.grade-exam-tabs {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  /* Overflow: pan-x; fit-width: none — synced in courses-renderer.js. */
-  touch-action: pan-x;
-  padding: 2px 2px 10px;
-  margin: 0 -2px 4px;
-  scrollbar-width: none;
-}
-.grade-exam-tabs::-webkit-scrollbar { display: none; }
-.grade-exam-tab {
-  flex: 0 0 auto;
-  margin: 0;
-  padding: 8px 14px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.2;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  white-space: nowrap;
-}
-.grade-exam-tab.is-active {
-  background: var(--card);
-  color: var(--ink);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, .08);
-}
-.grade-exam-tab:focus-visible {
-  outline: 2px solid var(--teal);
-  outline-offset: 1px;
-}
-
 .grade-table { padding: 14px 0 10px; overflow: hidden; }
 .grade-scroll {
   flex: 1;

@@ -378,6 +378,17 @@ export class RosterStore {
     return changed;
   }
 
+  /** Distinct students with at least one subject grade in this exam. */
+  getExamEnteredStudentCount(examId) {
+    if (!this.#findExam(examId)) return 0;
+    const seen = new Set();
+    for (const grade of this.#state.courseGrades) {
+      if (grade.examId !== examId) continue;
+      seen.add(grade.studentId);
+    }
+    return seen.size;
+  }
+
   getExamGradeStats(examId) {
     const exam = this.#findExam(examId);
     if (!exam) return null;

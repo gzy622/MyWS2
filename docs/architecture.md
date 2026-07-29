@@ -108,7 +108,7 @@ Capacitor 依赖只用于原生壳。浏览器代码通过 `globalThis.Capacitor
 | 座位 | `seat-geometry.js`、`seat-canvas.js`、`seat-landscape.js` |
 | 姓名索引 | `name-initial.js`、`letter-index.js` |
 | 人员 | `people-renderer.js`、`people-interactions.js` |
-| 课程 | `courses-renderer.js`、`courses-interactions.js`、`highlight-subjects-model.js`、`highlight-subjects.js` |
+| 课程 | `courses-renderer.js`、`courses-interactions.js`、`exams.js`、`highlight-subjects-model.js`、`highlight-subjects.js` |
 | 备份 | `backup.js` |
 
 ## 6. 数据流
@@ -143,7 +143,7 @@ CSS class、ARIA 属性和 CSS 自定义属性都是状态的渲染结果，不�
 4. `content.css`：页面内容、网格、座位、人员和课程；
 5. `sheets.css`：共享 Sheet 基础；
 6. `controls.css`：底栏、菜单、确认、Popover 与 Toast；
-7. `assignments.css`：作业列表和作业名称。
+7. `assignments.css`：作业列表、作业名称、考试列表与考试名称。
 
 深色主题只覆盖语义 token，不复制组件样式。
 

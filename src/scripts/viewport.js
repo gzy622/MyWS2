@@ -3,6 +3,8 @@ const IME_INSET_THRESHOLD = 80;
 const IME_HOST_SELECTOR = [
   '.assignment-name-sheet',
   '.assignment-sheet',
+  '.exam-name-sheet',
+  '.exam-sheet',
   '.student-record-sheet',
   '.people-pick-sheet',
   '.people-edit-sheet',

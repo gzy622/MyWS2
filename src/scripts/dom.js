@@ -35,7 +35,6 @@ export const elements = {
   roleList: required('#roleList'),
   dutyList: required('#dutyList'),
   weekStrip: required('#weekStrip'),
-  gradeExamTabs: required('#gradeExamTabs'),
   gradeTable: required('#gradeTable'),
   navButtons: requiredAll('.nav-btn'),
   pageElements: requiredAll('.page'),

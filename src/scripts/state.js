@@ -11,6 +11,7 @@ export const state = {
   fontSizePopoverOpen: false,
   seatEditing: false,
   seatLandscape: false,
+  /** @type {null | 'assignments' | 'exams' | 'student-record' | 'people-pick' | 'people-edit' | 'course-slot' | 'course-period' | 'course-subject' | 'course-grade' | 'course-stats' | 'course-highlight' | 'more' | 'confirm'} */
   activeOverlay: null,
   /** @type {number | null} null resolves to the first exam at render time */
   gradeExamId: null,

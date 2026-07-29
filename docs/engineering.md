@@ -58,7 +58,7 @@
 | 页面内容、网格、座位、人员、课程 | `src/styles/content.css` |
 | 共享 Sheet | `src/styles/sheets.css` |
 | 底栏、菜单、Popover、确认、Toast | `src/styles/controls.css` |
-| 作业列表和作业名称 | `src/styles/assignments.css` |
+| 作业列表、作业名称、考试列表与考试名称 | `src/styles/assignments.css` |
 | 跨模块固定 DOM 引用 | `src/scripts/dom.js` |
 | UI 瞬时状态 | `src/scripts/state.js` |
 | 默认数据、领域常量、Schema 校验与迁移 | `src/scripts/roster-model.js` |
@@ -67,6 +67,7 @@
 | 网格和座位共享渲染 | `src/scripts/roster-renderer.js` |
 | 学生点击、长按和记录面板 | `src/scripts/student-interactions.js`、`src/scripts/student-record.js` |
 | 作业管理 | `src/scripts/assignments.js` |
+| 考试列表与考试名称 | `src/scripts/exams.js` |
 | 座位几何、画布手势与主动横屏 | `src/scripts/seat-geometry.js`、`src/scripts/seat-canvas.js`、`src/scripts/seat-landscape.js` |
 | 姓名首字母和侧边索引 | `src/scripts/name-initial.js`、`src/scripts/letter-index.js` |
 | 人员渲染与交互 | `src/scripts/people-renderer.js`、`src/scripts/people-interactions.js` |
@@ -122,7 +123,7 @@
 
 - 外壳与导航：`#app`、`#viewport`、`#pages`、`#nav`、`#glider`、`#topbarTitle`、`#topbarTitleLabel`、`#menuButton`、`#moreButton`；
 - 登记与座位：`#studentGrid`、`#gridLetterIndex`、`#studentFontSize`、`#studentFontSizeValue`、`#seatViewport`、`#seatStage`、`#seatGrid`、`#seatHint`、`#seatFitButton`、`#seatLandscapeButton`、`#seatModeBar`、`#seatEditStatus`、`#exitSeatEdit`、`#seatLetterIndex`；
-- 人员与课程：`#roleList`、`#dutyList`、`#weekStrip`、`#gradeExamTabs`、`#gradeTable`；
+- 人员与课程：`#roleList`、`#dutyList`、`#weekStrip`、`#gradeTable`；
 - 通用菜单与反馈：`#fontSizePopover`、`#menuDrawer`、`#menuDrawerHandle`、`#menuDrawerBuild`、`#closeMenuDrawer`、`#scrim`、`#toast`；
 - 备份文件选择：`#backupFileInput`；
 - 学生记录：`#studentRecordSheet`、`#studentRecordPanel`、`#studentRecordHandle`、`#closeStudentRecord`、`#studentRecordTitle`、`#studentRecordStatus`、`#studentScoreControls`、`#studentScoreInput`、`#studentScoreError`、`#clearStudentRecord`、`#saveStudentRecord`；
@@ -137,8 +138,8 @@
 - 导航：`.page`、`.nav-btn`、`.segment`、`.segment-glider`、`.subview`、`.subdots i`；
 - 外壳瞬时态：`.is-sheet-gesturing`、`.is-page-gesturing`（跟手/落位时关闭顶栏 backdrop-filter）；
 - 登记：`.student-grid`、`.student-card`、`.seat-cell`、`.seat-card`、`.letter-index`、`.letter-index-item`、`.letter-index-badge`；
-- 人员与课程：`.people-row`、`.week-slot-cell`、`.week-period-label`、`.grade-exam-tab`、`.grade-score-cell`、`.grade-subject-head`；
-- 浮层：`.menu-drawer`、`.student-record-sheet`、`.assignment-sheet`、`.assignment-name-sheet`、`.people-pick-sheet`、`.people-edit-sheet`、`.course-slot-sheet`、`.course-period-sheet`、`.course-subject-sheet`、`.course-exam-sheet`、`.course-grade-sheet`、`.course-stats-sheet`、`.course-highlight-sheet`、`.confirm-sheet`、`.more-menu`；
+- 人员与课程：`.people-row`、`.week-slot-cell`、`.week-period-label`、`.grade-score-cell`、`.grade-subject-head`；
+- 浮层：`.menu-drawer`、`.student-record-sheet`、`.assignment-sheet`、`.assignment-name-sheet`、`.exam-sheet`、`.exam-name-sheet`、`.people-pick-sheet`、`.people-edit-sheet`、`.course-slot-sheet`、`.course-period-sheet`、`.course-subject-sheet`、`.course-grade-sheet`、`.course-stats-sheet`、`.course-highlight-sheet`、`.confirm-sheet`、`.more-menu`；
 - 字母索引拖动态：`.is-scrubbing`、`.is-scrubbing-shown`、`.is-letter-hit`。
 
 学生格可选 `data-score` 驱动分数角标；座位卡必须维护 `data-student-id` 与 `data-seat-index`。

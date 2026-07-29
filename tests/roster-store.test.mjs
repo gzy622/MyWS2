@@ -260,6 +260,20 @@ test('考试可增删改，成绩按考试隔离，统计可算平均与极值',
   assert.equal(store.getSnapshot().courseGrades.every((grade) => grade.examId === exam.id), true);
 });
 
+test('考试已录入学生数按场次去重统计', () => {
+  const store = createRosterStore();
+  const exam = store.addExam();
+  assert.equal(store.getExamEnteredStudentCount(1), 0);
+  assert.equal(store.getExamEnteredStudentCount(exam.id), 0);
+  assert.equal(store.setCourseGrade(1, 1, 1, 90), 'saved');
+  assert.equal(store.setCourseGrade(1, 1, 2, 80), 'saved');
+  assert.equal(store.setCourseGrade(1, 2, 1, 70), 'saved');
+  assert.equal(store.setCourseGrade(exam.id, 3, 1, 60), 'saved');
+  assert.equal(store.getExamEnteredStudentCount(1), 2);
+  assert.equal(store.getExamEnteredStudentCount(exam.id), 1);
+  assert.equal(store.getExamEnteredStudentCount(999), 0);
+});
+
 test('非法初始状态整体回退默认领域状态', () => {
   const invalid = createDefaultRosterState();
   invalid.seats[1].seatIndex = invalid.seats[0].seatIndex;

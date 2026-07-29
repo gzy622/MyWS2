@@ -583,7 +583,6 @@
 .course-slot-sheet,
 .course-period-sheet,
 .course-subject-sheet,
-.course-exam-sheet,
 .course-grade-sheet,
 .course-stats-sheet,
 .course-highlight-sheet {
@@ -596,15 +595,13 @@
   pointer-events: none;
 }
 .course-period-sheet,
-.course-subject-sheet,
-.course-exam-sheet { z-index: 31; }
+.course-subject-sheet { z-index: 31; }
 .course-grade-sheet { z-index: 32; }
 .course-stats-sheet,
 .course-highlight-sheet { z-index: 33; }
 .course-slot-sheet::before,
 .course-period-sheet::before,
 .course-subject-sheet::before,
-.course-exam-sheet::before,
 .course-grade-sheet::before,
 .course-stats-sheet::before,
 .course-highlight-sheet::before {
@@ -619,21 +616,18 @@
 .course-slot-sheet.show,
 .course-period-sheet.show,
 .course-subject-sheet.show,
-.course-exam-sheet.show,
 .course-stats-sheet.show,
 .course-highlight-sheet.show { pointer-events: auto; touch-action: manipulation; }
 .course-grade-sheet.show { pointer-events: auto; touch-action: none; }
 .course-slot-sheet.show::before,
 .course-period-sheet.show::before,
 .course-subject-sheet.show::before,
-.course-exam-sheet.show::before,
 .course-grade-sheet.show::before,
 .course-stats-sheet.show::before,
 .course-highlight-sheet.show::before { opacity: 1; }
 .course-slot-sheet.is-revealing:not(.is-dragging),
 .course-period-sheet.is-revealing:not(.is-dragging),
 .course-subject-sheet.is-revealing:not(.is-dragging),
-.course-exam-sheet.is-revealing:not(.is-dragging),
 .course-grade-sheet.is-revealing:not(.is-dragging),
 .course-stats-sheet.is-revealing:not(.is-dragging),
 .course-highlight-sheet.is-revealing:not(.is-dragging) { pointer-events: none; }
@@ -643,8 +637,6 @@
 .course-period-sheet.show.is-settling,
 .course-subject-sheet.show.is-dragging,
 .course-subject-sheet.show.is-settling,
-.course-exam-sheet.show.is-dragging,
-.course-exam-sheet.show.is-settling,
 .course-grade-sheet.show.is-dragging,
 .course-grade-sheet.show.is-settling,
 .course-stats-sheet.show.is-dragging,
@@ -660,9 +652,6 @@
 .course-subject-sheet.show.is-revealing::before,
 .course-subject-sheet.is-revealing::before,
 .course-subject-sheet.show.is-dragging::before,
-.course-exam-sheet.show.is-revealing::before,
-.course-exam-sheet.is-revealing::before,
-.course-exam-sheet.show.is-dragging::before,
 .course-grade-sheet.show.is-revealing::before,
 .course-grade-sheet.is-revealing::before,
 .course-grade-sheet.show.is-dragging::before,
@@ -680,8 +669,6 @@
 .course-period-sheet.is-settling::before,
 .course-subject-sheet.show.is-settling::before,
 .course-subject-sheet.is-settling::before,
-.course-exam-sheet.show.is-settling::before,
-.course-exam-sheet.is-settling::before,
 .course-grade-sheet.show.is-settling::before,
 .course-grade-sheet.is-settling::before,
 .course-stats-sheet.show.is-settling::before,
@@ -693,7 +680,6 @@
 .course-slot-sheet-panel,
 .course-period-sheet-panel,
 .course-subject-sheet-panel,
-.course-exam-sheet-panel,
 .course-stats-panel,
 .course-highlight-panel {
   width: min(100%, 420px);
@@ -708,19 +694,16 @@
 .course-slot-sheet-panel,
 .course-period-sheet-panel,
 .course-subject-sheet-panel,
-.course-exam-sheet-panel,
 .course-stats-panel,
 .course-highlight-panel { touch-action: pan-y; }
 .course-slot-sheet .sheet-handle-zone,
 .course-period-sheet .sheet-handle-zone,
 .course-subject-sheet .sheet-handle-zone,
-.course-exam-sheet .sheet-handle-zone,
 .course-stats-sheet .sheet-handle-zone,
 .course-highlight-sheet .sheet-handle-zone { touch-action: none; }
 .course-slot-sheet.show .course-slot-sheet-panel,
 .course-period-sheet.show .course-period-sheet-panel,
 .course-subject-sheet.show .course-subject-sheet-panel,
-.course-exam-sheet.show .course-exam-sheet-panel,
 .course-stats-sheet.show .course-stats-panel,
 .course-highlight-sheet.show .course-highlight-panel {
   visibility: visible;
@@ -730,7 +713,6 @@
 .course-slot-sheet-panel.dragging,
 .course-period-sheet-panel.dragging,
 .course-subject-sheet-panel.dragging,
-.course-exam-sheet-panel.dragging,
 .course-stats-panel.dragging,
 .course-highlight-panel.dragging {
   transition: none;
@@ -798,7 +780,6 @@
 .course-slot-sheet.is-ime-host,
 .course-period-sheet.is-ime-host,
 .course-subject-sheet.is-ime-host,
-.course-exam-sheet.is-ime-host,
 .course-grade-sheet.is-ime-host,
 .course-stats-sheet.is-ime-host,
 .course-highlight-sheet.is-ime-host {

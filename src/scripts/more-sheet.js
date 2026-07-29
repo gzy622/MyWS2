@@ -24,7 +24,7 @@ const COURSES_SCHEDULE_ACTIONS = new Set(['clear-schedule', 'highlight-subjects'
 const COURSES_GRADES_ACTIONS = new Set(['add-subject', 'add-exam', 'grade-stats', 'clear-grades']);
 const COURSES_ACTIONS = new Set([...COURSES_SCHEDULE_ACTIONS, ...COURSES_GRADES_ACTIONS]);
 
-export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOthers, highlightSubjects, openCreateAssignment, openGradeStats }) {
+export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOthers, highlightSubjects, openCreateAssignment, openCreateExam, openGradeStats }) {
   let trigger = null;
   let confirmAction = null;
   let confirmReturnFocus = null;
@@ -266,9 +266,8 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
       return;
     }
     if (action === 'add-exam') {
-      close();
-      const exam = store.addExam();
-      showToast(exam ? `已新增「${exam.title}」` : '无法新增考试');
+      close({ restoreFocus: false });
+      openCreateExam?.({ returnFocus: elements.moreButton });
       return;
     }
     if (action === 'grade-stats') {

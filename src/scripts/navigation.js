@@ -3,7 +3,11 @@ import { state, setCurrentPage, setSubview, toggleSubview } from './state.js';
 import { haptic, Haptic } from './haptics.js';
 import { setLetterIndexPageDragging, syncLetterIndexPageVisibility } from './letter-index.js';
 
+const COURSE_PAGE_INDEX = 2;
+const GRADES_SUBVIEW_INDEX = 1;
+
 let getRegistrationTitle = () => '登记';
+let getActiveExamTitle = () => '课程';
 
 function pageTransform(offsetPx = 0) {
   return `translate3d(calc(${-state.currentPage * 100 / 3}% + ${offsetPx}px), 0, 0)`;
@@ -21,22 +25,34 @@ function segmentGliderTransform(subIndex, offsetPx = 0) {
   return `translate3d(calc(${subIndex * 100}% + ${offsetPx}px), 0, 0)`;
 }
 
+export function renderTopbarTitle() {
+  const isAssignmentTitle = state.currentPage === 1;
+  const isExamTitle = state.currentPage === COURSE_PAGE_INDEX
+    && state.subviews[COURSE_PAGE_INDEX] === GRADES_SUBVIEW_INDEX;
+  let pageTitle;
+  if (isAssignmentTitle) pageTitle = getRegistrationTitle();
+  else if (isExamTitle) pageTitle = getActiveExamTitle();
+  else pageTitle = elements.pageElements[state.currentPage].getAttribute('aria-label');
+
+  elements.topbarTitleLabel.textContent = pageTitle;
+  elements.topbarTitle.classList.toggle('is-assignment', isAssignmentTitle);
+  elements.topbarTitle.classList.toggle('is-exam', isExamTitle);
+  elements.topbarTitle.disabled = !(isAssignmentTitle || isExamTitle);
+  if (isAssignmentTitle) {
+    elements.topbarTitle.setAttribute('aria-label', `当前作业：${pageTitle}，点击管理作业`);
+  } else if (isExamTitle) {
+    elements.topbarTitle.setAttribute('aria-label', `当前考试：${pageTitle}，点击管理考试`);
+  } else {
+    elements.topbarTitle.setAttribute('aria-label', pageTitle);
+  }
+}
+
 export function renderNavigation({ animate = true } = {}) {
   elements.pages.classList.toggle('dragging', !animate);
   elements.glider.classList.toggle('dragging', !animate);
   elements.pages.style.transform = pageTransform();
   elements.glider.style.transform = gliderTransform();
-  const isAssignmentTitle = state.currentPage === 1;
-  const pageTitle = isAssignmentTitle
-    ? getRegistrationTitle()
-    : elements.pageElements[state.currentPage].getAttribute('aria-label');
-  elements.topbarTitleLabel.textContent = pageTitle;
-  elements.topbarTitle.classList.toggle('is-assignment', isAssignmentTitle);
-  elements.topbarTitle.disabled = !isAssignmentTitle;
-  elements.topbarTitle.setAttribute(
-    'aria-label',
-    isAssignmentTitle ? `当前作业：${pageTitle}，点击管理作业` : pageTitle
-  );
+  renderTopbarTitle();
 
   elements.navButtons.forEach((button, index) => {
     const isCurrent = index === state.currentPage;
@@ -115,8 +131,9 @@ export function setSub(pageIndex, subIndex) {
   renderNavigation();
 }
 
-export function initNavigation({ getActiveAssignmentTitle } = {}) {
+export function initNavigation({ getActiveAssignmentTitle, getActiveExamTitle: getExamTitle } = {}) {
   if (typeof getActiveAssignmentTitle === 'function') getRegistrationTitle = getActiveAssignmentTitle;
+  if (typeof getExamTitle === 'function') getActiveExamTitle = getExamTitle;
   elements.pageElements.forEach((page, pageIndex) => {
     page.querySelectorAll('.segment').forEach((button, subIndex) => {
       button.addEventListener('click', () => setSub(pageIndex, subIndex));
