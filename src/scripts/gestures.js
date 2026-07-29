@@ -30,6 +30,20 @@ const VELOCITY_STALE_MS = 80;
 /** Keep click blocked until after the synthetic click from touch/pointerup. */
 const CLICK_SUPPRESS_MS = 450;
 
+/**
+ * Controls activated by the gesture router when it claimed the pointer as Sheet.
+ * Do not rely on browser click after touch-action:none + optional pointer capture.
+ */
+const SHEET_TAP_CONTROL_SELECTOR =
+  'button, a[href], [role="button"], .student-score-keypad [data-score-key]';
+
+function findSheetTapControl(target) {
+  if (!(target instanceof Element)) return null;
+  const control = target.closest(SHEET_TAP_CONTROL_SELECTOR);
+  if (!control || control.disabled) return null;
+  return control;
+}
+
 function clampSubview(index) {
   return Math.max(0, Math.min(1, index));
 }
@@ -63,6 +77,8 @@ export function initHorizontalGestures() {
   let claim = null;
   let postDrawerCloseNavUntil = 0;
   let postDrawerCloseNavButton = null;
+  /** Control under pointerdown when claim === 'sheet'; activated on brief tap. */
+  let sheetTapControl = null;
   let startPage = 0;
   let startSubview = 0;
   let gestureTarget = '';
@@ -109,6 +125,7 @@ export function initHorizontalGestures() {
       : null;
     if (postDrawerCloseNavUntil) postDrawerCloseNavUntil = 0;
     claim = sheets.claimPointerDown(event);
+    sheetTapControl = claim === 'sheet' ? findSheetTapControl(event.target) : null;
     if (claim === 'blocked') return;
 
     // Horizontal page gestures only when no vertical sheet is presented.
@@ -183,7 +200,11 @@ export function initHorizontalGestures() {
 
     if (!axis && Math.hypot(deltaX, deltaY) > AXIS_LOCK_DISTANCE) {
       axis = Math.abs(deltaX) >= Math.abs(deltaY) ? 'x' : 'y';
-      element.setPointerCapture?.(pointerId);
+      // Sheet claim: capture only after list scroll / sheet drag actually starts.
+      // Capturing on every axis lock makes Android WebView omit later clicks.
+      if (claim !== 'sheet') {
+        element.setPointerCapture?.(pointerId);
+      }
       if (axis === 'x' && !isSegments && !horizontalScrollPort && claim !== 'sheet') {
         setLetterIndexPageDragging(true);
       }
@@ -207,6 +228,9 @@ export function initHorizontalGestures() {
           velocityY
         });
         if (handled) {
+          if (sheets.hasStarted() && !element.hasPointerCapture?.(pointerId)) {
+            element.setPointerCapture?.(pointerId);
+          }
           event.preventDefault();
           return;
         }
@@ -280,18 +304,26 @@ export function initHorizontalGestures() {
     active = false;
 
     const wasGesture = Math.hypot(deltaX, deltaY) > 10;
+    const endedClaim = claim;
     const immediateNavButton = !cancelled && !wasGesture ? postDrawerCloseNavButton : null;
     let handledSheet = false;
+    let sheetMoved = false;
 
     if (claim === 'sheet') {
       if (event.timeStamp - sampleTime > VELOCITY_STALE_MS) velocityY = 0;
       else velocityY = readTrailVelocity('y');
       const sheetResult = sheets.endPointer({ velocityY, cancelled });
       handledSheet = sheetResult.handled;
+      sheetMoved = Boolean(sheetResult.moved);
       if (sheetResult.closedSheetId === 'drawer') {
         postDrawerCloseNavUntil = performance.now() + CLICK_SUPPRESS_MS;
       }
     }
+
+    // Sheet claim owns the pointer: brief taps activate here; do not wait for browser click.
+    const immediateSheetControl = !cancelled && !wasGesture && !sheetMoved && endedClaim === 'sheet'
+      ? sheetTapControl
+      : null;
 
     // Settle page/segment swipes from the current delta even on pointercancel.
     // Android may end a fit-width grade-table pan with cancel after pan-x claims x.
@@ -347,6 +379,8 @@ export function initHorizontalGestures() {
         axis: axis ?? 'none',
         claim: claim ?? 'pass',
         handledSheet,
+        sheetMoved,
+        sheetTap: Boolean(immediateSheetControl),
         deltaX: Math.round(deltaX),
         deltaY: Math.round(deltaY),
         velocityX: Number(velocityX.toFixed(3)),
@@ -363,18 +397,27 @@ export function initHorizontalGestures() {
     startHorizontalScrollLeft = 0;
     claim = null;
     postDrawerCloseNavButton = null;
+    const tapControl = immediateSheetControl;
+    sheetTapControl = null;
 
-    // Android WebView can omit click for the first contact after a Sheet swipe.
-    // Complete that one deliberate nav tap here and block any late duplicate click.
+    if (tapControl) {
+      if (isSheetDebugEnabled()) {
+        logGestureDebug('sheet tap', {
+          target: describeDebugTarget(tapControl)
+        });
+      }
+      tapControl.click();
+    }
+    // Android WebView can omit click for the first contact after closing the drawer.
     immediateNavButton?.click();
 
-    // Suppress the trailing click after touch drag/sheet scrub (do not clear via microtask).
-    if (wasGesture || handledSheet || immediateNavButton) {
+    // Suppress trailing browser click after drag, sheet move, or gesture-owned activation.
+    if (wasGesture || handledSheet || sheetMoved || immediateNavButton || tapControl) {
       const courseHit = event.target?.closest?.(
         '.week-slot-cell, .week-period-label, .course-edit-field, .course-slot-sheet, #weekStrip'
       );
       if (courseHit) {
-        logCourseDebug('click suppress armed', `wasGesture=${wasGesture} handledSheet=${handledSheet} claim=${claim ?? 'null'} hit=${describeDebugTarget(event.target)} Δ=${Math.round(Math.hypot(deltaX, deltaY))}`);
+        logCourseDebug('click suppress armed', `wasGesture=${wasGesture} handledSheet=${handledSheet} claim=${endedClaim ?? 'null'} hit=${describeDebugTarget(event.target)} Δ=${Math.round(Math.hypot(deltaX, deltaY))}`);
       }
       armClickSuppression();
       event.preventDefault();

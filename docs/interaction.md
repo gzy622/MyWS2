@@ -141,6 +141,7 @@ activeOverlay: null | 'assignments' | 'student-record' | 'people-pick' | 'people
 ### 点击抑制
 
 有效拖动或 Sheet 跟手后约 450ms 内抑制 click（勿用 microtask 立刻解除）。遮罩关闭须避开 Sheet `isActive`。不得删除该保护。
+Sheet 手势认领了指针时：未发生列表滚动/面板跟手的短触，由手势路由在 `pointerup` 上直接激活命中的按钮等控件，并抑制浏览器可能补发的 click；不以 WebView 是否合成 click 为准。列表滚动或面板跟手开始后才 `setPointerCapture`。
 
 ## 8. 触觉反馈
 

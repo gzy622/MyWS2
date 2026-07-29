@@ -239,12 +239,13 @@ export function createSheetGestureBridge() {
   }
 
   function endPointer({ velocityY = 0, cancelled = false } = {}) {
-    if (!session) return { handled: false, closedSheetId: null };
+    if (!session) return { handled: false, closedSheetId: null, moved: false };
     const sheet = session.sheet;
     const wasSheet = Boolean(session.started && sheet && sheet.isDragging());
     const wasScrollOnly = Boolean(
       session.started && session.scrollLocked && session.scrollPort && !wasSheet
     );
+    const moved = Boolean(session.started);
     const scrollPort = session.scrollPort;
     let openedDrawer = false;
     let closedSheetId = null;
@@ -269,7 +270,7 @@ export function createSheetGestureBridge() {
     clear();
     if (wasScrollOnly && !cancelled) startScrollPortInertia(scrollPort, velocityY);
     if (openedDrawer) haptic(Haptic.light);
-    return { handled: wasSheet, closedSheetId };
+    return { handled: wasSheet, closedSheetId, moved };
   }
 
   return {
@@ -282,6 +283,8 @@ export function createSheetGestureBridge() {
       clear();
     },
     isBusy,
+    /** True once this pointer started list scroll or sheet drag. */
+    hasStarted: () => Boolean(session?.started),
     hasSession: () => Boolean(session)
   };
 }
