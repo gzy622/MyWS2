@@ -48,6 +48,42 @@ function clampSubview(index) {
   return Math.max(0, Math.min(1, index));
 }
 
+function canScrollX(element) {
+  return Boolean(element) && element.scrollWidth > element.clientWidth + 1;
+}
+
+function canScrollY(element) {
+  return Boolean(element) && element.scrollHeight > element.clientHeight + 1;
+}
+
+/** Grade table / exam chips: horizontal drag scrolls the port when it overflows. */
+function findHorizontalScrollPort(target) {
+  if (!(target instanceof Element)) return null;
+  const port = target.closest('.grade-scroll, .grade-exam-tabs');
+  return canScrollX(port) ? port : null;
+}
+
+/**
+ * Grades table uses one dual-axis `.grade-scroll` so sticky head/name share a port.
+ * Prefer that scroller whenever the gesture starts in the grades subview.
+ */
+function findVerticalScrollPort(target, pageElement) {
+  if (!pageElement) return null;
+  if (target instanceof Element && pageElement.contains(target)) {
+    const gradesView = target.closest('.page[data-page="2"] .subview[data-view="1"]');
+    if (gradesView && pageElement.contains(gradesView)) {
+      return gradesView.querySelector('.grade-scroll') || gradesView;
+    }
+    const nested = target.closest('.subview.active');
+    if (nested && pageElement.contains(nested) && canScrollY(nested)) return nested;
+  }
+  return pageElement;
+}
+
+function isNativeGradeScroller(element) {
+  return Boolean(element?.classList?.contains('grade-scroll'));
+}
+
 export function initHorizontalGestures() {
   const sheets = createSheetGestureBridge();
 
@@ -69,6 +105,9 @@ export function initHorizontalGestures() {
   let startScrollTop = 0;
   let horizontalScrollPort = null;
   let startHorizontalScrollLeft = 0;
+  /** Native overflow ports: skip pointer capture / preventDefault so inertia works. */
+  let nativeHorizontal = false;
+  let nativeVertical = false;
   let isNav = false;
   let isSegments = false;
   let blockGestureClick = false;
@@ -159,15 +198,17 @@ export function initHorizontalGestures() {
     isNav = Boolean(event.target.closest?.('#nav'));
     isSegments = !isNav && Boolean(event.target.closest?.('.segments'));
     lastSegment = isSegments ? state.subviews[state.currentPage] : state.currentPage;
-    scrollPage = isNav ? null : elements.pageElements[state.currentPage];
+    const pageElement = isNav ? null : elements.pageElements[state.currentPage];
+    scrollPage = findVerticalScrollPort(event.target, pageElement);
     startScrollTop = scrollPage?.scrollTop || 0;
-    const gradeScroll = !isNav && !isSegments
-      ? event.target.closest?.('.grade-scroll')
-      : null;
-    horizontalScrollPort = gradeScroll?.scrollWidth > gradeScroll?.clientWidth + 1
-      ? gradeScroll
+    horizontalScrollPort = !isNav && !isSegments
+      ? findHorizontalScrollPort(event.target)
       : null;
     startHorizontalScrollLeft = horizontalScrollPort?.scrollLeft || 0;
+    nativeHorizontal = Boolean(horizontalScrollPort);
+    nativeVertical = isNativeGradeScroller(scrollPage)
+      && event.target instanceof Element
+      && scrollPage.contains(event.target);
     startPage = state.currentPage;
     startSubview = state.subviews[state.currentPage];
     gestureTarget = describeDebugTarget(event.target);
@@ -202,7 +243,10 @@ export function initHorizontalGestures() {
       axis = Math.abs(deltaX) >= Math.abs(deltaY) ? 'x' : 'y';
       // Sheet claim: capture only after list scroll / sheet drag actually starts.
       // Capturing on every axis lock makes Android WebView omit later clicks.
-      if (claim !== 'sheet') {
+      // Native grade/table/tabs scroll must NOT capture — pointer capture kills inertia.
+      const useNativeOverflow = (axis === 'x' && nativeHorizontal)
+        || (axis === 'y' && nativeVertical);
+      if (claim !== 'sheet' && !useNativeOverflow) {
         element.setPointerCapture?.(pointerId);
       }
       if (axis === 'x' && !isSegments && !horizontalScrollPort && claim !== 'sheet') {
@@ -215,7 +259,8 @@ export function initHorizontalGestures() {
           deltaY: Math.round(deltaY),
           velocityX: Number(velocityX.toFixed(3)),
           velocityY: Number(velocityY.toFixed(3)),
-          claim: claim ?? 'pass'
+          claim: claim ?? 'pass',
+          nativeOverflow: useNativeOverflow
         });
       }
     }
@@ -239,6 +284,10 @@ export function initHorizontalGestures() {
         event.preventDefault();
         return;
       }
+      if (nativeVertical) {
+        // Browser owns grades dual-axis scroll (sticky + inertia).
+        return;
+      }
       if (scrollPage) {
         scrollPage.scrollTop = startScrollTop - deltaY;
       }
@@ -250,19 +299,12 @@ export function initHorizontalGestures() {
     if (claim === 'sheet' && sheets.isBusy()) return;
     if (getTopSheet()) return;
 
-    event.preventDefault();
     if (horizontalScrollPort) {
-      const maxScrollLeft = Math.max(
-        0,
-        horizontalScrollPort.scrollWidth - horizontalScrollPort.clientWidth
-      );
-      horizontalScrollPort.scrollLeft = Math.min(
-        maxScrollLeft,
-        Math.max(0, startHorizontalScrollLeft - deltaX)
-      );
+      // Browser owns table/tabs horizontal overflow; do not page-swipe.
       return;
     }
 
+    event.preventDefault();
     let resistedOffset = deltaX;
     const currentSub = state.subviews[state.currentPage];
     const isPastStart = isSegments
@@ -395,6 +437,8 @@ export function initHorizontalGestures() {
     isSegments = false;
     horizontalScrollPort = null;
     startHorizontalScrollLeft = 0;
+    nativeHorizontal = false;
+    nativeVertical = false;
     claim = null;
     postDrawerCloseNavButton = null;
     const tapControl = immediateSheetControl;
