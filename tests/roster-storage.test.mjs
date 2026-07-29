@@ -5,7 +5,8 @@ import {
   ROSTER_LEGACY_SCHEMA_VERSION,
   ROSTER_SCHEMA_VERSION,
   ROSTER_SCHEMA_VERSION_V2,
-  ROSTER_SCHEMA_VERSION_V3
+  ROSTER_SCHEMA_VERSION_V3,
+  ROSTER_SCHEMA_VERSION_V4
 } from '../src/scripts/roster-model.js';
 import {
   loadRosterState,
@@ -67,8 +68,14 @@ function createLegacyV2State() {
 function createLegacyV3State() {
   const state = createDefaultRosterState();
   return {
-    ...state,
     schemaVersion: ROSTER_SCHEMA_VERSION_V3,
+    students: state.students,
+    seats: state.seats,
+    assignments: state.assignments,
+    activeAssignmentId: state.activeAssignmentId,
+    submissions: [{ assignmentId: 1, studentId: 1 }],
+    scores: [{ assignmentId: 1, studentId: 1, value: 95.5 }],
+    nextAssignmentId: state.nextAssignmentId,
     roles: state.roles.map((role) => ({
       id: role.id,
       title: role.title,
@@ -80,28 +87,65 @@ function createLegacyV3State() {
       note: duty.note,
       studentId: duty.id === 1 ? 2 : null
     })),
-    submissions: [{ assignmentId: 1, studentId: 1 }],
-    scores: [{ assignmentId: 1, studentId: 1, value: 95.5 }],
+    nextRoleId: state.nextRoleId,
+    nextDutyId: state.nextDutyId,
+    periods: state.periods,
     scheduleSlots: [{ day: 0, periodId: 2, subject: '语文' }],
-    courseGrades: [{ subjectId: 1, studentId: 1, value: 88 }]
+    subjects: state.subjects,
+    courseGrades: [{ subjectId: 1, studentId: 1, value: 88 }],
+    nextPeriodId: state.nextPeriodId,
+    nextSubjectId: state.nextSubjectId
   };
 }
 
-test('合法 Schema 4 可完整保存并恢复', () => {
+function createLegacyV4State() {
+  const state = createDefaultRosterState();
+  return {
+    schemaVersion: ROSTER_SCHEMA_VERSION_V4,
+    students: state.students,
+    seats: state.seats,
+    assignments: state.assignments,
+    activeAssignmentId: state.activeAssignmentId,
+    submissions: [{ assignmentId: 1, studentId: 1 }],
+    scores: [{ assignmentId: 1, studentId: 1, value: 95.5 }],
+    nextAssignmentId: state.nextAssignmentId,
+    roles: state.roles.map((role) => ({
+      id: role.id,
+      title: role.title,
+      studentIds: role.id === 1 ? [1, 2] : []
+    })),
+    duties: state.duties.map((duty) => ({
+      id: duty.id,
+      title: duty.title,
+      note: duty.note,
+      studentIds: duty.id === 1 ? [3] : []
+    })),
+    nextRoleId: state.nextRoleId,
+    nextDutyId: state.nextDutyId,
+    periods: state.periods,
+    scheduleSlots: [{ day: 0, periodId: 2, subject: '语文' }],
+    subjects: state.subjects,
+    courseGrades: [{ subjectId: 1, studentId: 1, value: 88 }],
+    nextPeriodId: state.nextPeriodId,
+    nextSubjectId: state.nextSubjectId
+  };
+}
+
+test('合法 Schema 5 可完整保存并恢复', () => {
   const state = createDefaultRosterState();
   state.submissions.push({ assignmentId: 1, studentId: 1 });
   state.scores.push({ assignmentId: 1, studentId: 1, value: 95.5 });
   state.roles[0].studentIds = [1, 2];
   state.duties[0].studentIds = [3];
   state.scheduleSlots.push({ day: 0, periodId: 2, subject: '语文' });
-  state.courseGrades.push({ subjectId: 1, studentId: 1, value: 88 });
+  state.courseGrades.push({ examId: 1, subjectId: 1, studentId: 1, value: 88 });
   const storage = memoryStorage();
   assert.equal(saveRosterState(state, storage), true);
   assert.deepEqual(loadRosterState(storage), state);
   assert.notEqual(loadRosterState(storage), state);
 });
 
-test('Schema 1 迁移为 Schema 4 并注入默认人员与课程', () => {
+test('Schema 1 迁移为 Schema 5 并注入默认人员、课程与考试', () => {
   const legacy = createLegacyV1State();
   const migrated = parseStoredRoster(legacy);
   assert.equal(migrated.schemaVersion, ROSTER_SCHEMA_VERSION);
@@ -113,6 +157,8 @@ test('Schema 1 迁移为 Schema 4 并注入默认人员与课程', () => {
   assert.ok(migrated.duties.every((duty) => Array.isArray(duty.studentIds) && duty.studentIds.length === 0));
   assert.equal(migrated.periods.length, 10);
   assert.equal(migrated.subjects.length, 3);
+  assert.equal(migrated.exams.length, 1);
+  assert.equal(migrated.exams[0].title, '考试 1');
   assert.equal(migrated.scheduleSlots.length, 0);
   assert.equal(migrated.courseGrades.length, 0);
 
@@ -123,18 +169,19 @@ test('Schema 1 迁移为 Schema 4 并注入默认人员与课程', () => {
   assert.equal(loaded.periods[0].title, '早');
 });
 
-test('Schema 2 迁移为 Schema 4 并保留人员指派、注入空课表', () => {
+test('Schema 2 迁移为 Schema 5 并保留人员指派、注入空课表与考试', () => {
   const legacy = createLegacyV2State();
   const migrated = parseStoredRoster(legacy);
   assert.equal(migrated.schemaVersion, ROSTER_SCHEMA_VERSION);
   assert.deepEqual(migrated.roles[0].studentIds, [1]);
   assert.equal(migrated.periods.length, 10);
   assert.equal(migrated.subjects[0].title, '语文');
+  assert.equal(migrated.exams[0].title, '考试 1');
   assert.equal(migrated.scheduleSlots.length, 0);
   assert.equal(migrated.courseGrades.length, 0);
 });
 
-test('Schema 3 迁移为 Schema 4 并将 studentId 转为 studentIds', () => {
+test('Schema 3 迁移为 Schema 5 并将 studentId 转为 studentIds、成绩补 examId', () => {
   const legacy = createLegacyV3State();
   const migrated = parseStoredRoster(legacy);
   assert.equal(migrated.schemaVersion, ROSTER_SCHEMA_VERSION);
@@ -142,8 +189,26 @@ test('Schema 3 迁移为 Schema 4 并将 studentId 转为 studentIds', () => {
   assert.deepEqual(migrated.duties[0].studentIds, [2]);
   assert.equal(migrated.scheduleSlots.length, 1);
   assert.equal(migrated.courseGrades[0].value, 88);
+  assert.equal(migrated.courseGrades[0].examId, 1);
+  assert.equal(migrated.exams.length, 1);
   assert.ok(!('studentId' in migrated.roles[0]));
   assert.ok(!('studentId' in migrated.duties[0]));
+});
+
+test('Schema 4 迁移为 Schema 5 并为成绩补 examId', () => {
+  const legacy = createLegacyV4State();
+  const migrated = parseStoredRoster(legacy);
+  assert.equal(migrated.schemaVersion, ROSTER_SCHEMA_VERSION);
+  assert.deepEqual(migrated.roles[0].studentIds, [1, 2]);
+  assert.equal(migrated.scheduleSlots.length, 1);
+  assert.deepEqual(migrated.courseGrades[0], {
+    examId: 1,
+    subjectId: 1,
+    studentId: 1,
+    value: 88
+  });
+  assert.equal(migrated.exams[0].title, '考试 1');
+  assert.equal(migrated.nextExamId, 1);
 });
 
 test('损坏 JSON、未知版本和引用失效整体回退默认值', () => {

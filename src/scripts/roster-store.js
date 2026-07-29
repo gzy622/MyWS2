@@ -271,9 +271,11 @@ export class RosterStore {
     this.#state.periods = defaults.periods;
     this.#state.scheduleSlots = [];
     this.#state.subjects = defaults.subjects;
+    this.#state.exams = defaults.exams;
     this.#state.courseGrades = [];
     this.#state.nextPeriodId = defaults.nextPeriodId;
     this.#state.nextSubjectId = defaults.nextSubjectId;
+    this.#state.nextExamId = defaults.nextExamId;
     this.#notify();
   }
 
@@ -324,40 +326,117 @@ export class RosterStore {
     return true;
   }
 
-  getCourseGrade(studentId, subjectId) {
-    if (!this.#hasStudent(studentId) || !this.#findSubject(subjectId)) return undefined;
+  getCourseGrade(examId, studentId, subjectId) {
+    if (!this.#findExam(examId) || !this.#hasStudent(studentId) || !this.#findSubject(subjectId)) {
+      return undefined;
+    }
     return this.#state.courseGrades.find((grade) => (
-      grade.subjectId === subjectId && grade.studentId === studentId
+      grade.examId === examId
+      && grade.subjectId === subjectId
+      && grade.studentId === studentId
     ))?.value;
   }
 
-  setCourseGrade(studentId, subjectId, value) {
-    if (!this.#hasStudent(studentId) || !this.#findSubject(subjectId)) return 'invalid';
+  setCourseGrade(examId, studentId, subjectId, value) {
+    if (!this.#findExam(examId) || !this.#hasStudent(studentId) || !this.#findSubject(subjectId)) {
+      return 'invalid';
+    }
     const scoreValue = parseScore(value);
     if (scoreValue === null) return 'invalid';
     const existing = this.#state.courseGrades.find((grade) => (
-      grade.subjectId === subjectId && grade.studentId === studentId
+      grade.examId === examId
+      && grade.subjectId === subjectId
+      && grade.studentId === studentId
     ));
     if (existing) existing.value = scoreValue;
-    else this.#state.courseGrades.push({ subjectId, studentId, value: scoreValue });
+    else this.#state.courseGrades.push({ examId, subjectId, studentId, value: scoreValue });
     this.#notify();
     return 'saved';
   }
 
-  clearCourseGrade(studentId, subjectId) {
-    if (!this.#hasStudent(studentId) || !this.#findSubject(subjectId)) return false;
+  clearCourseGrade(examId, studentId, subjectId) {
+    if (!this.#findExam(examId) || !this.#hasStudent(studentId) || !this.#findSubject(subjectId)) {
+      return false;
+    }
     const originalLength = this.#state.courseGrades.length;
     this.#state.courseGrades = this.#state.courseGrades.filter((grade) => (
-      grade.subjectId !== subjectId || grade.studentId !== studentId
+      grade.examId !== examId
+      || grade.subjectId !== subjectId
+      || grade.studentId !== studentId
     ));
     const changed = originalLength !== this.#state.courseGrades.length;
     if (changed) this.#notify();
     return changed;
   }
 
-  clearAllCourseGrades() {
-    if (!this.#state.courseGrades.length) return false;
-    this.#state.courseGrades = [];
+  clearExamGrades(examId) {
+    if (!this.#findExam(examId)) return false;
+    const originalLength = this.#state.courseGrades.length;
+    this.#state.courseGrades = this.#state.courseGrades.filter((grade) => grade.examId !== examId);
+    const changed = originalLength !== this.#state.courseGrades.length;
+    if (changed) this.#notify();
+    return changed;
+  }
+
+  getExamGradeStats(examId) {
+    const exam = this.#findExam(examId);
+    if (!exam) return null;
+    const studentCount = this.#state.students.length;
+    return this.#state.subjects.map((subject) => {
+      const values = this.#state.courseGrades
+        .filter((grade) => grade.examId === examId && grade.subjectId === subject.id)
+        .map((grade) => grade.value);
+      if (!values.length) {
+        return {
+          subjectId: subject.id,
+          title: subject.title,
+          count: 0,
+          average: undefined,
+          max: undefined,
+          min: undefined,
+          studentCount
+        };
+      }
+      const sum = values.reduce((total, value) => total + value, 0);
+      const average = Math.round((sum / values.length) * 10) / 10;
+      return {
+        subjectId: subject.id,
+        title: subject.title,
+        count: values.length,
+        average,
+        max: Math.max(...values),
+        min: Math.min(...values),
+        studentCount
+      };
+    });
+  }
+
+  addExam(value = '新考试') {
+    const title = cleanPeopleTitle(value);
+    if (!title || this.#state.nextExamId >= Number.MAX_SAFE_INTEGER) return null;
+    const id = this.#state.nextExamId + 1;
+    const exam = { id, title };
+    this.#state.exams.push(exam);
+    this.#state.nextExamId = id;
+    this.#notify();
+    return { ...exam };
+  }
+
+  renameExam(examId, value) {
+    const title = cleanPeopleTitle(value);
+    const exam = this.#findExam(examId);
+    if (!exam || !title || exam.title === title) return false;
+    exam.title = title;
+    this.#notify();
+    return true;
+  }
+
+  deleteExam(examId) {
+    if (this.#state.exams.length <= 1) return false;
+    const index = this.#state.exams.findIndex((exam) => exam.id === examId);
+    if (index < 0) return false;
+    this.#state.exams.splice(index, 1);
+    this.#state.courseGrades = this.#state.courseGrades.filter((grade) => grade.examId !== examId);
     this.#notify();
     return true;
   }
@@ -620,6 +699,11 @@ export class RosterStore {
   #findSubject(subjectId) {
     if (!Number.isSafeInteger(subjectId)) return null;
     return this.#state.subjects.find((subject) => subject.id === subjectId) ?? null;
+  }
+
+  #findExam(examId) {
+    if (!Number.isSafeInteger(examId)) return null;
+    return this.#state.exams.find((exam) => exam.id === examId) ?? null;
   }
 
   #isValidScheduleCoord(day, periodId) {

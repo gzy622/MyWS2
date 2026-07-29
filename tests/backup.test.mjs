@@ -5,7 +5,8 @@ import {
   ROSTER_LEGACY_SCHEMA_VERSION,
   ROSTER_SCHEMA_VERSION,
   ROSTER_SCHEMA_VERSION_V2,
-  ROSTER_SCHEMA_VERSION_V3
+  ROSTER_SCHEMA_VERSION_V3,
+  ROSTER_SCHEMA_VERSION_V4
 } from '../src/scripts/roster-model.js';
 import {
   BACKUP_FORMAT,
@@ -23,7 +24,7 @@ test('当前 Schema 可导出并重新导入', () => {
   original.roles[0].studentIds = [1, 2];
   original.duties[0].studentIds = [3];
   original.scheduleSlots.push({ day: 0, periodId: 2, subject: '语文' });
-  original.courseGrades.push({ subjectId: 1, studentId: 1, value: 88 });
+  original.courseGrades.push({ examId: 1, subjectId: 1, studentId: 1, value: 88 });
 
   const backup = createBackup(original);
   const json = serializeBackup(backup);
@@ -102,14 +103,24 @@ test('Schema 2 备份可迁移至当前版本', () => {
 test('Schema 3 备份可迁移至当前版本', () => {
   const state = createDefaultRosterState();
   const legacy = {
-    ...state,
     schemaVersion: ROSTER_SCHEMA_VERSION_V3,
-    roles: state.roles.map((role) => ({ id: role.id, title: role.title, studentId: role.id === 1 ? 1 : null })),
-    duties: state.duties.map((duty) => ({ id: duty.id, title: duty.title, note: duty.note, studentId: duty.id === 2 ? 3 : null })),
+    students: state.students,
+    seats: state.seats,
+    assignments: state.assignments,
+    activeAssignmentId: state.activeAssignmentId,
     submissions: [{ assignmentId: 1, studentId: 1 }],
     scores: [{ assignmentId: 1, studentId: 1, value: 90 }],
+    nextAssignmentId: state.nextAssignmentId,
+    roles: state.roles.map((role) => ({ id: role.id, title: role.title, studentId: role.id === 1 ? 1 : null })),
+    duties: state.duties.map((duty) => ({ id: duty.id, title: duty.title, note: duty.note, studentId: duty.id === 2 ? 3 : null })),
+    nextRoleId: state.nextRoleId,
+    nextDutyId: state.nextDutyId,
+    periods: state.periods,
     scheduleSlots: [{ day: 1, periodId: 3, subject: '数学' }],
-    courseGrades: [{ subjectId: 1, studentId: 2, value: 85 }]
+    subjects: state.subjects,
+    courseGrades: [{ subjectId: 1, studentId: 2, value: 85 }],
+    nextPeriodId: state.nextPeriodId,
+    nextSubjectId: state.nextSubjectId
   };
 
   const backup = { format: BACKUP_FORMAT, formatVersion: BACKUP_FORMAT_VERSION, exportedAt: new Date().toISOString(), data: legacy };
@@ -122,7 +133,44 @@ test('Schema 3 备份可迁移至当前版本', () => {
   assert.deepEqual(result.data.duties[1].studentIds, [3]);
   assert.equal(result.data.scheduleSlots.length, 1);
   assert.equal(result.data.courseGrades[0].value, 85);
+  assert.equal(result.data.courseGrades[0].examId, 1);
+  assert.equal(result.data.exams[0].title, '考试 1');
   assert.ok(!('studentId' in result.data.roles[0]));
+});
+
+test('Schema 4 备份可迁移至当前版本', () => {
+  const state = createDefaultRosterState();
+  const legacy = {
+    schemaVersion: ROSTER_SCHEMA_VERSION_V4,
+    students: state.students,
+    seats: state.seats,
+    assignments: state.assignments,
+    activeAssignmentId: state.activeAssignmentId,
+    submissions: [],
+    scores: [],
+    nextAssignmentId: state.nextAssignmentId,
+    roles: state.roles,
+    duties: state.duties,
+    nextRoleId: state.nextRoleId,
+    nextDutyId: state.nextDutyId,
+    periods: state.periods,
+    scheduleSlots: [],
+    subjects: state.subjects,
+    courseGrades: [{ subjectId: 2, studentId: 1, value: 77 }],
+    nextPeriodId: state.nextPeriodId,
+    nextSubjectId: state.nextSubjectId
+  };
+
+  const backup = { format: BACKUP_FORMAT, formatVersion: BACKUP_FORMAT_VERSION, exportedAt: new Date().toISOString(), data: legacy };
+  const result = parseBackup(serializeBackup(backup));
+  assert.equal(result.ok, true);
+  assert.equal(result.data.schemaVersion, ROSTER_SCHEMA_VERSION);
+  assert.deepEqual(result.data.courseGrades[0], {
+    examId: 1,
+    subjectId: 2,
+    studentId: 1,
+    value: 77
+  });
 });
 
 test('未知备份格式版本被拒绝', () => {

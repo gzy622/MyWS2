@@ -10,7 +10,7 @@ test('默认名单、座位、作业、人员与课程项满足领域不变量',
   assert.equal(new Set(state.seats.map(({ seatIndex }) => seatIndex)).size, 46);
   assert.ok(state.seats.every(({ seatIndex }) => seatIndex >= 0 && seatIndex < SEAT_COUNT));
   assert.deepEqual(state.assignments, [{ id: 1, name: '作业 1' }]);
-  assert.equal(state.schemaVersion, 4);
+  assert.equal(state.schemaVersion, 5);
   assert.equal(state.roles.length, 4);
   assert.equal(state.duties.length, 3);
   assert.ok(state.roles.every((role) => Array.isArray(role.studentIds) && role.studentIds.length === 0));
@@ -21,6 +21,7 @@ test('默认名单、座位、作业、人员与课程项满足领域不变量',
   ]);
   assert.equal(state.scheduleSlots.length, 0);
   assert.equal(state.subjects.length, 3);
+  assert.deepEqual(state.exams, [{ id: 1, title: '考试 1' }]);
   assert.equal(state.courseGrades.length, 0);
   assert.ok(isValidRosterState(state));
 });
@@ -119,7 +120,7 @@ test('恢复默认名单和座位时保留作业，清空全部登记记录并�
   store.setScheduleSlot(0, 1, '语文');
   store.renamePeriod(1, '晨读');
   store.addSubject('科学');
-  store.setCourseGrade(1, 1, 90);
+  store.setCourseGrade(1, 1, 1, 90);
   store.resetRoster();
   const state = store.getSnapshot();
   assert.equal(state.assignments.length, 2);
@@ -134,6 +135,7 @@ test('恢复默认名单和座位时保留作业，清空全部登记记录并�
   assert.equal(state.periods[0].title, '早');
   assert.equal(state.scheduleSlots.length, 0);
   assert.equal(state.subjects.length, 3);
+  assert.deepEqual(state.exams, [{ id: 1, title: '考试 1' }]);
   assert.equal(state.courseGrades.length, 0);
 });
 
@@ -199,28 +201,63 @@ test('课表格与科目成绩可编辑，课程成绩与作业分数独立', ()
   assert.equal(store.renamePeriod(1, '晨读'), true);
   assert.equal(store.getSnapshot().periods.find(({ id }) => id === 1).title, '晨读');
 
-  assert.equal(store.setCourseGrade(1, 1, '88.5'), 'saved');
-  assert.equal(store.getCourseGrade(1, 1), 88.5);
+  assert.equal(store.setCourseGrade(1, 1, 1, '88.5'), 'saved');
+  assert.equal(store.getCourseGrade(1, 1, 1), 88.5);
   assert.equal(store.setScore(1, 70), 'saved');
   assert.equal(store.getScore(1), 70);
-  assert.equal(store.getCourseGrade(1, 1), 88.5);
-  assert.equal(store.clearCourseGrade(1, 1), true);
-  assert.equal(store.getCourseGrade(1, 1), undefined);
+  assert.equal(store.getCourseGrade(1, 1, 1), 88.5);
+  assert.equal(store.clearCourseGrade(1, 1, 1), true);
+  assert.equal(store.getCourseGrade(1, 1, 1), undefined);
   assert.equal(store.getScore(1), 70);
 
   const subject = store.addSubject();
   assert.equal(subject.title, '新科目');
   assert.equal(store.renameSubject(subject.id, '物理'), true);
-  store.setCourseGrade(2, subject.id, 95);
+  store.setCourseGrade(1, 2, subject.id, 95);
   assert.equal(store.deleteSubject(subject.id), true);
   assert.equal(store.getSnapshot().courseGrades.some((grade) => grade.subjectId === subject.id), false);
   assert.equal(store.deleteSubject(1), true);
   assert.equal(store.deleteSubject(2), true);
   assert.equal(store.deleteSubject(3), false);
 
-  store.setCourseGrade(1, 3, 80);
-  assert.equal(store.clearAllCourseGrades(), true);
-  assert.equal(store.clearAllCourseGrades(), false);
+  store.setCourseGrade(1, 1, 3, 80);
+  assert.equal(store.clearExamGrades(1), true);
+  assert.equal(store.clearExamGrades(1), false);
+});
+
+test('考试可增删改，成绩按考试隔离，统计可算平均与极值', () => {
+  const store = createRosterStore();
+  const exam = store.addExam();
+  assert.equal(exam.title, '新考试');
+  assert.equal(store.renameExam(exam.id, '期中'), true);
+  assert.equal(store.setCourseGrade(1, 1, 1, 90), 'saved');
+  assert.equal(store.setCourseGrade(exam.id, 1, 1, 80), 'saved');
+  assert.equal(store.getCourseGrade(1, 1, 1), 90);
+  assert.equal(store.getCourseGrade(exam.id, 1, 1), 80);
+  assert.equal(store.clearExamGrades(1), true);
+  assert.equal(store.getCourseGrade(1, 1, 1), undefined);
+  assert.equal(store.getCourseGrade(exam.id, 1, 1), 80);
+
+  store.setCourseGrade(exam.id, 1, 1, 91);
+  store.setCourseGrade(exam.id, 2, 1, 80.5);
+  store.setCourseGrade(exam.id, 3, 2, 70);
+  const stats = store.getExamGradeStats(exam.id);
+  assert.equal(stats.length, 3);
+  assert.equal(stats[0].title, '语文');
+  assert.equal(stats[0].count, 2);
+  assert.equal(stats[0].average, 85.8);
+  assert.equal(stats[0].max, 91);
+  assert.equal(stats[0].min, 80.5);
+  assert.equal(stats[0].studentCount, 46);
+  assert.equal(stats[1].count, 1);
+  assert.equal(stats[1].average, 70);
+  assert.equal(stats[2].count, 0);
+  assert.equal(stats[2].average, undefined);
+
+  assert.equal(store.deleteExam(1), true);
+  assert.equal(store.deleteExam(exam.id), false);
+  assert.equal(store.getSnapshot().exams.length, 1);
+  assert.equal(store.getSnapshot().courseGrades.every((grade) => grade.examId === exam.id), true);
 });
 
 test('非法初始状态整体回退默认领域状态', () => {
@@ -279,7 +316,7 @@ test('replaceSnapshot: 非法快照不改变原状态', () => {
   const store = createRosterStore();
   const original = store.getSnapshot();
 
-  assert.equal(store.replaceSnapshot({ schemaVersion: 4, students: [], seats: [], assignments: [], activeAssignmentId: 1, submissions: [], scores: [], nextAssignmentId: 1, roles: [], duties: [], nextRoleId: 1, nextDutyId: 1, periods: [], scheduleSlots: [], subjects: [], courseGrades: [], nextPeriodId: 1, nextSubjectId: 1 }), 'invalid');
+  assert.equal(store.replaceSnapshot({ schemaVersion: 5, students: [], seats: [], assignments: [], activeAssignmentId: 1, submissions: [], scores: [], nextAssignmentId: 1, roles: [], duties: [], nextRoleId: 1, nextDutyId: 1, periods: [], scheduleSlots: [], subjects: [], exams: [], courseGrades: [], nextPeriodId: 1, nextSubjectId: 1, nextExamId: 1 }), 'invalid');
 
   assert.deepEqual(store.getSnapshot(), original);
 });
