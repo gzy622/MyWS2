@@ -122,7 +122,7 @@
 
 - 外壳与导航：`#app`、`#viewport`、`#pages`、`#nav`、`#glider`、`#topbarTitle`、`#topbarTitleLabel`、`#menuButton`、`#moreButton`；
 - 登记与座位：`#studentGrid`、`#gridLetterIndex`、`#studentFontSize`、`#studentFontSizeValue`、`#seatViewport`、`#seatStage`、`#seatGrid`、`#seatHint`、`#seatFitButton`、`#seatLandscapeButton`、`#seatModeBar`、`#seatEditStatus`、`#exitSeatEdit`、`#seatLetterIndex`；
-- 人员与课程：`#roleList`、`#dutyList`、`#weekStrip`、`#gradeTable`；
+- 人员与课程：`#roleList`、`#dutyList`、`#weekStrip`、`#gradeExamTabs`、`#gradeTable`；
 - 通用菜单与反馈：`#fontSizePopover`、`#menuDrawer`、`#menuDrawerHandle`、`#menuDrawerBuild`、`#closeMenuDrawer`、`#scrim`、`#toast`；
 - 备份文件选择：`#backupFileInput`；
 - 学生记录：`#studentRecordSheet`、`#studentRecordPanel`、`#studentRecordHandle`、`#closeStudentRecord`、`#studentRecordTitle`、`#studentRecordStatus`、`#studentScoreControls`、`#studentScoreInput`、`#studentScoreError`、`#clearStudentRecord`、`#saveStudentRecord`；
@@ -135,9 +135,10 @@
 不得改变以下 class 的语义：
 
 - 导航：`.page`、`.nav-btn`、`.segment`、`.segment-glider`、`.subview`、`.subdots i`；
+- 外壳瞬时态：`.is-sheet-gesturing`、`.is-page-gesturing`（跟手/落位时关闭顶栏 backdrop-filter）；
 - 登记：`.student-grid`、`.student-card`、`.seat-cell`、`.seat-card`、`.letter-index`、`.letter-index-item`、`.letter-index-badge`；
-- 人员与课程：`.people-row`、`.week-slot-cell`、`.week-period-label`、`.grade-score-cell`、`.grade-subject-head`；
-- 浮层：`.menu-drawer`、`.student-record-sheet`、`.assignment-sheet`、`.assignment-name-sheet`、`.people-pick-sheet`、`.people-edit-sheet`、`.course-slot-sheet`、`.course-period-sheet`、`.course-subject-sheet`、`.course-grade-sheet`、`.course-highlight-sheet`、`.confirm-sheet`、`.more-menu`；
+- 人员与课程：`.people-row`、`.week-slot-cell`、`.week-period-label`、`.grade-exam-tab`、`.grade-score-cell`、`.grade-subject-head`；
+- 浮层：`.menu-drawer`、`.student-record-sheet`、`.assignment-sheet`、`.assignment-name-sheet`、`.people-pick-sheet`、`.people-edit-sheet`、`.course-slot-sheet`、`.course-period-sheet`、`.course-subject-sheet`、`.course-exam-sheet`、`.course-grade-sheet`、`.course-stats-sheet`、`.course-highlight-sheet`、`.confirm-sheet`、`.more-menu`；
 - 字母索引拖动态：`.is-scrubbing`、`.is-scrubbing-shown`、`.is-letter-hit`。
 
 学生格可选 `data-score` 驱动分数角标；座位卡必须维护 `data-student-id` 与 `data-seat-index`。
@@ -155,13 +156,13 @@
 
 禁止保存导航、子视图、通用菜单、浮层、座位编辑模式或画布 transform。所有读取、解析和写入都必须捕获存储不可用异常。
 
-### 6.1 业务 Schema Version 4
+### 6.1 业务 Schema Version 5
 
 结构示例如下；数组为便于阅读只展示代表项，实际存储必须包含完整字段并满足后续约束。
 
 ```js
 {
-  schemaVersion: 4,
+  schemaVersion: 5,
   students: [{ id: 1, name: '示例学生' }],
   seats: [{ studentId: 1, seatIndex: 0 }],
   assignments: [{ id: 1, name: '作业 1' }],
@@ -176,23 +177,25 @@
   periods: [{ id: 1, title: '早' }],
   scheduleSlots: [{ day: 0, periodId: 1, subject: '语文' }],
   subjects: [{ id: 1, title: '语文' }],
-  courseGrades: [{ subjectId: 1, studentId: 1, value: 88 }],
+  exams: [{ id: 1, title: '考试 1' }],
+  courseGrades: [{ examId: 1, subjectId: 1, studentId: 1, value: 88 }],
   nextPeriodId: 10,
-  nextSubjectId: 1
+  nextSubjectId: 1,
+  nextExamId: 1
 }
 ```
 
 约束：
 
-- 默认数据为 46 名学生、稳定座位映射、1 个作业、4 个班干项、3 个值日项、10 个节次、3 个科目、空课表和空成绩。
-- 学生、作业、班干、值日、节次、科目 ID 及座位索引唯一；所有引用必须存在。
+- 默认数据为 46 名学生、稳定座位映射、1 个作业、4 个班干项、3 个值日项、10 个节次、3 个科目、1 场考试、空课表和空成绩。
+- 学生、作业、班干、值日、节次、科目、考试 ID 及座位索引唯一；所有引用必须存在。
 - 每名学生恰有一个 `0～103` 座位；同一逻辑位置最多一人。
 - 同一 `(assignmentId, studentId)` 最多一条完成和一条作业分数；分数为 `0～100`、最多一位小数，存在分数必须存在完成记录。
 - 同一 `(day, periodId)` 最多一个课表格；`day` 为 `0～4`，节次恰好 10 项。
-- 同一 `(subjectId, studentId)` 最多一条课程成绩；课程成绩与作业分数分立。
-- 至少保留一个作业、班干项、值日项和科目；活动作业必须存在。
+- 同一 `(examId, subjectId, studentId)` 最多一条课程成绩；课程成绩与作业分数分立。
+- 至少保留一个作业、班干项、值日项、科目和考试；活动作业必须存在。
 - 人员与课程文案 trim 后非空且不超过 40 字；值日说明可为空。
-- Version 1/2/3 可显式迁移到 Version 4；未知版本、损坏 JSON、重复值、引用失效或无法完整校验时整体回退默认值。
+- Version 1/2/3/4 可显式迁移到 Version 5；未知版本、损坏 JSON、重复值、引用失效或无法完整校验时整体回退默认值。
 - 写入失败不破坏当前内存会话。
 
 ## 7. 工具与生成文件
