@@ -1,0 +1,16 @@
+root = true
+
+# Cross-platform source, documentation, and configuration defaults.
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+
+# Keep Windows command scripts compatible with cmd.exe.
+[*.bat]
+end_of_line = crlf
+
+# The BOM lets Windows PowerShell 5.1 reliably detect UTF-8 scripts.
+[*.ps1]
+charset = utf-8-bom
+end_of_line = crlf

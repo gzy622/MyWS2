@@ -245,8 +245,10 @@ npm run sync:phone
 
 触觉反馈在 Capacitor 内只通过原生 Haptics 发出；Web 路径只使用 `navigator.vibrate`，不能双发。
 
-## 8. 脚本文件格式
+## 8. 文本文件格式
 
+- 源码、文档与配置文本：UTF-8 无 BOM、LF；
 - 根目录 `.bat`：纯 ASCII、CRLF；
 - `tools/*.ps1`：UTF-8 BOM、CRLF；
-- 不在 `.bat` 中加入中文提示，避免 Windows 代码页误读。
+- 不在 `.bat` 中加入中文提示，避免 Windows 代码页误读；
+- 编辑器按根目录 `.editorconfig` 写入，Git 按 `.gitattributes` 规范化换行；新增文本类型时同步确认两处规则。

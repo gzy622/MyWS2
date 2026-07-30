@@ -205,7 +205,8 @@
 - `tools/content-id.cjs` 只对上述 Web 源码计算指纹。
 - `tools/verify-web.ps1` 使用本机 PowerShell 7、Node.js 与 Microsoft Edge，通过临时 LAN 服务和 CDP 模拟 320px、390px、430px 视口，并检查 DOM、控制台、成绩表横拖、幽灵点击和 Sheet 合成层生命周期；不引入第三方依赖，不写入 Web 源码或业务存储。
 - `tools/build-single-html.ps1` 默认从 `src/index.html` 生成 `dist/teacher-workbench.single.html`。
-- 根目录 `.bat` 必须保持纯 ASCII + CRLF；`tools/*.ps1` 保持 UTF-8 BOM + CRLF。
+- 源码、文档与配置文本默认保持 UTF-8 无 BOM + LF；根目录 `.bat` 必须保持纯 ASCII + CRLF，`tools/*.ps1` 保持 UTF-8 BOM + CRLF。
+- `.editorconfig` 统一编辑器写入格式，`.gitattributes` 统一 Git 检出换行并阻止二进制规范化；新增文本类型时必须同步评估两者。
 - 生成文件不得纳入日常源码评审；如需验证，重建后检查结果而非手工补丁。
 
 ## 8. 改动流程
