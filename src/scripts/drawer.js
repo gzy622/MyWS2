@@ -68,7 +68,14 @@ export function closeDrawer({ restoreFocus = true } = {}) {
   }
 }
 
-export function initDrawer({ closeOverlays, theme, showToast, onBackupImport, onBackupExport } = {}) {
+export function initDrawer({
+  closeOverlays,
+  theme,
+  showToast,
+  onBackupImport,
+  onBackupExport,
+  onEditRoster
+} = {}) {
   closeBusinessOverlays = closeOverlays ?? (() => {});
 
   function renderContent() {
@@ -89,6 +96,7 @@ export function initDrawer({ closeOverlays, theme, showToast, onBackupImport, on
       showToast?.(nextTheme === 'dark' ? '已切换到深色模式' : '已切换到浅色模式');
       return;
     }
+    if (action === 'edit-roster') { onEditRoster?.(); return; }
     if (action === 'backup-import') { onBackupImport?.(); return; }
     if (action === 'backup-export') { onBackupExport?.(); return; }
   }));

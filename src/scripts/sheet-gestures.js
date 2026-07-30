@@ -157,6 +157,12 @@ export function createSheetGestureBridge() {
       return finish('sheet', `scrub top=${top.id} scrollPort=${Boolean(scrollPort)}`);
     }
 
+    // Fullscreen roster editor is not a Sheet; do not open drawer/assignments from
+    // the underlying register grid while it covers the shell.
+    if (state.rosterEditorOpen) {
+      return finish('blocked', 'rosterEditor');
+    }
+
     if (event.target.closest?.('.seat-viewport')) return finish('blocked', 'seatViewport');
 
     const gradeScrollPort = event.target instanceof Element

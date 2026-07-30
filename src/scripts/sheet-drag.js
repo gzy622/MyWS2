@@ -94,6 +94,7 @@ export const SHEET_STACK_ORDER = [
   'people-pick',
   'assignment-name',
   'assignments',
+  'roster-student-name',
   'student-record',
   'drawer'
 ];

@@ -118,6 +118,7 @@
   .course-edit-actions .primary:hover,
   .assignment-panel .assignment-add:hover,
   .exam-panel .exam-add:hover,
+  .roster-editor-add:hover:not(:disabled),
   .assignment-name-actions .primary:hover,
   .exam-name-actions .primary:hover {
     filter: brightness(1.05);

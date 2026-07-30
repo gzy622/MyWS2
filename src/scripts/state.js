@@ -11,7 +11,8 @@ export const state = {
   fontSizePopoverOpen: false,
   seatEditing: false,
   seatLandscape: false,
-  /** @type {null | 'assignments' | 'exams' | 'student-record' | 'people-pick' | 'people-edit' | 'course-slot' | 'course-period' | 'course-subject' | 'course-grade' | 'course-stats' | 'course-highlight' | 'more' | 'confirm'} */
+  rosterEditorOpen: false,
+  /** @type {null | 'assignments' | 'exams' | 'student-record' | 'people-pick' | 'people-edit' | 'course-slot' | 'course-period' | 'course-subject' | 'course-grade' | 'course-stats' | 'course-highlight' | 'more' | 'confirm' | 'roster-editor'} */
   activeOverlay: null,
   /** @type {number | null} null resolves to the first exam at render time */
   gradeExamId: null,
@@ -56,6 +57,10 @@ export function setSeatEditing(value) {
 
 export function setSeatLandscape(value) {
   state.seatLandscape = Boolean(value);
+}
+
+export function setRosterEditorOpen(value) {
+  state.rosterEditorOpen = Boolean(value);
 }
 
 export function setActiveOverlay(value) {

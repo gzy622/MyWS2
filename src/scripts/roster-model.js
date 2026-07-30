@@ -7,6 +7,7 @@ export const SEAT_COLUMNS = 13;
 export const SEAT_ROWS = 8;
 export const SEAT_COUNT = SEAT_COLUMNS * SEAT_ROWS;
 export const PEOPLE_TEXT_MAX_LENGTH = 40;
+export const STUDENT_NAME_MAX_LENGTH = PEOPLE_TEXT_MAX_LENGTH;
 export const COURSE_TEXT_MAX_LENGTH = PEOPLE_TEXT_MAX_LENGTH;
 export const SCHEDULE_DAY_COUNT = 5;
 export const PERIOD_COUNT = 10;

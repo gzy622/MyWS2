@@ -12,6 +12,8 @@ const SHEET_LAYER_SELECTOR = [
   '.exam-sheet',
   '.assignment-name-sheet',
   '.exam-name-sheet',
+  '.roster-student-name-sheet',
+  '.roster-editor',
   '.people-pick-sheet',
   '.people-edit-sheet',
   '.menu-drawer'
@@ -22,6 +24,8 @@ const PANEL_SELECTOR = [
   '.exam-panel',
   '.assignment-name-panel',
   '.exam-name-panel',
+  '.roster-student-name-panel',
+  '.roster-editor-panel',
   '.people-pick-panel',
   '.people-edit-panel',
   '.menu-drawer',

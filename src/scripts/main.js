@@ -17,6 +17,7 @@ import { initHighlightSubjects } from './highlight-subjects.js';
 import { initStudentInteractions } from './student-interactions.js';
 import { initStudentRecord } from './student-record.js';
 import { initAssignments } from './assignments.js';
+import { initRosterEditor } from './roster-editor.js';
 import { initMoreSheet } from './more-sheet.js';
 import { initBackup } from './backup.js';
 import { loadRosterState, saveRosterState } from './roster-storage.js';
@@ -48,6 +49,7 @@ initLetterIndex(rosterStore);
 initPeopleRenderer(rosterStore);
 let studentRecord;
 let assignments;
+let rosterEditor;
 let exams;
 let moreSheet;
 let people;
@@ -64,6 +66,7 @@ function closeOverlays(except) {
   if (except !== 'course-highlight') highlightSubjects?.close({ restoreFocus: false });
   if (except !== 'student-record') studentRecord?.close();
   if (except !== 'assignments') assignments?.close();
+  if (except !== 'roster-editor' && except !== 'confirm') rosterEditor?.close();
   if (except !== 'exams') exams?.close();
   if (except !== 'more') moreSheet?.close({ restoreFocus: false });
   if (except !== 'confirm') moreSheet?.closeConfirm({ restoreFocus: false });
@@ -78,6 +81,13 @@ highlightSubjects = initHighlightSubjects({
 const coursesRenderer = initCoursesRenderer(rosterStore, highlightSubjects);
 studentRecord = initStudentRecord({ store: rosterStore, showToast, viewport: appViewport, closeOthers: closeOverlays });
 assignments = initAssignments({
+  store: rosterStore,
+  showToast,
+  viewport: appViewport,
+  closeOthers: closeOverlays,
+  confirm: (...args) => moreSheet.confirm(...args),
+});
+rosterEditor = initRosterEditor({
   store: rosterStore,
   showToast,
   viewport: appViewport,
@@ -131,7 +141,14 @@ courses = initCoursesInteractions({
   confirm: (...args) => moreSheet.confirm(...args),
   onGradesUiChange: () => coursesRenderer.render(),
 });
-initDrawer({ closeOverlays, theme, showToast, onBackupImport: () => backup.importBackup(), onBackupExport: () => backup.exportBackup() });
+initDrawer({
+  closeOverlays,
+  theme,
+  showToast,
+  onBackupImport: () => backup.importBackup(),
+  onBackupExport: () => backup.exportBackup(),
+  onEditRoster: () => rosterEditor.open(),
+});
 initHorizontalGestures();
 createSystemBackController({
   beforeDismiss: () => cancelActivePointerGesture('system-back'),
@@ -139,6 +156,7 @@ createSystemBackController({
   dismissPeople: () => people.dismissBack(),
   dismissCourses: () => highlightSubjects.dismissBack() || exams.dismissBack() || courses.dismissBack(),
   dismissAssignments: () => assignments.dismissBack(),
+  dismissRosterEditor: () => rosterEditor.dismissBack(),
   closeStudentRecord: () => studentRecord.close(),
   closeMore: () => moreSheet.close(),
   closeFontSize: () => fontSize.close(),

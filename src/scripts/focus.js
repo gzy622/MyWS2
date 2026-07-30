@@ -14,7 +14,7 @@ export function focusSilently(element) {
 /** Drop focus from chrome that should not keep a ring after a sheet gesture. */
 export function blurIfSheetChrome(element = document.activeElement) {
   if (!(element instanceof HTMLElement)) return;
-  if (element.closest?.('.topbar, .assignment-sheet, .assignment-name-sheet, .exam-sheet, .exam-name-sheet, .menu-drawer, .student-record-sheet, .people-pick-sheet, .people-edit-sheet, .course-slot-sheet, .course-period-sheet, .course-subject-sheet, .course-grade-sheet, .course-stats-sheet, .course-highlight-sheet, .confirm-sheet')) {
+  if (element.closest?.('.topbar, .assignment-sheet, .assignment-name-sheet, .exam-sheet, .exam-name-sheet, .menu-drawer, .student-record-sheet, .people-pick-sheet, .people-edit-sheet, .course-slot-sheet, .course-period-sheet, .course-subject-sheet, .course-grade-sheet, .course-stats-sheet, .course-highlight-sheet, .confirm-sheet, .roster-editor, .roster-student-name-sheet')) {
     element.blur();
   }
 }
@@ -38,6 +38,8 @@ const CHROME_LOCK_SELECTORS = [
   '.course-grade-sheet.show',
   '.course-stats-sheet.show',
   '.course-highlight-sheet.show',
+  '.roster-editor.show',
+  '.roster-student-name-sheet.show',
   '.more-menu.show',
   '.font-size-popover.show',
 ];

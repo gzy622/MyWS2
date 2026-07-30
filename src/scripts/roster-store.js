@@ -6,13 +6,20 @@ import {
   parseScore,
   PEOPLE_TEXT_MAX_LENGTH,
   SCHEDULE_DAY_COUNT,
-  SEAT_COUNT
+  SEAT_COUNT,
+  STUDENT_NAME_MAX_LENGTH
 } from './roster-model.js';
 
 function cleanName(value) {
   if (typeof value !== 'string') return null;
   const name = value.trim();
   return name || null;
+}
+
+function cleanStudentName(value) {
+  const name = cleanName(value);
+  if (!name || name.length > STUDENT_NAME_MAX_LENGTH) return null;
+  return name;
 }
 
 function cleanPeopleTitle(value) {
@@ -225,6 +232,57 @@ export class RosterStore {
     const occupant = this.#state.seats.find((seat) => seat.seatIndex === targetSeatIndex);
     if (occupant) occupant.seatIndex = movingSeat.seatIndex;
     movingSeat.seatIndex = targetSeatIndex;
+    this.#notify();
+    return true;
+  }
+
+  addStudent(value) {
+    const name = cleanStudentName(value);
+    if (!name || this.#state.students.length >= SEAT_COUNT) return null;
+    const usedSeats = new Set(this.#state.seats.map(({ seatIndex }) => seatIndex));
+    let seatIndex = -1;
+    for (let index = 0; index < SEAT_COUNT; index += 1) {
+      if (!usedSeats.has(index)) {
+        seatIndex = index;
+        break;
+      }
+    }
+    if (seatIndex < 0) return null;
+    const maxId = this.#state.students.reduce((max, student) => Math.max(max, student.id), 0);
+    if (maxId >= Number.MAX_SAFE_INTEGER) return null;
+    const id = maxId + 1;
+    const student = { id, name };
+    this.#state.students.push(student);
+    this.#state.seats.push({ studentId: id, seatIndex });
+    this.#notify();
+    return { ...student };
+  }
+
+  renameStudent(studentId, value) {
+    const name = cleanStudentName(value);
+    const student = this.#state.students.find((item) => item.id === studentId);
+    if (!student || !name) return false;
+    if (student.name === name) return true;
+    student.name = name;
+    this.#notify();
+    return true;
+  }
+
+  deleteStudent(studentId) {
+    if (this.#state.students.length <= 1 || !this.#hasStudent(studentId)) return false;
+    const index = this.#state.students.findIndex((student) => student.id === studentId);
+    if (index < 0) return false;
+    this.#state.students.splice(index, 1);
+    this.#state.seats = this.#state.seats.filter((seat) => seat.studentId !== studentId);
+    this.#state.submissions = this.#state.submissions.filter((item) => item.studentId !== studentId);
+    this.#state.scores = this.#state.scores.filter((item) => item.studentId !== studentId);
+    this.#state.courseGrades = this.#state.courseGrades.filter((item) => item.studentId !== studentId);
+    for (const role of this.#state.roles) {
+      role.studentIds = role.studentIds.filter((id) => id !== studentId);
+    }
+    for (const duty of this.#state.duties) {
+      duty.studentIds = duty.studentIds.filter((id) => id !== studentId);
+    }
     this.#notify();
     return true;
   }

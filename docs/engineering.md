@@ -65,6 +65,7 @@
 | 业务查询、变更与订阅 | `src/scripts/roster-store.js` |
 | 业务数据读取、迁移、回退与写入 | `src/scripts/roster-storage.js` |
 | 网格和座位共享渲染 | `src/scripts/roster-renderer.js` |
+| 学生名单全屏编辑 | `src/scripts/roster-editor.js` |
 | 学生点击、长按和记录面板 | `src/scripts/student-interactions.js`、`src/scripts/student-record.js` |
 | 作业管理 | `src/scripts/assignments.js` |
 | 考试列表与考试名称 | `src/scripts/exams.js` |
@@ -199,6 +200,7 @@
 - 同一 `(examId, subjectId, studentId)` 最多一条课程成绩；课程成绩与作业分数分立。
 - 至少保留一个作业、班干项、值日项、科目和考试；活动作业必须存在。
 - 人员与课程文案 trim 后非空且不超过 40 字；值日说明可为空。
+- 学生姓名写入（新增/改名）trim 后非空且不超过 40 字；加载校验仍只要求非空，避免历史长名备份整体回退。
 - Version 1/2/3/4 可显式迁移到 Version 5；未知版本、损坏 JSON、重复值、引用失效或无法完整校验时整体回退默认值。
 - 写入失败不破坏当前内存会话。
 

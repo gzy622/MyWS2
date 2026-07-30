@@ -359,3 +359,60 @@ test('replaceSnapshot: 导入对象不能反向修改 Store', () => {
   assert.equal(state.students[0].name, '赵予安');
   assert.equal(state.seats[0].seatIndex, 17);
 });
+
+test('新增学生分配最小空闲座位，改名与边界校验生效', () => {
+  const store = createRosterStore();
+  const added = store.addStudent('  新同学  ');
+  assert.deepEqual(added, { id: 47, name: '新同学' });
+  const snapshot = store.getSnapshot();
+  assert.equal(snapshot.students.length, 47);
+  assert.equal(snapshot.seats.length, 47);
+  const seat = snapshot.seats.find((item) => item.studentId === 47);
+  assert.equal(seat.seatIndex, 0);
+  assert.ok(isValidRosterState(snapshot));
+
+  assert.equal(store.renameStudent(47, '新同学'), true);
+  assert.equal(store.renameStudent(47, '  改名同学  '), true);
+  assert.equal(store.getSnapshot().students.find((item) => item.id === 47).name, '改名同学');
+  assert.equal(store.renameStudent(47, ''), false);
+  assert.equal(store.renameStudent(47, 'x'.repeat(41)), false);
+  assert.equal(store.addStudent(''), null);
+  assert.equal(store.addStudent('y'.repeat(41)), null);
+});
+
+test('满员不可新增学生', () => {
+  const store = createRosterStore();
+  for (let index = 0; index < SEAT_COUNT - 46; index += 1) {
+    assert.ok(store.addStudent(`补位${index}`));
+  }
+  assert.equal(store.getSnapshot().students.length, SEAT_COUNT);
+  assert.equal(store.addStudent('溢出'), null);
+  assert.ok(isValidRosterState(store.getSnapshot()));
+});
+
+test('删除学生级联清理记录与指派，至少保留一人', () => {
+  const store = createRosterStore();
+  store.toggleCompletion(1);
+  store.setScore(1, 90);
+  store.setCourseGrade(1, 1, 1, 88);
+  store.setRoleStudents(1, [1, 2]);
+  store.setDutyStudents(1, [1, 3]);
+
+  assert.equal(store.deleteStudent(1), true);
+  const snapshot = store.getSnapshot();
+  assert.equal(snapshot.students.length, 45);
+  assert.equal(snapshot.seats.every((seat) => seat.studentId !== 1), true);
+  assert.equal(snapshot.submissions.every((item) => item.studentId !== 1), true);
+  assert.equal(snapshot.scores.every((item) => item.studentId !== 1), true);
+  assert.equal(snapshot.courseGrades.every((item) => item.studentId !== 1), true);
+  assert.deepEqual(snapshot.roles.find((role) => role.id === 1).studentIds, [2]);
+  assert.deepEqual(snapshot.duties.find((duty) => duty.id === 1).studentIds, [3]);
+  assert.ok(isValidRosterState(snapshot));
+
+  while (store.getSnapshot().students.length > 1) {
+    const id = store.getSnapshot().students[0].id;
+    assert.equal(store.deleteStudent(id), true);
+  }
+  assert.equal(store.deleteStudent(store.getSnapshot().students[0].id), false);
+  assert.equal(store.getSnapshot().students.length, 1);
+});

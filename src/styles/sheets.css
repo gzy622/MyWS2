@@ -242,6 +242,7 @@
 .sheet-title--form,
 .assignment-name-panel .sheet-title,
 .exam-name-panel .sheet-title,
+.roster-student-name-panel .sheet-title,
 .confirm-panel .sheet-title,
 .people-edit-panel .sheet-title {
   margin-bottom: 2px;
@@ -250,6 +251,7 @@
 .sheet-hint,
 .assignment-name-panel > p,
 .exam-name-panel > p,
+.roster-student-name-hint,
 .confirm-panel > p,
 .people-edit-hint,
 .course-edit-hint {

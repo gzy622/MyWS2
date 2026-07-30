@@ -205,13 +205,19 @@
           <div class="sheet-handle"></div>
         </div>
         <div class="menu-drawer-head sheet-head">
-          <div class="menu-drawer-title sheet-title"><span>工作台</span><h2>设置</h2><p>调整显示主题，管理本地数据。</p></div>
+          <div class="menu-drawer-title sheet-title"><span>工作台</span><h2>设置</h2><p>调整主题、名单与本地数据。</p></div>
           <button class="sheet-close" id="closeMenuDrawer" aria-label="关闭菜单">×</button>
         </div>
         <section class="menu-drawer-section" aria-labelledby="drawerAppearanceTitle">
           <h3 id="drawerAppearanceTitle">外观</h3>
           <div class="menu-drawer-action-list">
             <button class="menu-item menu-item--theme" type="button" data-action="toggle-theme" aria-pressed="false"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" /><circle cx="12" cy="12" r="4" /></svg></span><span class="menu-copy"><b>深浅色切换</b><small>当前使用<span data-theme-value>浅色</span>模式</small></span><span class="theme-switch" aria-hidden="true"><span></span></span></button>
+          </div>
+        </section>
+        <section class="menu-drawer-section" aria-labelledby="drawerRosterTitle">
+          <h3 id="drawerRosterTitle">名单</h3>
+          <div class="menu-drawer-action-list">
+            <button class="menu-item" type="button" data-action="edit-roster"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg></span><span class="menu-copy"><b>学生名单</b><small>新增、改名或删除学生</small></span></button>
           </div>
         </section>
         <section class="menu-drawer-section" aria-labelledby="drawerBackupTitle">
