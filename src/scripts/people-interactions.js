@@ -20,7 +20,7 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
     '<header class="sheet-head"><div class="sheet-title"><span data-field="eyebrow">班干</span><h2 id="peoplePickTitle">指派</h2>',
     '<p class="people-pick-count" id="peoplePickCount" data-field="count">未选择</p></div>',
     '<button type="button" class="sheet-close" data-action="close" aria-label="关闭">×</button></header>',
-    '<div class="people-pick-list" role="listbox" aria-multiselectable="true"></div>',
+    '<div class="people-pick-list scroll-thin" role="listbox" aria-multiselectable="true"></div>',
     '<div class="people-pick-actions">',
     '<button type="button" data-action="clear">清除</button>',
     '<button type="button" class="primary" data-action="confirm">确认</button>',
@@ -33,7 +33,7 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
   editLayer.className = 'people-edit-sheet';
   editLayer.inert = true;
   editLayer.innerHTML = [
-    '<section class="people-edit-panel sheet-panel sheet-panel--bottom" role="dialog" aria-modal="true" aria-labelledby="peopleEditTitle">',
+    '<section class="people-edit-panel sheet-panel sheet-panel--bottom scroll-thin" role="dialog" aria-modal="true" aria-labelledby="peopleEditTitle">',
     '<div class="sheet-handle-zone sheet-handle-zone--top" aria-hidden="true"><div class="sheet-handle"></div></div>',
     '<div class="sheet-title"><span data-field="eyebrow">班干</span><h2 id="peopleEditTitle">编辑</h2></div>',
     '<p class="people-edit-hint"></p>',
@@ -283,8 +283,7 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
     layer: pickLayer,
     panel: pickPanel,
     direction: 'from-bottom',
-    scrollPorts: [],
-    nativeScrollPorts: [pickList],
+    scrollPorts: [pickList],
     isOpen: () => pickLayer.classList.contains('show') && !pickSheet?.isActive(),
     onPrepare() {
       setActiveOverlay('people-pick');

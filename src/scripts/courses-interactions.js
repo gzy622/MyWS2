@@ -199,10 +199,14 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
   /**
    * After save/clear/close on pointerdown, the trailing click can land on the
    * bottom nav (toggles 成绩→课表) or segment tabs / score cells underneath.
+   * Also block underlay hit-testing so week-slot :active flash cannot show
+   * while the same finger is still down after the sheet closes.
    * A new pointerdown is a deliberate next action and must not be swallowed.
    */
   const gridGhostGuard = createGhostClickGuard({
     owner: 'courses',
+    appElement: elements.app,
+    appClass: 'is-course-sheet-ghost-guard',
     hitSelector: '#nav, .nav-btn, .segment, #weekStrip, #gradeTable, .week-slot-cell, .week-period-label, .grade-score-cell, .grade-subject-head, .confirm-sheet',
     onArm: (until) => {
       suppressClickUntil = until;

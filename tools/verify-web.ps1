@@ -569,18 +569,24 @@ try {
   $gradeOutside = Invoke-JavaScript -Expression @'
 (() => {
   const subview = document.querySelector('.page[data-page="2"] .subview[data-view="1"]');
-  const title = subview.querySelector('.section-title');
-  const rect = title.getBoundingClientRect();
+  const scroller = subview.querySelector('.grade-scroll');
+  // Grades fill the subview (no section-title); page swipe outside the table uses the topbar.
+  const topbar = document.querySelector('.topbar');
+  const rect = topbar.getBoundingClientRect();
   return {
     y: rect.top + rect.height / 2,
-    touchAction: getComputedStyle(subview).touchAction
+    scrollTouchAction: scroller ? getComputedStyle(scroller).touchAction : null,
+    topbarTouchAction: getComputedStyle(topbar).touchAction
   };
 })()
 '@
-  Assert-Verification -Condition ($gradeOutside.touchAction -eq 'pan-y') -Message '成绩子视图仅保留原生纵向手势'
+  Assert-Verification -Condition (
+    $gradeOutside.scrollTouchAction -eq 'none' -and
+    $gradeOutside.topbarTouchAction -eq 'none'
+  ) -Message '成绩表滚动面与顶栏均为 touch-action:none'
   Invoke-TouchSwipe -StartX 75 -EndX 300 -Y $gradeOutside.y
   $activeAfterOutsideSwipe = Invoke-JavaScript -Expression 'document.querySelector(".nav-btn.active")?.dataset.index'
-  Assert-Verification -Condition ($activeAfterOutsideSwipe -eq '1') -Message '成绩表外区域横拖可切换主页面'
+  Assert-Verification -Condition ($activeAfterOutsideSwipe -eq '1') -Message '成绩表外（顶栏）横拖可切换主页面'
 
   Write-Host 'Sheet 合成层与幽灵点击' -ForegroundColor Cyan
   Open-Page -Uri "$baseUri/?verify=sheet-compositor" -Width 390

@@ -78,6 +78,7 @@
 | 页面、底栏、分段与 Sheet 手势路由 | `src/scripts/gestures.js`、`src/scripts/sheet-gestures.js` |
 | 手势阈值与点击保护纯判定 | `src/scripts/gesture-policy.js` |
 | IME 立即操作与幽灵点击保护 | `src/scripts/pointer-guards.js` |
+| 细滚动条滑动显隐 | `src/scripts/scroll-thin.js`、`sheets.css` `.scroll-thin` |
 | Sheet progress 与最上层栈 | `src/scripts/sheet-drag.js` |
 | 通用菜单、更多菜单与确认 | `src/scripts/drawer.js`、`src/scripts/more-sheet.js` |
 | Escape / Android 返回 | `src/scripts/system-back.js` |

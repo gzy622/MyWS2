@@ -26,6 +26,7 @@ import { createSystemBackController } from './system-back.js';
 import { initSheetDebug } from './sheet-debug.js';
 import { initBuildId } from './build-id.js';
 import { initLetterIndex } from './letter-index.js';
+import { initScrollThinChrome } from './scroll-thin.js';
 
 export const rosterStore = createRosterStore(loadRosterState(), saveRosterState);
 const theme = initTheme();
@@ -144,4 +145,5 @@ createSystemBackController({
   closeDrawer: () => closeDrawer(),
   exitSeatLandscape: () => seatLandscape.exit(),
 });
+initScrollThinChrome();
 renderNavigation({ animate: false });

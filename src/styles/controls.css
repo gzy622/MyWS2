@@ -161,6 +161,16 @@
 }
 .student-record-panel .student-record-status,
 .course-grade-panel .student-record-status { margin: 7px 0 14px; color: var(--muted); font-size: 13px; }
+/* Keypad + actions share this baseline; keypad then overrides fill/size. */
+.student-record-panel button:not(.sheet-close),
+.course-grade-panel button:not(.sheet-close) {
+  min-height: 44px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--control);
+  color: var(--ink);
+  cursor: pointer;
+}
 .student-score-display { padding: 14px 18px 12px; border-radius: var(--radius-popover); background: var(--paper); }
 .student-score-display > label { display: block; color: var(--muted); font-size: 11px; font-weight: 600; }
 .student-score-display > div { display: flex; align-items: baseline; justify-content: center; gap: 8px; margin-top: 4px; }
@@ -451,10 +461,7 @@
 .people-edit-panel {
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
 }
-.people-edit-panel::-webkit-scrollbar { display: none; width: 0; height: 0; }
 .people-pick-sheet.show .people-pick-panel,
 .people-edit-sheet.show .people-edit-panel {
   visibility: visible;
@@ -482,15 +489,8 @@
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  touch-action: pan-y;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-.people-pick-list::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
+  /* JS owns list scroll + Sheet dismiss edge handoff (see interaction.md §4.1 / §7). */
+  touch-action: none;
 }
 .people-pick-option {
   display: block;
@@ -519,6 +519,15 @@
 .people-edit-sheet.is-ime-host {
   bottom: var(--ime-inset-bottom, 0px);
 }
+
+/* Course sheet IME/actions: block underlay mid-gesture :active / hits (week cells). */
+#app.is-course-sheet-ghost-guard .topbar,
+#app.is-course-sheet-ghost-guard #viewport,
+#app.is-course-sheet-ghost-guard #nav,
+#app.is-course-sheet-ghost-guard .segments {
+  pointer-events: none !important;
+}
+
 .course-slot-sheet,
 .course-period-sheet,
 .course-subject-sheet,
