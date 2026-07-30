@@ -44,6 +44,10 @@
   --ease: cubic-bezier(.2, 0, 0, 1);
   --ease-accelerate: cubic-bezier(.4, 0, 1, 1);
   --ease-overshoot: cubic-bezier(.2, 1.18, .32, 1);
+  /* Assignment / exam list overflow only — pages and ordinary sheets stay hidden. */
+  --scrollbar-size: 4px;
+  --scrollbar-thumb: var(--disabled);
+  --scrollbar-track: color-mix(in srgb, var(--line) 70%, transparent);
 }
 
 :root[data-theme="dark"] {

@@ -1,7 +1,7 @@
 # 里程碑一统一收口执行计划
 
-> 状态：进行中（批次 A–C 已完成；下一批次 D）  
-> 用途：供编程智能体在每次实施前查看、实施中更新、完成后记录结果。  
+> 状态：进行中（批次 A–D 已完成；下一批次 E）
+> 用途：供编程智能体在每次实施前查看、实施中更新、完成后记录结果。
 > 完成后：将最终结论同步到现行文档，并把本计划移入 `docs/archive/`。
 
 ## 1. 目标与边界
@@ -51,7 +51,7 @@
 | A. 盘点与基线 | 已完成 | 检查全部触摸监听、滚动容器、浮层、Pointer Capture 和 `touch-action` | 手势归属表、风险清单、修改范围（见 §9） |
 | B. 测试与诊断 | 已完成 | 先覆盖历史故障，补充指针序列和点击保护诊断 | `gesture-policy.js` + 测试；会话诊断字段 |
 | C. 手势可靠性 | 已完成 | 统一指针生命周期、阈值、直接激活、尾随点击保护和取消清理 | `pointer-guards.js`；五模块收敛；返回/生命周期清理 |
-| D. 滚动统一 | 未开始 | 区分原生滚动与 JS 滚动，统一滚动条、惯性和边缘交接 | 页面、成绩表和 Sheet 不互抢手势 |
+| D. 滚动统一 | 已完成 | 区分原生滚动与 JS 滚动，统一滚动条、惯性和边缘交接 | `.scroll-thin`；边缘交接；课表格 `touch-action` |
 | E. UI 统一 | 未开始 | 收敛 token 和共享组件，统一 Sheet、表单、按钮、列表及状态 | 视觉一致、重复 CSS 减少 |
 | F. 验收与文档 | 未开始 | 执行检查、记录结果、同步现行规范和遗留风险 | 验收报告与文档收口 |
 
@@ -90,13 +90,13 @@
 
 ### D. 滚动统一
 
-- [ ] JS 接管且参与切页/Sheet 的表面统一使用 `touch-action: none`；
-- [ ] 只有明确独立的原生滚动区使用 `pan-y`；
-- [ ] 成绩表双轴滚动不与页面切换、考试列表和菜单互抢；
-- [ ] 列表或成绩表同一手势滚到边缘后不立即转交；
-- [ ] 页面和普通 Sheet 隐藏系统滚动条；
-- [ ] 仅作业和考试列表溢出时显示统一的 4px 细滚动条；
-- [ ] 深浅色、惯性和 `overscroll-behavior` 一致。
+- [x] JS 接管且参与切页/Sheet 的表面统一使用 `touch-action: none`；
+- [x] 只有明确独立的原生滚动区使用 `pan-y`；
+- [x] 成绩表双轴滚动不与页面切换、考试列表和菜单互抢；
+- [x] 列表或成绩表同一手势滚到边缘后不立即转交；
+- [x] 页面和普通 Sheet 隐藏系统滚动条；
+- [x] 仅作业和考试列表溢出时显示统一的 4px 细滚动条；
+- [x] 深浅色、惯性和 `overscroll-behavior` 一致。
 
 ### E. UI 统一
 
@@ -149,6 +149,7 @@
 | 2026-07-30 | A | 已完成 | 完成手势/Sheet/`touch-action`/幽灵点击/壳层盘点；交付见 §9 | `git status`；源码与 CSS 检索；未改业务代码 | 进入批次 B：补纯逻辑测试与诊断会话字段 |
 | 2026-07-30 | B | 已完成 | 新增 `gesture-policy.js` 与 11 项纯逻辑测试；诊断补 sessionId/owner/activationSource/clearReason；`gestures.js` 接入判定 | `node --check`；`node --test` 66 通过；`git diff --check` | 进入批次 C：收敛五套 ghost/IME 保护并统一取消清理 |
 | 2026-07-30 | C | 已完成 | 新增 `pointer-guards.js`；作业/考试/人员/课程/高亮改用共享 IME+ghost；`cancelActivePointerGesture` + 后台/旋转清理；返回前先结束手势 | `node --check`；`node --test` 66 通过；`git diff --check` | 进入批次 D：滚动统一 |
+| 2026-07-30 | D | 已完成 | 统一 `.scroll-thin`/隐藏滚动条；课表格等改回 `touch-action:none`；Sheet 列表边缘交接接入 `canHandOffAtScrollEdge` | `node --check`；`node --test`；`git diff --check` | 进入批次 E：UI 统一 |
 
 ## 8. 完成条件
 
@@ -230,8 +231,8 @@
 | --- | --- |
 | B | ~~完成~~：`gesture-policy.js`、`tests/gesture-policy.test.mjs`、`sheet-debug` 会话字段 |
 | C | ~~完成~~：`pointer-guards.js`；五业务模块共享 IME/ghost；`cancelActivePointerGesture` + 生命周期/返回 |
-| D | `.grade-scroll`、作业/考试列表滚动与边缘交接；`content.css` / `assignments.css` / `sheets.css` / `controls.css` 的 scrollbar 与 `overscroll-behavior` |
+| D | ~~完成~~：滚动条 token/`.scroll-thin`；边缘交接；课表格 `touch-action:none` |
 | E | `tokens.css` 与共享 Sheet/按钮/列表样式收敛 |
 | F | 现行 `interaction.md` / `visual-design.md` / `engineering.md` / `guides/development.md`；授权后的 Web/APK 验收 |
 
-下一批次：**D. 滚动统一**。
+下一批次：**E. UI 统一**。

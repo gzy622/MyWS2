@@ -9,7 +9,7 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
   const layer = document.createElement('div');
   layer.className = 'assignment-sheet';
   layer.inert = true;
-  layer.innerHTML = '<section class="assignment-panel sheet-panel sheet-panel--top" role="dialog" aria-modal="true" aria-labelledby="assignmentTitle"><header class="sheet-head"><div class="sheet-title"><span>登记</span><h2 id="assignmentTitle">作业</h2></div><button type="button" class="sheet-close" data-action="close" aria-label="关闭">×</button></header><div class="assignment-list"></div><button class="assignment-add" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>新增作业</button><div class="sheet-handle-zone sheet-handle-zone--bottom" aria-hidden="true"><div class="sheet-handle"></div></div></section>';
+  layer.innerHTML = '<section class="assignment-panel sheet-panel sheet-panel--top" role="dialog" aria-modal="true" aria-labelledby="assignmentTitle"><header class="sheet-head"><div class="sheet-title"><span>登记</span><h2 id="assignmentTitle">作业</h2></div><button type="button" class="sheet-close" data-action="close" aria-label="关闭">×</button></header><div class="assignment-list scroll-thin"></div><button class="assignment-add" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>新增作业</button><div class="sheet-handle-zone sheet-handle-zone--bottom" aria-hidden="true"><div class="sheet-handle"></div></div></section>';
   elements.app.append(layer);
 
   const list = layer.querySelector('.assignment-list');

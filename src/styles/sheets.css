@@ -163,4 +163,50 @@
   -ms-overflow-style: none;
 }
 
-.sheet-scroll::-webkit-scrollbar { display: none; }
+.sheet-scroll::-webkit-scrollbar { display: none; width: 0; height: 0; }
+
+/* Shared: hide system scrollbars on pages and ordinary sheet ports. */
+.scroll-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scroll-hidden::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/*
+ * Shared: 4px thin scrollbar for overflowing assignment / exam lists only.
+ * Thumb/track tokens follow light and dark --disabled / --line.
+ */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.scroll-thin::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+}
+
+.scroll-thin::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.scroll-thin::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 999px;
+  margin: 8px 0;
+}
+
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 999px;
+}
+
+.scroll-thin::-webkit-scrollbar-thumb:active {
+  background: var(--muted);
+}

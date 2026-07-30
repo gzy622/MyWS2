@@ -18,7 +18,7 @@ export function initExams({ store, showToast, viewport, closeOthers, confirm, on
   const layer = document.createElement('div');
   layer.className = 'exam-sheet';
   layer.inert = true;
-  layer.innerHTML = '<section class="exam-panel sheet-panel sheet-panel--top" role="dialog" aria-modal="true" aria-labelledby="examListTitle"><header class="sheet-head"><div class="sheet-title"><span>课程</span><h2 id="examListTitle">考试</h2></div><button type="button" class="sheet-close" data-action="close" aria-label="关闭">×</button></header><div class="exam-list"></div><button class="exam-add" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>新增考试</button><div class="sheet-handle-zone sheet-handle-zone--bottom" aria-hidden="true"><div class="sheet-handle"></div></div></section>';
+  layer.innerHTML = '<section class="exam-panel sheet-panel sheet-panel--top" role="dialog" aria-modal="true" aria-labelledby="examListTitle"><header class="sheet-head"><div class="sheet-title"><span>课程</span><h2 id="examListTitle">考试</h2></div><button type="button" class="sheet-close" data-action="close" aria-label="关闭">×</button></header><div class="exam-list scroll-thin"></div><button class="exam-add" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>新增考试</button><div class="sheet-handle-zone sheet-handle-zone--bottom" aria-hidden="true"><div class="sheet-handle"></div></div></section>';
   elements.app.append(layer);
 
   const list = layer.querySelector('.exam-list');

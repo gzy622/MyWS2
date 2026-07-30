@@ -100,9 +100,9 @@ button.topbar-title { cursor: default; }
 .pages.dragging, .nav-glider.dragging { transition: none; }
 .page {
   width: 33.3333%; height: 100%; flex: none; overflow-y: auto;
-  overscroll-behavior-y: contain; scrollbar-width: none; touch-action: none;
+  overscroll-behavior: contain; scrollbar-width: none; -ms-overflow-style: none; touch-action: none;
 }
-.page::-webkit-scrollbar { display: none; }
+.page::-webkit-scrollbar { display: none; width: 0; height: 0; }
 .page-inner { min-height: 100%; padding: calc(var(--topbar-h) + env(safe-area-inset-top) + 10px) var(--page-inset) 40px; }
 
 @media (min-width: 600px) { .app { height: min(900px, 96vh); border-radius: 30px; } }

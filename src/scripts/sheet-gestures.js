@@ -11,15 +11,12 @@ import {
 import { haptic, Haptic } from './haptics.js';
 import { blurIfSheetChrome } from './focus.js';
 import { describeDebugTarget, isSheetDebugEnabled, logGestureDebug } from './sheet-debug.js';
+import { canHandOffAtScrollEdge } from './gesture-policy.js';
 
 const REGISTER_PAGE_INDEX = 1;
 const GRID_SUBVIEW_INDEX = 0;
 const COURSE_PAGE_INDEX = 2;
 const GRADES_SUBVIEW_INDEX = 1;
-
-/** Top list sheets: edge handoff to dismiss only after a new pointer session. */
-const DEFER_DISMISS_ON_SCROLL_EDGE = new Set(['assignments', 'exams']);
-
 function isRegisterGrid() {
   return state.currentPage === REGISTER_PAGE_INDEX
     && state.subviews[REGISTER_PAGE_INDEX] === GRID_SUBVIEW_INDEX;
@@ -67,10 +64,6 @@ function isSheetActionControl(target, sheet) {
  */
 function isDismissDeltaY(sheet, deltaY) {
   return sheet?.getDirection?.() === 'from-top' ? deltaY < 0 : deltaY > 0;
-}
-
-function defersDismissOnScrollEdge(sheet) {
-  return DEFER_DISMISS_ON_SCROLL_EDGE.has(sheet?.id);
 }
 
 /**
@@ -255,16 +248,20 @@ export function createSheetGestureBridge() {
     if (session.scrollLocked && session.scrollPort) {
       const unused = applyScrollPortDelta(session.scrollPort, deltaY, session.startScrollTop);
       if (Math.abs(deltaY - unused) > 0.5) session.scrolledInPort = true;
+      const nowAtEdge = !scrollPortCanScroll(session.scrollPort, deltaY);
+      // Same gesture that scrolled the list must not dismiss at the edge.
+      // Fresh contact that starts already at the dismiss edge may still scrub.
       if (
         Math.abs(unused) > 0.5
-        && !scrollPortCanScroll(session.scrollPort, deltaY)
         && shouldLockSheetFromScrub(sheet, deltaY)
+        && canHandOffAtScrollEdge({
+          startAtEdge: !session.scrolledInPort,
+          scrolledAwayFromEdge: session.scrolledInPort,
+          nowAtEdge
+        })
       ) {
-        // List scrolled in this gesture — require a fresh swipe to dismiss.
-        if (!(session.scrolledInPort && defersDismissOnScrollEdge(sheet))) {
-          lockSheet(clientY);
-          session.sheet.moveByDeltaY(0);
-        }
+        lockSheet(clientY);
+        session.sheet.moveByDeltaY(0);
       }
       return true;
     }

@@ -35,7 +35,9 @@
   position: absolute; z-index: 21; left: 12px; right: 12px; bottom: max(16px, env(safe-area-inset-bottom)); height: auto; max-height: calc(100% - 32px);
   padding: 0 18px 18px; overflow-y: auto; overscroll-behavior: contain; touch-action: none; border-radius: var(--radius-sheet); background: var(--card); box-shadow: var(--shadow-sheet-up);
   visibility: hidden; transform: translateY(calc(100% + 72px)); transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet);
+  scrollbar-width: none; -ms-overflow-style: none;
 }
+.menu-drawer::-webkit-scrollbar { display: none; width: 0; height: 0; }
 /* Resting open — scrub/settle opacity is inline on #scrim (never a CSS var on .app). */
 .app.drawer-open:not(.drawer-revealing):not(.drawer-settling) .scrim {
   opacity: 1;
@@ -144,7 +146,8 @@
   transition: opacity var(--duration-sheet) var(--ease);
 }
 .student-record-panel,
-.course-grade-panel { max-height: 100%; overflow-y: auto; overscroll-behavior: contain; touch-action: none; padding: 0 18px 18px; visibility: hidden; transform: translateY(calc(100% + 72px)); transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet); }
+.course-grade-panel { max-height: 100%; overflow-y: auto; overscroll-behavior: contain; touch-action: none; padding: 0 18px 18px; visibility: hidden; transform: translateY(calc(100% + 72px)); transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet); scrollbar-width: none; -ms-overflow-style: none; }
+.course-grade-panel::-webkit-scrollbar { display: none; width: 0; height: 0; }
 .student-record-sheet.show .student-record-panel,
 .course-grade-sheet.show .course-grade-panel { visibility: visible; transform: translateY(0); transition-delay: 0s; }
 .student-record-panel.dragging,
@@ -375,7 +378,10 @@
   visibility: hidden;
   transform: translateY(calc(100% + 72px));
   transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+.confirm-panel::-webkit-scrollbar { display: none; width: 0; height: 0; }
 .confirm-sheet.show .confirm-panel {
   visibility: visible;
   transform: translateY(0);
@@ -454,7 +460,10 @@
 .people-edit-panel {
   overflow-y: auto;
   overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+.people-edit-panel::-webkit-scrollbar { display: none; width: 0; height: 0; }
 .people-pick-sheet.show .people-pick-panel,
 .people-edit-sheet.show .people-edit-panel {
   visibility: visible;
@@ -481,18 +490,18 @@
   max-height: min(48vh, 360px);
   overflow-x: hidden;
   overflow-y: auto;
-  overscroll-behavior-y: contain;
+  overscroll-behavior: contain;
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
   border-radius: 16px;
   background: var(--paper);
-  scrollbar-width: thin;
-  scrollbar-color: var(--disabled) color-mix(in srgb, var(--line) 70%, transparent);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
-.people-pick-list::-webkit-scrollbar { width: 4px; }
-.people-pick-list::-webkit-scrollbar-thumb {
-  background: var(--disabled);
-  border-radius: 999px;
+.people-pick-list::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 .people-pick-option {
   display: block;
@@ -691,11 +700,24 @@
   visibility: hidden;
   transform: translateY(calc(100% + 72px));
   transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+.course-slot-sheet-panel::-webkit-scrollbar,
+.course-period-sheet-panel::-webkit-scrollbar,
+.course-subject-sheet-panel::-webkit-scrollbar,
+.course-stats-panel::-webkit-scrollbar,
+.course-highlight-panel::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+/* JS scroll ports must stay touch-action:none (see interaction.md §7). */
 .course-slot-sheet-panel,
 .course-period-sheet-panel,
 .course-subject-sheet-panel,
-.course-stats-panel,
+.course-stats-panel { touch-action: none; }
+/* Highlight keeps native pan-y so Android IME can focus the textarea. */
 .course-highlight-panel { touch-action: pan-y; }
 .course-slot-sheet .sheet-handle-zone,
 .course-period-sheet .sheet-handle-zone,
