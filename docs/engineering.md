@@ -52,7 +52,7 @@
 | 修改类型 | 首选文件 |
 | --- | --- |
 | 页面结构、固定文案、语义属性 | `src/index.html` |
-| 颜色、尺寸、圆角、阴影、缓动 | `src/styles/tokens.css` |
+| 颜色、尺寸、圆角、阴影、缓动和语义层级 | `src/styles/tokens.css` |
 | reset、基础元素、通用动画、reduced motion | `src/styles/base.css` |
 | 应用容器、顶栏、页面视口 | `src/styles/shell.css` |
 | 页面内容、网格、座位、人员、课程 | `src/styles/content.css` |
@@ -80,9 +80,10 @@
 | 手势阈值与点击保护纯判定 | `src/scripts/gesture-policy.js` |
 | IME 立即操作与幽灵点击保护 | `src/scripts/pointer-guards.js` |
 | 细滚动条滑动显隐 | `src/scripts/scroll-thin.js`、`sheets.css` `.scroll-thin` |
-| Sheet progress 与最上层栈 | `src/scripts/sheet-drag.js` |
+| 浮层 ID、类型、视觉层与关闭优先级 | `src/scripts/overlay-stack.js` |
+| Sheet progress 与最上层栈 | `src/scripts/sheet-drag.js`（读取 `overlay-stack.js`） |
 | 通用菜单、更多菜单与确认 | `src/scripts/drawer.js`、`src/scripts/more-sheet.js` |
-| Escape / Android 返回 | `src/scripts/system-back.js` |
+| Escape / Android 返回 | `src/scripts/system-back.js`（读取 `overlay-stack.js`） |
 | 主题、视口、触觉、焦点、Toast | 对应同名模块 |
 | 初始化和依赖注入 | `src/scripts/main.js` |
 | 内容指纹 | `tools/content-id.cjs`、`src/scripts/build-id.js` |

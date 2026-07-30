@@ -12,7 +12,7 @@ studentFontSize: 14 | 15 | 16 | 17 | 18
 fontSizePopoverOpen: boolean
 seatEditing: boolean
 seatLandscape: boolean
-activeOverlay: null | 'assignments' | 'exams' | 'student-record' | 'people-pick' | 'people-edit' | 'course-slot' | 'course-period' | 'course-subject' | 'course-grade' | 'course-stats' | 'course-highlight' | 'more' | 'confirm'
+activeOverlay: null | 'assignments' | 'exams' | 'student-record' | 'people-pick' | 'people-edit' | 'course-slot' | 'course-period' | 'course-subject' | 'course-grade' | 'course-stats' | 'course-highlight' | 'more' | 'confirm' | 'roster-editor'
 gradeExamId: number | null
 gradeSort: null | { subjectId: number, direction: 'asc' | 'desc' }
 ```
@@ -89,7 +89,7 @@ gradeSort: null | { subjectId: number, direction: 'asc' | 'desc' }
 
 ## 5. 姓名字号
 
-- 登记页点击顶栏“更多”打开更多菜单；网格和座位视图均显示“姓名字号”，点击后关闭更多菜单并打开同一个姓名字号 Popover。再次点击“更多”或点菜单外区域关闭。
+- 登记页点击顶栏“更多”打开底部上下文动作 Sheet；网格和座位视图均显示“姓名字号”，点击后关闭更多 Sheet 并打开同一个姓名字号 Popover。再次点击“更多”、右上角关闭钮、下拉 Sheet 或点遮罩区域均可关闭。
 - 登记页“更多”始终提供视图切换：网格视图显示「切换至座位视图」，座位视图显示「切换回网格视图」并另提供座位编辑与复位；另提供「新建作业」「清除当前作业」与「调整姓名字号」。人员页“更多”只提供按子视图的班干/值日操作（新增、清空指派）；课程页“更多”只提供按子视图的课表/成绩操作（清空课表、高亮科目、新增科目、新增考试、成绩统计、清空本场成绩）。
 - 字号滑杆范围为 `14～18px`、步长 `1px`，拖动和键盘调整时实时更新网格与座位视图的学生姓名及数值输出；座位姓名按画布基准字号映射，缩放画布时继续随画布缩放。
 - 每次有效调整立即写入持久化；刷新后恢复上次字号。
@@ -137,7 +137,7 @@ gradeSort: null | { subjectId: number, direction: 'asc' | 'desc' }
 
 ### 纵向 Sheet 全屏跟手
 
-- 适用范围（均为 `translateY` Sheet，与 `src/scripts/sheet-drag.js` 的 `SHEET_STACK_ORDER` 一致）：确认面板、高亮科目、成绩统计、考试名称、考试列表、课程科目/节次/课表格/成绩、人员编辑、人员选择、作业名称、作业列表、学生记录、通用菜单。更多菜单与姓名字号不在此列。
+- 适用范围（均为 `translateY` Sheet，与 `src/scripts/overlay-stack.js` 派生的 `SHEET_STACK_ORDER` 一致）：确认面板、高亮科目、成绩统计、考试名称、考试列表、课程科目/节次/课表格/成绩、人员编辑、人员选择、作业名称、作业列表、学生姓名、学生记录、更多 Sheet、通用菜单。姓名字号 Popover 不在此列。
 - 任一上述 Sheet 呈现时：除自滚动容器（且该方向尚未到边）与文本输入控件外，全屏任意位置均可纵向拖动，实时驱动该 Sheet 的 progress（0～1）与遮罩透明度；把手不再是唯一关闭入口。
 - 嵌套滚动（业界 Sheet 惯例）：列表可滚时优先滚列表；仅当该方向已到边，且手指继续沿关闭向移动时，才把跟手交给 Sheet。凡脚本接管的列表滚动口（含作业/考试列表及其他 Sheet 内 JS 滚动面）：在同一手势内滚至边缘后，须松手再下一次滑动才关闭 Sheet；列表已在关闭向顶缘时直接滑动仍可跟手关闭。顶部 Sheet（作业列表/作业名称、考试列表/考试名称）关闭向为上滑，底部 Sheet 关闭向为下滑。已完全打开时，打开向的过量拖动不得再驱动 Sheet（避免误抢点击与空跟手）。
 - 例外：高亮科目面板为 IME 保留 `pan-y`；其余参与 Sheet 跟手的滚动面须 `touch-action: none`（含人员选择名单，见 §4.1）。
@@ -208,8 +208,8 @@ IME 浮层的取消/保存/删除走 `src/scripts/pointer-guards.js` 的立即�
 
 ## 10. 更多菜单与 Toast
 
-- 登记页“更多”打开更多菜单：所有登记视图提供网格/座位切换、新建作业、清除当前作业和姓名字号；座位额外提供编辑模式与座位视图复位。新建作业关闭更多菜单后直接打开作业名称（新增）Sheet，与作业列表内「新增作业」同一套校验与落库。主题切换只保留在通用菜单。通用菜单与 `activeOverlay` 业务浮层（作业列表、学生记录、人员/课程 Sheet、更多、确认等）必须互斥。
-- Escape 与 Android 系统返回键共用同一关闭栈（`src/scripts/system-back.js`，与 `SHEET_STACK_ORDER` / [`glossary.md`](glossary.md) 一致），按最上层优先关闭并恢复触发焦点：确认面板 → 高亮科目 → 成绩统计 → 考试名称 → 考试列表 → 科目编辑 → 节次改名 → 课表格 → 成绩 → 人员编辑 → 人员选择 → 作业名称 → 作业列表 → 学生姓名 Sheet → 学生名单全屏页 → 学生记录 → 更多菜单 → 姓名字号 → 通用菜单。无浮层可关时，系统返回键退出应用。
+- 登记页“更多”打开底部上下文动作 Sheet：所有登记视图提供网格/座位切换、新建作业、清除当前作业和姓名字号；座位额外提供编辑模式与座位视图复位。人员和课程页仍按当前子视图显示各自原有操作。动作按主操作、普通操作和危险操作分组；新建作业关闭更多 Sheet 后直接打开作业名称（新增）Sheet，与作业列表内「新增作业」同一套校验与落库。主题切换只保留在通用菜单。通用菜单与 `activeOverlay` 业务浮层（含学生名单全屏页、更多、确认等）必须互斥。
+- Escape 与 Android 系统返回键共用 `src/scripts/overlay-stack.js` 的关闭栈；`sheet-drag.js` 的 `SHEET_STACK_ORDER` 和 `system-back.js` 都从该定义读取优先级。顺序为：确认面板 → 高亮科目 → 成绩统计 → 考试名称 → 考试列表 → 科目编辑 → 节次改名 → 课表格 → 成绩 → 人员编辑 → 人员选择 → 作业名称 → 作业列表 → 学生姓名 Sheet → 学生名单全屏页 → 学生记录 → 更多 Sheet → 姓名字号 Popover → 通用菜单 → 座位横屏。无浮层可关时，系统返回键退出应用。
 - Toast 使用 `role="status"`，显示约 1600ms。
 - 新消息到来时替换旧消息并重新计时；不得叠加多个 Toast。
 

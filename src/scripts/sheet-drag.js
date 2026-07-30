@@ -1,5 +1,6 @@
 import { getMotionDebugSnapshot, isSheetDebugEnabled, logSheetDebug } from './sheet-debug.js';
 import { syncChromeInert } from './focus.js';
+import { SHEET_STACK_ORDER as OVERLAY_SHEET_STACK_ORDER } from './overlay-stack.js';
 
 /** Minimum finger travel (px) before a slow drag may dismiss an open sheet. */
 export const SHEET_CLOSE_DISTANCE = 180;
@@ -79,25 +80,8 @@ function scheduleScrollPortPaint(port, next) {
   scrollPortPaintRaf.set(port, raf);
 }
 
-/** Top-most first; matches system-back dismiss order for vertical sheets. */
-export const SHEET_STACK_ORDER = [
-  'confirm',
-  'course-highlight',
-  'course-stats',
-  'exam-name',
-  'exams',
-  'course-subject',
-  'course-period',
-  'course-slot',
-  'course-grade',
-  'people-edit',
-  'people-pick',
-  'assignment-name',
-  'assignments',
-  'roster-student-name',
-  'student-record',
-  'drawer'
-];
+/** Top-most first; derived from the authoritative overlay contract. */
+export const SHEET_STACK_ORDER = OVERLAY_SHEET_STACK_ORDER;
 
 const clamp01 = (value) => Math.min(1, Math.max(0, value));
 

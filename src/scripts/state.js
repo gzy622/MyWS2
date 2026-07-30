@@ -1,4 +1,5 @@
 export const PAGE_COUNT = 3;
+import { isOverlayId } from './overlay-stack.js';
 export const STUDENT_FONT_SIZE_MIN = 14;
 export const STUDENT_FONT_SIZE_MAX = 18;
 export const STUDENT_FONT_SIZE_DEFAULT = 16;
@@ -64,7 +65,7 @@ export function setRosterEditorOpen(value) {
 }
 
 export function setActiveOverlay(value) {
-  state.activeOverlay = value;
+  state.activeOverlay = value === null || isOverlayId(value) ? value : null;
 }
 
 export function setGradeExamId(value) {

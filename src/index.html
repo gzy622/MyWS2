@@ -25,7 +25,7 @@
             </svg>
           </span>
         </button>
-        <button class="topbar-action topbar-more" id="moreButton" aria-label="更多功能" aria-controls="moreMenu" aria-expanded="false" aria-haspopup="true">
+        <button class="topbar-action topbar-more" id="moreButton" aria-label="更多功能" aria-controls="moreMenu" aria-expanded="false" aria-haspopup="dialog">
           <span>更多</span>
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="12" cy="7" r="2.2" /><circle cx="12" cy="17" r="2.2" />
@@ -168,25 +168,36 @@
           <div class="student-record-actions"><button type="button" id="cancelStudentRecord">取消</button><button type="button" id="saveStudentRecord">保存</button></div>
         </div>
       </section>
-      <section class="more-menu" id="moreMenu" aria-label="更多" aria-hidden="true" inert>
-        <div class="more-menu-panel">
+      <section class="more-menu" id="moreMenu" role="dialog" aria-modal="true" aria-labelledby="moreMenuTitle" aria-hidden="true" inert>
+        <div class="more-menu-panel sheet-panel sheet-panel--bottom" id="moreMenuPanel">
+          <div class="sheet-handle-zone sheet-handle-zone--top" id="moreMenuHandle" aria-hidden="true"><div class="sheet-handle"></div></div>
+          <div class="more-menu-head sheet-head">
+            <div class="sheet-title"><span>当前任务</span><h2 id="moreMenuTitle">更多操作</h2></div>
+            <button type="button" class="sheet-close" id="closeMoreMenu" aria-label="关闭更多操作">×</button>
+          </div>
           <div class="more-actions">
-            <button type="button" data-more-action="register-view">切换至座位视图</button>
-            <button type="button" data-more-action="create-assignment">新建作业</button>
-            <button type="button" data-more-action="clear-assignment">清除当前作业</button>
-            <button type="button" data-more-action="font-size">调整姓名字号</button>
-            <button type="button" data-more-action="seat-edit" aria-pressed="false">编辑座位表</button>
-            <button type="button" data-more-action="seat-reset">复位座位视图</button>
-            <button type="button" data-more-action="add-role">新增班干</button>
-            <button type="button" data-more-action="clear-roles">清空班干指派</button>
-            <button type="button" data-more-action="add-duty">新增值日</button>
-            <button type="button" data-more-action="clear-duties">清空值日安排</button>
-            <button type="button" data-more-action="clear-schedule">清空本周课表</button>
-            <button type="button" data-more-action="highlight-subjects">高亮科目</button>
-            <button type="button" data-more-action="add-subject">新增科目</button>
-            <button type="button" data-more-action="add-exam">新增考试</button>
-            <button type="button" data-more-action="grade-stats">成绩统计</button>
-            <button type="button" data-more-action="clear-grades">清空本场成绩</button>
+            <section class="more-action-group more-action-group--primary" data-more-group="primary" aria-label="主操作">
+              <button type="button" data-more-action="register-view">切换至座位视图</button>
+              <button type="button" data-more-action="create-assignment">新建作业</button>
+              <button type="button" data-more-action="add-role">新增班干</button>
+              <button type="button" data-more-action="add-duty">新增值日</button>
+              <button type="button" data-more-action="add-subject">新增科目</button>
+              <button type="button" data-more-action="add-exam">新增考试</button>
+            </section>
+            <section class="more-action-group" data-more-group="standard" aria-label="其他操作">
+              <button type="button" data-more-action="font-size">调整姓名字号</button>
+              <button type="button" data-more-action="seat-edit" aria-pressed="false">编辑座位表</button>
+              <button type="button" data-more-action="seat-reset">复位座位视图</button>
+              <button type="button" data-more-action="highlight-subjects">高亮科目</button>
+              <button type="button" data-more-action="grade-stats">成绩统计</button>
+            </section>
+            <section class="more-action-group more-action-group--danger" data-more-group="danger" aria-label="危险操作">
+              <button type="button" data-more-action="clear-assignment">清除当前作业</button>
+              <button type="button" data-more-action="clear-roles">清空班干指派</button>
+              <button type="button" data-more-action="clear-duties">清空值日安排</button>
+              <button type="button" data-more-action="clear-schedule">清空本周课表</button>
+              <button type="button" data-more-action="clear-grades">清空本场成绩</button>
+            </section>
           </div>
         </div>
       </section>

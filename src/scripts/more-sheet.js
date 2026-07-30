@@ -29,17 +29,13 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
   let confirmAction = null;
   let confirmReturnFocus = null;
   let confirmSheet;
+  let moreSheet;
+  let restoreMoreFocus = true;
 
   function close({ restoreFocus = true } = {}) {
-    if (!elements.moreMenu.classList.contains('show')) return;
-    elements.moreMenu.classList.remove('show');
-    elements.moreMenu.setAttribute('aria-hidden', 'true');
-    elements.moreMenu.inert = true;
-    elements.moreButton.setAttribute('aria-expanded', 'false');
-    setActiveOverlay(null);
-    syncChromeInert();
-    if (restoreFocus) focusSilently(trigger);
-    trigger = null;
+    if (!moreSheet?.isPresented() && !elements.moreMenu.classList.contains('show')) return;
+    restoreMoreFocus = restoreFocus;
+    moreSheet?.closeInstant();
   }
 
   function closeConfirm({ restoreFocus = true } = {}) {
@@ -137,7 +133,39 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
         button.textContent = state.seatEditing ? '退出编辑模式' : '编辑座位表';
       }
     }
+    for (const group of elements.moreMenu.querySelectorAll('[data-more-group]')) {
+      group.hidden = !group.querySelector('[data-more-action]:not([hidden])');
+    }
   }
+
+  moreSheet = createSheetController({
+    id: 'more',
+    layer: elements.moreMenu,
+    panel: elements.moreMenuPanel,
+    direction: 'from-bottom',
+    scrollPorts: [elements.moreMenuPanel],
+    isOpen: () => elements.moreMenu.classList.contains('show') && !moreSheet?.isActive(),
+    onPrepare() {
+      setActiveOverlay('more');
+      elements.moreMenu.setAttribute('aria-hidden', 'false');
+    },
+    onOpened() {
+      setActiveOverlay('more');
+      elements.moreMenu.setAttribute('aria-hidden', 'false');
+      elements.moreMenu.inert = false;
+      elements.moreButton.setAttribute('aria-expanded', 'true');
+      syncChromeInert();
+    },
+    onClosed() {
+      elements.moreMenu.setAttribute('aria-hidden', 'true');
+      elements.moreButton.setAttribute('aria-expanded', 'false');
+      if (state.activeOverlay === 'more') setActiveOverlay(null);
+      syncChromeInert();
+      if (restoreMoreFocus) focusSilently(trigger);
+      trigger = null;
+      restoreMoreFocus = true;
+    }
+  });
 
   function open() {
     if (
@@ -148,7 +176,7 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
       showToast('更多功能即将推出');
       return;
     }
-    if (elements.moreMenu.classList.contains('show')) {
+    if (moreSheet.isPresented() || elements.moreMenu.classList.contains('show')) {
       close();
       return;
     }
@@ -157,20 +185,17 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
     fontSize.close();
     trigger = elements.moreButton;
     render();
-    setActiveOverlay('more');
-    elements.moreMenu.classList.add('show');
-    elements.moreMenu.setAttribute('aria-hidden', 'false');
-    elements.moreMenu.inert = false;
-    elements.moreButton.setAttribute('aria-expanded', 'true');
-    syncChromeInert();
+    restoreMoreFocus = true;
+    moreSheet.openInstant();
     const firstAction = [...elements.moreActions].find((button) => !button.hidden);
     focusSilently(firstAction);
   }
 
   elements.moreButton.addEventListener('click', open);
   elements.moreMenu.addEventListener('click', (event) => {
-    if (event.target === elements.moreMenu) close();
+    if (event.target === elements.moreMenu && !moreSheet.isActive()) close();
   });
+  elements.closeMoreMenuButton.addEventListener('click', () => close());
   elements.moreActions.forEach((button) => button.addEventListener('click', (event) => {
     event.stopPropagation();
     const action = button.dataset.moreAction;
@@ -309,5 +334,5 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
     if (event.target === elements.confirmSheet && !confirmSheet.isActive()) closeConfirm();
   });
 
-  return { open, close, closeConfirm, confirm, render, confirmSheet };
+  return { open, close, closeConfirm, confirm, render, confirmSheet, moreSheet };
 }

@@ -94,10 +94,11 @@ Capacitor 依赖只用于原生壳。浏览器代码通过 `globalThis.Capacitor
 | --- | --- |
 | `navigation.js` | 主页面、子视图、顶栏标题和导航状态渲染 |
 | `gestures.js` | 主页面、底栏、分段与全屏 Sheet 手势路由 |
-| `sheet-drag.js` | Sheet progress 控制器、注册表和最上层顺序 |
+| `overlay-stack.js` | 浮层 ID、类型、视觉层级和唯一关闭优先级；不承载业务规则 |
+| `sheet-drag.js` | Sheet progress 控制器、注册表和从 `overlay-stack.js` 派生的最上层顺序 |
 | `sheet-gestures.js` | Sheet 全屏纵向跟手与滚动优先桥接 |
 | `drawer.js`、`more-sheet.js` | 通用菜单、上下文更多菜单和确认面板 |
-| `system-back.js` | Escape 与 Android 系统返回键的统一关闭入口 |
+| `system-back.js` | Escape 与 Android 系统返回键的统一关闭入口，按 `overlay-stack.js` 顺序路由 |
 | `sheet-debug.js` | 显式开启的 Sheet/构建调试信息 |
 
 ### 业务功能层

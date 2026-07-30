@@ -28,6 +28,7 @@ import { initSheetDebug } from './sheet-debug.js';
 import { initBuildId } from './build-id.js';
 import { initLetterIndex } from './letter-index.js';
 import { initScrollThinChrome } from './scroll-thin.js';
+import { isOverlayId } from './overlay-stack.js';
 
 export const rosterStore = createRosterStore(loadRosterState(), saveRosterState);
 const theme = initTheme();
@@ -56,22 +57,23 @@ let people;
 let courses;
 let highlightSubjects;
 function closeOverlays(except) {
-  if (except !== 'people-pick') people?.closePick({ restoreFocus: false });
-  if (except !== 'people-edit') people?.closeEdit({ restoreFocus: false });
-  if (except !== 'course-slot') courses?.closeSlot({ restoreFocus: false });
-  if (except !== 'course-period') courses?.closePeriod({ restoreFocus: false });
-  if (except !== 'course-subject') courses?.closeSubject({ restoreFocus: false });
-  if (except !== 'course-grade') courses?.closeGrade({ restoreFocus: false });
-  if (except !== 'course-stats') courses?.closeStats({ restoreFocus: false });
-  if (except !== 'course-highlight') highlightSubjects?.close({ restoreFocus: false });
-  if (except !== 'student-record') studentRecord?.close();
-  if (except !== 'assignments') assignments?.close();
-  if (except !== 'roster-editor' && except !== 'confirm') rosterEditor?.close();
-  if (except !== 'exams') exams?.close();
-  if (except !== 'more') moreSheet?.close({ restoreFocus: false });
-  if (except !== 'confirm') moreSheet?.closeConfirm({ restoreFocus: false });
-  if (except !== 'font-size') fontSize.close();
-  if (except !== 'drawer') closeDrawer({ restoreFocus: false });
+  const keep = isOverlayId(except) ? except : null;
+  if (keep !== 'people-pick') people?.closePick({ restoreFocus: false });
+  if (keep !== 'people-edit') people?.closeEdit({ restoreFocus: false });
+  if (keep !== 'course-slot') courses?.closeSlot({ restoreFocus: false });
+  if (keep !== 'course-period') courses?.closePeriod({ restoreFocus: false });
+  if (keep !== 'course-subject') courses?.closeSubject({ restoreFocus: false });
+  if (keep !== 'course-grade') courses?.closeGrade({ restoreFocus: false });
+  if (keep !== 'course-stats') courses?.closeStats({ restoreFocus: false });
+  if (keep !== 'course-highlight') highlightSubjects?.close({ restoreFocus: false });
+  if (keep !== 'student-record') studentRecord?.close();
+  if (keep !== 'assignments') assignments?.close();
+  if (keep !== 'roster-editor' && keep !== 'confirm') rosterEditor?.close();
+  if (keep !== 'exams') exams?.close();
+  if (keep !== 'more') moreSheet?.close({ restoreFocus: false });
+  if (keep !== 'confirm') moreSheet?.closeConfirm({ restoreFocus: false });
+  if (keep !== 'font-size') fontSize.close();
+  if (keep !== 'drawer') closeDrawer({ restoreFocus: false });
 }
 highlightSubjects = initHighlightSubjects({
   showToast,
