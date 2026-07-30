@@ -43,8 +43,14 @@ const CHROME_LOCK_SELECTORS = [
 ];
 
 function isBusinessOverlayOpen(app) {
-  if (app.classList.contains('drawer-open')) return true;
-  return CHROME_LOCK_SELECTORS.some((selector) => app.querySelector(selector));
+  const drawer = app.querySelector('#menuDrawer');
+  if (app.classList.contains('drawer-open') && !drawer?.classList.contains('is-closing')) {
+    return true;
+  }
+  return CHROME_LOCK_SELECTORS.some((selector) => {
+    const overlay = app.querySelector(selector);
+    return overlay && !overlay.classList.contains('is-closing');
+  });
 }
 
 /** Lock or unlock topbar, viewport, and bottom shell based on open overlays. */

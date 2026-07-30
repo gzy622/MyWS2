@@ -54,7 +54,8 @@
 }
 .app.drawer-revealing .menu-drawer,
 .app.drawer-settling .menu-drawer { visibility: visible; }
-.menu-drawer[aria-hidden="true"] { pointer-events: none; }
+.menu-drawer[aria-hidden="true"],
+.menu-drawer.is-closing { pointer-events: none; }
 .menu-drawer.dragging {
   transition: none;
   will-change: transform;

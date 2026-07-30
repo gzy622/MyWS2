@@ -155,11 +155,13 @@ export function createSheetController({
   let travel = 0;
   let dragging = false;
   let settling = false;
+  let closing = false;
   let dragOriginProgress = 0;
   let presented = false;
   let settleTimer = 0;
   let settleGeneration = 0;
   let settleOnEnd = null;
+  let settleFinish = null;
   let compositorHintTimer = 0;
   let dragRaf = 0;
   let paintedProgress = NaN;
@@ -181,6 +183,27 @@ export function createSheetController({
 
   function isPresented() {
     return presented || dragging || settling || (typeof isOpenFn === 'function' && isOpenFn());
+  }
+
+  /**
+   * A closing Sheet stays visually presented until its transition finishes, but
+   * must stop hit-testing immediately. The gesture's trailing click is guarded
+   * globally; a new deliberate contact must be allowed through on both browser
+   * Chromium and Android WebView.
+   */
+  function setClosingInteraction(nextClosing) {
+    closing = Boolean(nextClosing);
+    layer?.classList.toggle('is-closing', closing);
+    panel.classList.toggle('is-closing', closing);
+    scrimElement?.classList.toggle('is-closing', closing);
+    if (closing) {
+      if (layer) layer.inert = true;
+      else panel.inert = true;
+    } else if (presented) {
+      if (layer) layer.inert = false;
+      else panel.inert = false;
+    }
+    syncChromeInert();
   }
 
   function progressToken(value) {
@@ -317,9 +340,10 @@ export function createSheetController({
   }
 
   function invalidateSettle() {
-    if (!settling && !settleTimer && !settleOnEnd) return;
+    if (!settling && !settleTimer && !settleOnEnd && !settleFinish) return;
     settleGeneration += 1;
     settling = false;
+    settleFinish = null;
     if (settleTimer) {
       window.clearTimeout(settleTimer);
       settleTimer = 0;
@@ -332,9 +356,10 @@ export function createSheetController({
 
   /** Interrupt in-flight settle and freeze at the on-screen position. */
   function cancelSettleAnimation() {
-    if (!settling && !settleTimer && !settleOnEnd) return;
+    if (!settling && !settleTimer && !settleOnEnd && !settleFinish) return;
     const visual = readVisualProgress();
     invalidateSettle();
+    setClosingInteraction(false);
     progress = visual;
     paintedProgress = NaN;
     paintedScrimToken = '';
@@ -370,6 +395,7 @@ export function createSheetController({
     progress = 0;
     openSource = null;
     hasAnnouncedOpen = false;
+    setClosingInteraction(false);
     if (useShowClass && layer) {
       layer.classList.remove('show', 'is-revealing', 'is-settling', 'is-dragging');
       layer.inert = true;
@@ -387,7 +413,8 @@ export function createSheetController({
   }
 
   function beginDrag() {
-    if (settling || settleTimer || settleOnEnd) cancelSettleAnimation();
+    if (settling || settleTimer || settleOnEnd || settleFinish) cancelSettleAnimation();
+    setClosingInteraction(false);
     cancelDragRaf();
 
     const startingFromClosed = !(presented || isOpen() || hasAnnouncedOpen || progress > 0.02);
@@ -544,6 +571,7 @@ export function createSheetController({
     dragging = false;
     settling = true;
     setDraggingClass(false);
+    setClosingInteraction(!shouldOpen);
 
     if (useShowClass && layer) {
       layer.classList.add('is-settling');
@@ -578,6 +606,7 @@ export function createSheetController({
         window.clearTimeout(settleTimer);
         settleTimer = 0;
       }
+      settleFinish = null;
       settling = false;
       clearCompositorHints();
       if (!shouldOpen) {
@@ -599,6 +628,7 @@ export function createSheetController({
       announceOpened();
     };
 
+    settleFinish = finish;
     settleOnEnd = (event) => {
       if (event.target !== panel || event.propertyName !== 'transform') return;
       finish();
@@ -676,6 +706,7 @@ export function createSheetController({
 
   function openInstant() {
     invalidateSettle();
+    setClosingInteraction(false);
     cancelDragRaf();
     dragging = false;
     openSource = 'control';
@@ -744,6 +775,10 @@ export function createSheetController({
     isActive: () => dragging || settling,
     isDragging: () => dragging,
     isSettling: () => settling,
+    isClosing: () => closing,
+    finishClosing: () => {
+      if (closing) settleFinish?.();
+    },
     isPresented,
     isOpen,
     getTravel: () => travel || measureTravel(panel),
@@ -762,9 +797,16 @@ export function getSheet(id) {
 export function getTopSheet() {
   for (const id of SHEET_STACK_ORDER) {
     const sheet = registry.get(id);
-    if (sheet?.isPresented()) return sheet;
+    if (sheet?.isPresented() && !sheet.isClosing?.()) return sheet;
   }
   return null;
+}
+
+/** Finish visual close-settles before routing a new deliberate pointer session. */
+export function finishClosingSheets() {
+  for (const sheet of registry.values()) {
+    if (sheet.isClosing?.()) sheet.finishClosing?.();
+  }
 }
 
 export function isAnySheetDragging() {

@@ -8,7 +8,7 @@ import {
   getSegmentGliderWidth
 } from './navigation.js';
 import { haptic, Haptic } from './haptics.js';
-import { getTopSheet, isAnySheetDragging } from './sheet-drag.js';
+import { finishClosingSheets, getTopSheet, isAnySheetDragging } from './sheet-drag.js';
 import { createSheetGestureBridge } from './sheet-gestures.js';
 import {
   describeDebugTarget,
@@ -114,8 +114,9 @@ export function initHorizontalGestures() {
   let clickSuppressTimer = 0;
   let lastSegment = 0;
   let claim = null;
-  let postDrawerCloseNavUntil = 0;
-  let postDrawerCloseNavButton = null;
+  /** The first deliberate contact after a gesture-dismiss must not rely on a WebView click. */
+  let postSheetCloseTapPending = false;
+  let postSheetCloseTapControl = null;
   /** Control under pointerdown when claim === 'sheet'; activated on brief tap. */
   let sheetTapControl = null;
   let startPage = 0;
@@ -158,11 +159,12 @@ export function initHorizontalGestures() {
   const element = elements.app;
 
   element.addEventListener('pointerdown', (event) => {
-    const now = performance.now();
-    postDrawerCloseNavButton = now <= postDrawerCloseNavUntil
-      ? event.target.closest?.('#nav .nav-btn') ?? null
-      : null;
-    if (postDrawerCloseNavUntil) postDrawerCloseNavUntil = 0;
+    const followsSheetClose = postSheetCloseTapPending;
+    postSheetCloseTapPending = false;
+    postSheetCloseTapControl = followsSheetClose ? findSheetTapControl(event.target) : null;
+    // Closing overlays already pass hit-testing through. Complete their visual/state
+    // lifecycle now so this pointer is routed against the underlying UI.
+    finishClosingSheets();
     claim = sheets.claimPointerDown(event);
     sheetTapControl = claim === 'sheet' ? findSheetTapControl(event.target) : null;
     if (claim === 'blocked') return;
@@ -347,7 +349,9 @@ export function initHorizontalGestures() {
 
     const wasGesture = Math.hypot(deltaX, deltaY) > 10;
     const endedClaim = claim;
-    const immediateNavButton = !cancelled && !wasGesture ? postDrawerCloseNavButton : null;
+    const immediatePostSheetControl = !cancelled && !wasGesture
+      ? postSheetCloseTapControl
+      : null;
     let handledSheet = false;
     let sheetMoved = false;
 
@@ -357,9 +361,7 @@ export function initHorizontalGestures() {
       const sheetResult = sheets.endPointer({ velocityY, cancelled });
       handledSheet = sheetResult.handled;
       sheetMoved = Boolean(sheetResult.moved);
-      if (sheetResult.closedSheetId === 'drawer') {
-        postDrawerCloseNavUntil = performance.now() + CLICK_SUPPRESS_MS;
-      }
+      if (sheetResult.closedSheetId) postSheetCloseTapPending = true;
     }
 
     // Sheet claim owns the pointer: brief taps activate here; do not wait for browser click.
@@ -440,8 +442,8 @@ export function initHorizontalGestures() {
     nativeHorizontal = false;
     nativeVertical = false;
     claim = null;
-    postDrawerCloseNavButton = null;
-    const tapControl = immediateSheetControl;
+    postSheetCloseTapControl = null;
+    const tapControl = immediateSheetControl || immediatePostSheetControl;
     sheetTapControl = null;
 
     if (tapControl) {
@@ -452,11 +454,8 @@ export function initHorizontalGestures() {
       }
       tapControl.click();
     }
-    // Android WebView can omit click for the first contact after closing the drawer.
-    immediateNavButton?.click();
-
     // Suppress trailing browser click after drag, sheet move, or gesture-owned activation.
-    if (wasGesture || handledSheet || sheetMoved || immediateNavButton || tapControl) {
+    if (wasGesture || handledSheet || sheetMoved || tapControl) {
       const courseHit = event.target?.closest?.(
         '.week-slot-cell, .week-period-label, .course-edit-field, .course-slot-sheet, #weekStrip'
       );

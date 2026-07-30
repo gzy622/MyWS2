@@ -25,6 +25,11 @@
  * suppressed only after that child exists.
  */
 .sheet-has-managed-scrim::before { display: none; }
+/* Closing remains visible until transitionend, but must not intercept the next contact. */
+.sheet-has-managed-scrim.is-closing,
+.scrim.is-closing {
+  pointer-events: none !important;
+}
 .sheet-scrim {
   position: absolute;
   z-index: 0;
