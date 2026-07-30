@@ -3,39 +3,7 @@ import { state, setActiveOverlay } from './state.js';
 import { createSheetController } from './sheet-drag.js';
 import { blurIfSheetChrome, focusSilently, syncChromeInert } from './focus.js';
 import { renderTopbarTitle } from './navigation.js';
-
-const IME_ACTION_DEDUP_MS = 500;
-
-/**
- * Android WebView + IME: tapping a Sheet action blurs the field, --ime-inset-bottom
- * drops, the panel jumps, and the synthetic click misses (needs a second tap).
- */
-function bindImmediateAction(button, action, armGhostClickSuppress) {
-  if (!(button instanceof HTMLElement)) return;
-  let ranAt = 0;
-  button.addEventListener('pointerdown', (event) => {
-    if (event.button > 0) return;
-    event.preventDefault();
-    event.stopPropagation();
-    ranAt = performance.now();
-    try {
-      button.setPointerCapture(event.pointerId);
-    } catch {
-      // Capture is best-effort; underlay pointer-events guard still applies.
-    }
-    armGhostClickSuppress?.(IME_ACTION_DEDUP_MS);
-    action(event);
-  }, { capture: true });
-  button.addEventListener('click', (event) => {
-    if (performance.now() - ranAt < IME_ACTION_DEDUP_MS) {
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
-    armGhostClickSuppress?.(IME_ACTION_DEDUP_MS);
-    action(event);
-  });
-}
+import { bindImmediateAction, createGhostClickGuard } from './pointer-guards.js';
 
 export function initAssignments({ store, showToast, viewport, closeOthers, confirm }) {
   const layer = document.createElement('div');
@@ -64,19 +32,6 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
   let nameReturnFocus = null;
   let listSheet;
   let nameSheet;
-  let ghostGuard = null;
-  let ghostPointerGuard = null;
-  let ghostGuardTimer = 0;
-
-  function clearNameGhostClickSuppress() {
-    if (ghostGuard) document.removeEventListener('click', ghostGuard, true);
-    if (ghostPointerGuard) document.removeEventListener('pointerdown', ghostPointerGuard, true);
-    if (ghostGuardTimer) window.clearTimeout(ghostGuardTimer);
-    ghostGuard = null;
-    ghostPointerGuard = null;
-    ghostGuardTimer = 0;
-    elements.app.classList.remove('is-assignment-name-ghost-guard');
-  }
 
   /**
    * After cancel/save on pointerdown, IME collapse + sheet close retargets the
@@ -84,31 +39,12 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
    * list — hits land on more/topbar/student grid; list-add hits list items.
    * Also block underlay hit-testing so :active press flash cannot show mid-gesture.
    */
-  function armNameGhostClickSuppress(ms = IME_ACTION_DEDUP_MS) {
-    clearNameGhostClickSuppress();
-    elements.app.classList.add('is-assignment-name-ghost-guard');
-    const until = performance.now() + ms;
-    ghostGuard = (event) => {
-      if (performance.now() >= until) {
-        clearNameGhostClickSuppress();
-        return;
-      }
-      const hit = event.target;
-      clearNameGhostClickSuppress();
-      if (!(hit instanceof Element)) return;
-      if (!hit.closest(
-        '#nav, .nav-btn, .topbar, #menuButton, #moreButton, #topbarTitle, #studentGrid, .student-card, #seatViewport, .seat-card, .letter-index, .assignment-sheet, .assignment-item, .assignment-select, .assignment-add, .assignment-action, .assignment-name-sheet'
-      )) {
-        return;
-      }
-      event.preventDefault();
-      event.stopImmediatePropagation();
-    };
-    ghostPointerGuard = clearNameGhostClickSuppress;
-    document.addEventListener('click', ghostGuard, true);
-    document.addEventListener('pointerdown', ghostPointerGuard, true);
-    ghostGuardTimer = window.setTimeout(clearNameGhostClickSuppress, ms);
-  }
+  const nameGhostGuard = createGhostClickGuard({
+    owner: 'assignments',
+    appElement: elements.app,
+    appClass: 'is-assignment-name-ghost-guard',
+    hitSelector: '#nav, .nav-btn, .topbar, #menuButton, #moreButton, #topbarTitle, #studentGrid, .student-card, #seatViewport, .seat-card, .letter-index, .assignment-sheet, .assignment-item, .assignment-select, .assignment-add, .assignment-action, .assignment-name-sheet'
+  });
 
   function closeNameEditor({ restoreFocus = true } = {}) {
     if (!nameSheet?.isPresented() && !nameLayer.classList.contains('show')) return;
@@ -222,8 +158,16 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
     renderTopbarTitle();
   }
 
-  bindImmediateAction(nameLayer.querySelector('[data-action="cancel"]'), () => closeNameEditor(), armNameGhostClickSuppress);
-  bindImmediateAction(nameSave, () => saveNameEditor(), armNameGhostClickSuppress);
+  bindImmediateAction(nameLayer.querySelector('[data-action="cancel"]'), () => closeNameEditor(), {
+    armGhost: (ms) => nameGhostGuard.arm(ms),
+    capturePointer: true,
+    owner: 'assignments'
+  });
+  bindImmediateAction(nameSave, () => saveNameEditor(), {
+    armGhost: (ms) => nameGhostGuard.arm(ms),
+    capturePointer: true,
+    owner: 'assignments'
+  });
   nameLayer.addEventListener('click', (event) => {
     if (event.target === nameLayer && !nameSheet?.isActive()) closeNameEditor();
   });

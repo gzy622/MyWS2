@@ -15,8 +15,11 @@ export function createSystemBackController({
   closeFontSize,
   closeDrawer,
   exitSeatLandscape,
+  beforeDismiss,
 }) {
   function dismissTopLayer() {
+    // End any in-flight pointer sequence before mutating the overlay stack.
+    beforeDismiss?.();
     if (elements.confirmSheet.classList.contains('show')) {
       closeConfirm?.();
       return true;

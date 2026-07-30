@@ -4,41 +4,10 @@ import { createSheetController } from './sheet-drag.js';
 import { blurIfSheetChrome, focusSilently, syncChromeInert } from './focus.js';
 import { resolveGradeExamId } from './courses-renderer.js';
 import { renderTopbarTitle } from './navigation.js';
+import { bindImmediateAction, createGhostClickGuard } from './pointer-guards.js';
 
-const IME_ACTION_DEDUP_MS = 500;
 const COURSE_PAGE_INDEX = 2;
 const GRADES_SUBVIEW_INDEX = 1;
-
-/**
- * Android WebView + IME: tapping a Sheet action blurs the field, --ime-inset-bottom
- * drops, the panel jumps, and the synthetic click misses (needs a second tap).
- */
-function bindImmediateAction(button, action, armGhostClickSuppress) {
-  if (!(button instanceof HTMLElement)) return;
-  let ranAt = 0;
-  button.addEventListener('pointerdown', (event) => {
-    if (event.button > 0) return;
-    event.preventDefault();
-    event.stopPropagation();
-    ranAt = performance.now();
-    try {
-      button.setPointerCapture(event.pointerId);
-    } catch {
-      // Capture is best-effort; underlay pointer-events guard still applies.
-    }
-    armGhostClickSuppress?.(IME_ACTION_DEDUP_MS);
-    action(event);
-  }, { capture: true });
-  button.addEventListener('click', (event) => {
-    if (performance.now() - ranAt < IME_ACTION_DEDUP_MS) {
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
-    armGhostClickSuppress?.(IME_ACTION_DEDUP_MS);
-    action(event);
-  });
-}
 
 function isCourseGradesView() {
   return state.currentPage === COURSE_PAGE_INDEX
@@ -72,45 +41,12 @@ export function initExams({ store, showToast, viewport, closeOthers, confirm, on
   let nameReturnFocus = null;
   let listSheet;
   let nameSheet;
-  let ghostGuard = null;
-  let ghostPointerGuard = null;
-  let ghostGuardTimer = 0;
-
-  function clearNameGhostClickSuppress() {
-    if (ghostGuard) document.removeEventListener('click', ghostGuard, true);
-    if (ghostPointerGuard) document.removeEventListener('pointerdown', ghostPointerGuard, true);
-    if (ghostGuardTimer) window.clearTimeout(ghostGuardTimer);
-    ghostGuard = null;
-    ghostPointerGuard = null;
-    ghostGuardTimer = 0;
-    elements.app.classList.remove('is-exam-name-ghost-guard');
-  }
-
-  function armNameGhostClickSuppress(ms = IME_ACTION_DEDUP_MS) {
-    clearNameGhostClickSuppress();
-    elements.app.classList.add('is-exam-name-ghost-guard');
-    const until = performance.now() + ms;
-    ghostGuard = (event) => {
-      if (performance.now() >= until) {
-        clearNameGhostClickSuppress();
-        return;
-      }
-      const hit = event.target;
-      clearNameGhostClickSuppress();
-      if (!(hit instanceof Element)) return;
-      if (!hit.closest(
-        '#nav, .nav-btn, .topbar, #menuButton, #moreButton, #topbarTitle, #gradeTable, .grade-score-cell, .grade-subject-head, .segment, .exam-sheet, .exam-item, .exam-select, .exam-add, .exam-action, .exam-name-sheet'
-      )) {
-        return;
-      }
-      event.preventDefault();
-      event.stopImmediatePropagation();
-    };
-    ghostPointerGuard = clearNameGhostClickSuppress;
-    document.addEventListener('click', ghostGuard, true);
-    document.addEventListener('pointerdown', ghostPointerGuard, true);
-    ghostGuardTimer = window.setTimeout(clearNameGhostClickSuppress, ms);
-  }
+  const nameGhostGuard = createGhostClickGuard({
+    owner: 'exams',
+    appElement: elements.app,
+    appClass: 'is-exam-name-ghost-guard',
+    hitSelector: '#nav, .nav-btn, .topbar, #menuButton, #moreButton, #topbarTitle, #gradeTable, .grade-score-cell, .grade-subject-head, .segment, .exam-sheet, .exam-item, .exam-select, .exam-add, .exam-action, .exam-name-sheet'
+  });
 
   function notifyGradesUiChange() {
     onGradesUiChange?.();
@@ -248,8 +184,16 @@ export function initExams({ store, showToast, viewport, closeOthers, confirm, on
     if (isCourseGradesView()) renderTopbarTitle();
   }
 
-  bindImmediateAction(nameLayer.querySelector('[data-action="cancel"]'), () => closeNameEditor(), armNameGhostClickSuppress);
-  bindImmediateAction(nameSave, () => saveNameEditor(), armNameGhostClickSuppress);
+  bindImmediateAction(nameLayer.querySelector('[data-action="cancel"]'), () => closeNameEditor(), {
+    armGhost: (ms) => nameGhostGuard.arm(ms),
+    capturePointer: true,
+    owner: 'exams'
+  });
+  bindImmediateAction(nameSave, () => saveNameEditor(), {
+    armGhost: (ms) => nameGhostGuard.arm(ms),
+    capturePointer: true,
+    owner: 'exams'
+  });
   nameLayer.addEventListener('click', (event) => {
     if (event.target === nameLayer && !nameSheet?.isActive()) closeNameEditor();
   });

@@ -6,6 +6,8 @@ import { haptic, Haptic } from './haptics.js';
 import { SCHEDULE_DAY_LABELS } from './roster-model.js';
 import { describeDebugTarget, logCourseDebug } from './sheet-debug.js';
 import { resolveGradeExamId } from './courses-renderer.js';
+import { bindImmediateAction, createGhostClickGuard } from './pointer-guards.js';
+import { GHOST_GUARD_MS } from './gesture-policy.js';
 
 const MOVE_CANCEL_DISTANCE = 9;
 const LONG_PRESS_MS = 480;
@@ -51,39 +53,6 @@ function guardTextFieldFocus(layer, input, label = 'field') {
     }
     logCourseDebug('field pointerdown', `${label} hit=${hit} before=${before} after=${activeTag()}`);
   }, { capture: true });
-}
-
-/**
- * Android WebView + IME: tapping Save blurs the field, --ime-inset-bottom drops,
- * the panel jumps, and the trailing synthetic click lands on the grid underneath
- * (re-opens the editor — looks like Save failed). Debug overlay can mask that
- * ghost click, which is why Save seemed to work only with the overlay open.
- *
- * Run on pointerdown (capture), cancel the gesture click, and arm grid suppress.
- */
-function bindImmediateAction(button, action, label, armGridClickSuppress) {
-  if (!(button instanceof HTMLElement)) return;
-  let ranAt = 0;
-  button.addEventListener('pointerdown', (event) => {
-    if (event.button > 0) return;
-    event.preventDefault();
-    event.stopPropagation();
-    ranAt = performance.now();
-    armGridClickSuppress?.(500);
-    logCourseDebug(`${label} pointerdown`, describeDebugTarget(event.target));
-    action(event);
-  }, { capture: true });
-  button.addEventListener('click', (event) => {
-    if (performance.now() - ranAt < 500) {
-      event.preventDefault();
-      event.stopPropagation();
-      logCourseDebug(`${label} click deduped`, `Δ=${Math.round(performance.now() - ranAt)}`);
-      return;
-    }
-    armGridClickSuppress?.(500);
-    logCourseDebug(`${label} click`, describeDebugTarget(event.target));
-    action(event);
-  });
 }
 
 function bindInputTrace(input, label) {
@@ -227,50 +196,43 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
   let statsReturnFocus = null;
   const presses = new Map();
   let suppressClickUntil = 0;
-  let ghostGuard = null;
-  let ghostPointerGuard = null;
-  let ghostGuardTimer = 0;
-
-  function clearGridClickSuppress() {
-    if (ghostGuard) document.removeEventListener('click', ghostGuard, true);
-    if (ghostPointerGuard) document.removeEventListener('pointerdown', ghostPointerGuard, true);
-    if (ghostGuardTimer) window.clearTimeout(ghostGuardTimer);
-    ghostGuard = null;
-    ghostPointerGuard = null;
-    ghostGuardTimer = 0;
-    suppressClickUntil = 0;
-  }
-
   /**
    * After save/clear/close on pointerdown, the trailing click can land on the
    * bottom nav (toggles 成绩→课表) or segment tabs / score cells underneath.
    * A new pointerdown is a deliberate next action and must not be swallowed.
    */
-  function armGridClickSuppress(ms = 500) {
-    clearGridClickSuppress();
-    suppressClickUntil = performance.now() + ms;
-    const until = suppressClickUntil;
-    ghostGuard = (event) => {
-      if (performance.now() >= until) {
-        clearGridClickSuppress();
-        return;
-      }
-      const hit = event.target;
-      clearGridClickSuppress();
-      if (!(hit instanceof Element)) return;
-      if (!hit.closest(
-        '#nav, .nav-btn, .segment, #weekStrip, #gradeTable, .week-slot-cell, .week-period-label, .grade-score-cell, .grade-subject-head, .confirm-sheet'
-      )) {
-        return;
-      }
-      event.preventDefault();
-      event.stopImmediatePropagation();
+  const gridGhostGuard = createGhostClickGuard({
+    owner: 'courses',
+    hitSelector: '#nav, .nav-btn, .segment, #weekStrip, #gradeTable, .week-slot-cell, .week-period-label, .grade-score-cell, .grade-subject-head, .confirm-sheet',
+    onArm: (until) => {
+      suppressClickUntil = until;
+    },
+    onClear: () => {
+      suppressClickUntil = 0;
+    },
+    onSwallow: (hit) => {
       logCourseDebug('ghost click suppressed', describeDebugTarget(hit));
-    };
-    ghostPointerGuard = clearGridClickSuppress;
-    document.addEventListener('click', ghostGuard, true);
-    document.addEventListener('pointerdown', ghostPointerGuard, true);
-    ghostGuardTimer = window.setTimeout(clearGridClickSuppress, ms);
+    }
+  });
+
+  function armGridClickSuppress(ms = GHOST_GUARD_MS) {
+    gridGhostGuard.arm(ms);
+  }
+
+  function bindCourseAction(button, action, label) {
+    bindImmediateAction(button, action, {
+      armGhost: armGridClickSuppress,
+      owner: 'courses',
+      onPointerDown: (event) => {
+        logCourseDebug(`${label} pointerdown`, describeDebugTarget(event.target));
+      },
+      onClickDeduped: (_event, deltaMs) => {
+        logCourseDebug(`${label} click deduped`, `Δ=${Math.round(deltaMs)}`);
+      },
+      onClickFallback: (event) => {
+        logCourseDebug(`${label} click`, describeDebugTarget(event.target));
+      }
+    });
   }
 
   function closeSlot({ restoreFocus = true } = {}) {
@@ -834,17 +796,17 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
   bindInputTrace(periodInput, 'period');
   bindInputTrace(subjectInput, 'subject');
 
-  bindImmediateAction(slotLayer.querySelector('[data-action="cancel"]'), () => closeSlot(), 'slot cancel', armGridClickSuppress);
-  bindImmediateAction(slotLayer.querySelector('[data-action="save"]'), () => {
+  bindCourseAction(slotLayer.querySelector('[data-action="cancel"]'), () => closeSlot(), 'slot cancel');
+  bindCourseAction(slotLayer.querySelector('[data-action="save"]'), () => {
     logCourseDebug('slot save invoke', `valueLen=${slotInput.value.length}`);
     saveSlot();
-  }, 'slot save', armGridClickSuppress);
-  bindImmediateAction(slotClear, () => {
+  }, 'slot save');
+  bindCourseAction(slotClear, () => {
     if (!slotTarget) return;
     const ok = store.clearScheduleSlot(slotTarget.day, slotTarget.periodId);
     showToast(ok ? '已清除该格' : '该格本来就是空的');
     closeSlot();
-  }, 'slot clear', armGridClickSuppress);
+  }, 'slot clear');
   slotLayer.addEventListener('click', (event) => {
     if (event.target === slotLayer && !slotSheet.isActive()) closeSlot();
   });
@@ -855,8 +817,8 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     }
   });
 
-  bindImmediateAction(periodLayer.querySelector('[data-action="cancel"]'), () => closePeriod(), 'period cancel', armGridClickSuppress);
-  bindImmediateAction(periodLayer.querySelector('[data-action="save"]'), () => savePeriod(), 'period save', armGridClickSuppress);
+  bindCourseAction(periodLayer.querySelector('[data-action="cancel"]'), () => closePeriod(), 'period cancel');
+  bindCourseAction(periodLayer.querySelector('[data-action="save"]'), () => savePeriod(), 'period save');
   periodLayer.addEventListener('click', (event) => {
     if (event.target === periodLayer && !periodSheet.isActive()) closePeriod();
   });
@@ -867,9 +829,9 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     }
   });
 
-  bindImmediateAction(subjectLayer.querySelector('[data-action="cancel"]'), () => closeSubject(), 'subject cancel', armGridClickSuppress);
-  bindImmediateAction(subjectLayer.querySelector('[data-action="save"]'), () => saveSubject(), 'subject save', armGridClickSuppress);
-  bindImmediateAction(subjectDelete, () => deleteSubjectCurrent(), 'subject delete', armGridClickSuppress);
+  bindCourseAction(subjectLayer.querySelector('[data-action="cancel"]'), () => closeSubject(), 'subject cancel');
+  bindCourseAction(subjectLayer.querySelector('[data-action="save"]'), () => saveSubject(), 'subject save');
+  bindCourseAction(subjectDelete, () => deleteSubjectCurrent(), 'subject delete');
   subjectLayer.addEventListener('click', (event) => {
     if (event.target === subjectLayer && !subjectSheet.isActive()) closeSubject();
   });
@@ -881,14 +843,14 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
   });
 
 
-  bindImmediateAction(gradeLayer.querySelector('[data-action="close"]'), () => closeGrade(), 'grade close', armGridClickSuppress);
-  bindImmediateAction(gradeLayer.querySelector('[data-action="save"]'), () => saveGrade(), 'grade save', armGridClickSuppress);
-  bindImmediateAction(gradeLayer.querySelector('[data-action="clear"]'), () => {
+  bindCourseAction(gradeLayer.querySelector('[data-action="close"]'), () => closeGrade(), 'grade close');
+  bindCourseAction(gradeLayer.querySelector('[data-action="save"]'), () => saveGrade(), 'grade save');
+  bindCourseAction(gradeLayer.querySelector('[data-action="clear"]'), () => {
     if (!gradeTarget) return;
     const ok = store.clearCourseGrade(gradeTarget.examId, gradeTarget.studentId, gradeTarget.subjectId);
     showToast(ok ? '已清除成绩' : '当前没有成绩');
     closeGrade();
-  }, 'grade clear', armGridClickSuppress);
+  }, 'grade clear');
   gradeKeypad.addEventListener('click', (event) => {
     const key = event.target.closest('[data-score-key]')?.dataset.scoreKey;
     if (key) updateGradeDraft(key);
@@ -897,7 +859,7 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     if (event.target === gradeLayer && !gradeSheet.isActive()) closeGrade();
   });
 
-  bindImmediateAction(statsLayer.querySelector('[data-action="close"]'), () => closeStats(), 'stats close', armGridClickSuppress);
+  bindCourseAction(statsLayer.querySelector('[data-action="close"]'), () => closeStats(), 'stats close');
   statsLayer.addEventListener('click', (event) => {
     if (event.target === statsLayer && !statsSheet.isActive()) closeStats();
   });

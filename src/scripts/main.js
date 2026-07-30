@@ -1,6 +1,6 @@
 import { elements } from './dom.js';
 import { initNavigation, renderNavigation } from './navigation.js';
-import { initHorizontalGestures } from './gestures.js';
+import { initHorizontalGestures, cancelActivePointerGesture } from './gestures.js';
 import { closeDrawer, initDrawer } from './drawer.js';
 import { showToast } from './toast.js';
 import { initStudentFontSize } from './student-font-size.js';
@@ -133,6 +133,7 @@ courses = initCoursesInteractions({
 initDrawer({ closeOverlays, theme, showToast, onBackupImport: () => backup.importBackup(), onBackupExport: () => backup.exportBackup() });
 initHorizontalGestures();
 createSystemBackController({
+  beforeDismiss: () => cancelActivePointerGesture('system-back'),
   closeConfirm: () => moreSheet.closeConfirm(),
   dismissPeople: () => people.dismissBack(),
   dismissCourses: () => highlightSubjects.dismissBack() || exams.dismissBack() || courses.dismissBack(),

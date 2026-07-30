@@ -4,40 +4,11 @@ import { createSheetController } from './sheet-drag.js';
 import { blurIfSheetChrome, focusSilently } from './focus.js';
 import { haptic, Haptic } from './haptics.js';
 import { PEOPLE_TEXT_MAX_LENGTH } from './roster-model.js';
+import { bindImmediateAction, createGhostClickGuard } from './pointer-guards.js';
 
 const MOVE_CANCEL_DISTANCE = 9;
 const LONG_PRESS_MS = 480;
 const CLICK_SUPPRESSION_MS = 250;
-const IME_ACTION_DEDUP_MS = 500;
-
-/**
- * Android WebView + IME: tapping a Sheet action blurs the field, --ime-inset-bottom
- * drops, the panel jumps, and the synthetic click misses (needs a second tap).
- * Run on pointerdown (capture), preventDefault to keep focus until action runs,
- * then ignore the trailing click — including retargets onto the confirm scrim /
- * Cancel (which looked like “delete closed the sheet and did nothing”).
- */
-function bindImmediateAction(button, action, armGhostClickSuppress) {
-  if (!(button instanceof HTMLElement)) return;
-  let ranAt = 0;
-  button.addEventListener('pointerdown', (event) => {
-    if (event.button > 0) return;
-    event.preventDefault();
-    event.stopPropagation();
-    ranAt = performance.now();
-    armGhostClickSuppress?.(IME_ACTION_DEDUP_MS);
-    action(event);
-  }, { capture: true });
-  button.addEventListener('click', (event) => {
-    if (performance.now() - ranAt < IME_ACTION_DEDUP_MS) {
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
-    armGhostClickSuppress?.(IME_ACTION_DEDUP_MS);
-    action(event);
-  });
-}
 
 export function initPeopleInteractions({ store, showToast, viewport, closeOthers, confirm }) {
   const pickLayer = document.createElement('div');
@@ -106,46 +77,16 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
   let editReturnFocus = null;
   const presses = new Map();
   let suppressClickUntil = 0;
-  let ghostGuard = null;
-  let ghostPointerGuard = null;
-  let ghostGuardTimer = 0;
-
-  function clearGhostClickSuppress() {
-    if (ghostGuard) document.removeEventListener('click', ghostGuard, true);
-    if (ghostPointerGuard) document.removeEventListener('pointerdown', ghostPointerGuard, true);
-    if (ghostGuardTimer) window.clearTimeout(ghostGuardTimer);
-    ghostGuard = null;
-    ghostPointerGuard = null;
-    ghostGuardTimer = 0;
-    suppressClickUntil = 0;
-  }
-
-  /** Swallow the click that follows an IME-safe pointerdown action. */
-  function armGhostClickSuppress(ms = IME_ACTION_DEDUP_MS) {
-    clearGhostClickSuppress();
-    suppressClickUntil = performance.now() + ms;
-    const until = suppressClickUntil;
-    ghostGuard = (event) => {
-      if (performance.now() >= until) {
-        clearGhostClickSuppress();
-        return;
-      }
-      const hit = event.target;
-      clearGhostClickSuppress();
-      if (!(hit instanceof Element)) return;
-      if (!hit.closest(
-        '#nav, .nav-btn, .segment, .confirm-sheet, .people-row, .people-edit-sheet'
-      )) {
-        return;
-      }
-      event.preventDefault();
-      event.stopImmediatePropagation();
-    };
-    ghostPointerGuard = clearGhostClickSuppress;
-    document.addEventListener('click', ghostGuard, true);
-    document.addEventListener('pointerdown', ghostPointerGuard, true);
-    ghostGuardTimer = window.setTimeout(clearGhostClickSuppress, ms);
-  }
+  const editGhostGuard = createGhostClickGuard({
+    owner: 'people',
+    hitSelector: '#nav, .nav-btn, .segment, .confirm-sheet, .people-row, .people-edit-sheet',
+    onArm: (until) => {
+      suppressClickUntil = until;
+    },
+    onClear: () => {
+      suppressClickUntil = 0;
+    }
+  });
 
   function closePick({ restoreFocus = true } = {}) {
     if (!pickSheet?.isPresented() && !pickLayer.classList.contains('show')) return;
@@ -464,15 +405,16 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
     if (event.target === pickLayer && !pickSheet.isActive()) closePick();
   });
 
+  const armPeopleGhost = (ms) => editGhostGuard.arm(ms);
   bindImmediateAction(editLayer.querySelector('[data-action="cancel"]'), () => {
     closeEdit();
-  }, armGhostClickSuppress);
+  }, { armGhost: armPeopleGhost, owner: 'people' });
   bindImmediateAction(editLayer.querySelector('[data-action="save"]'), () => {
     saveEdit();
-  }, armGhostClickSuppress);
+  }, { armGhost: armPeopleGhost, owner: 'people' });
   bindImmediateAction(deleteButton, () => {
     deleteCurrent();
-  }, armGhostClickSuppress);
+  }, { armGhost: armPeopleGhost, owner: 'people' });
   editLayer.addEventListener('click', (event) => {
     if (event.target === editLayer && !editSheet.isActive()) closeEdit();
   });

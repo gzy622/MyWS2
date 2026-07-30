@@ -7,6 +7,7 @@ import {
   parseHighlightPatterns,
   subjectMatchesHighlight
 } from './highlight-subjects-model.js';
+import { bindImmediateAction, createGhostClickGuard } from './pointer-guards.js';
 
 export {
   HIGHLIGHT_SUBJECTS_STORAGE_KEY,
@@ -164,72 +165,28 @@ export function initHighlightSubjects({ showToast, viewport, closeOthers }) {
     }
   });
 
-  let ranAt = 0;
-  let ghostGuard = null;
-  let ghostPointerGuard = null;
-  let ghostGuardTimer = 0;
+  const underlyingGhostGuard = createGhostClickGuard({
+    owner: 'highlight-subjects',
+    hitSelector: '#weekStrip, #gradeTable, .week-slot-cell, .week-period-label, .grade-score-cell, .grade-subject-head'
+  });
 
-  function clearUnderlyingClickSuppress() {
-    if (ghostGuard) document.removeEventListener('click', ghostGuard, true);
-    if (ghostPointerGuard) document.removeEventListener('pointerdown', ghostPointerGuard, true);
-    if (ghostGuardTimer) window.clearTimeout(ghostGuardTimer);
-    ghostGuard = null;
-    ghostPointerGuard = null;
-    ghostGuardTimer = 0;
-  }
-
-  /** IME dismiss + sheet close retargets the trailing click onto #weekStrip underneath. */
-  function armUnderlyingClickSuppress(ms = 500) {
-    clearUnderlyingClickSuppress();
-    const until = performance.now() + ms;
-    ghostGuard = (event) => {
-      if (performance.now() >= until) {
-        clearUnderlyingClickSuppress();
-        return;
-      }
-      const hit = event.target;
-      clearUnderlyingClickSuppress();
-      if (!(hit instanceof Element)) return;
-      if (!hit.closest('#weekStrip, #gradeTable, .week-slot-cell, .week-period-label, .grade-score-cell, .grade-subject-head')) {
-        return;
-      }
-      event.preventDefault();
-      event.stopImmediatePropagation();
-    };
-    ghostPointerGuard = clearUnderlyingClickSuppress;
-    document.addEventListener('click', ghostGuard, true);
-    document.addEventListener('pointerdown', ghostPointerGuard, true);
-    ghostGuardTimer = window.setTimeout(clearUnderlyingClickSuppress, ms);
-  }
-
-  function bindAction(button, action) {
-    button.addEventListener('pointerdown', (event) => {
-      if (event.button > 0) return;
-      event.preventDefault();
-      event.stopPropagation();
-      ranAt = performance.now();
-      armUnderlyingClickSuppress(500);
-      action();
-    }, { capture: true });
-    button.addEventListener('click', (event) => {
-      if (performance.now() - ranAt < 500) {
-        event.preventDefault();
-        event.stopPropagation();
-        return;
-      }
-      armUnderlyingClickSuppress(500);
-      action();
-    });
-  }
-
-  bindAction(layer.querySelector('[data-action="cancel"]'), () => close());
-  bindAction(layer.querySelector('[data-action="save"]'), save);
-  bindAction(clearBtn, () => {
+  bindImmediateAction(layer.querySelector('[data-action="cancel"]'), () => close(), {
+    armGhost: (ms) => underlyingGhostGuard.arm(ms),
+    owner: 'highlight-subjects'
+  });
+  bindImmediateAction(layer.querySelector('[data-action="save"]'), () => save(), {
+    armGhost: (ms) => underlyingGhostGuard.arm(ms),
+    owner: 'highlight-subjects'
+  });
+  bindImmediateAction(clearBtn, () => {
     input.value = '';
     clearBtn.hidden = true;
     setHighlightPatterns([]);
     showToast('已清除科目高亮');
     close();
+  }, {
+    armGhost: (ms) => underlyingGhostGuard.arm(ms),
+    owner: 'highlight-subjects'
   });
   layer.addEventListener('click', (event) => {
     if (event.target === layer && !sheet.isActive()) close();

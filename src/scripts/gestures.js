@@ -30,6 +30,7 @@ import {
   resolveAxisLock,
   resolvePointerRelease
 } from './gesture-policy.js';
+import { clearAllGhostClickGuards } from './pointer-guards.js';
 import { setLetterIndexPageDragging, syncLetterIndexPageVisibility } from './letter-index.js';
 
 const EDGE_RESISTANCE = 0.28;
@@ -39,6 +40,17 @@ const SWIPE_PROJECTION_MS = 120;
 /** Average pointer velocity over this window to avoid last-frame spikes. */
 const VELOCITY_WINDOW_MS = 100;
 const VELOCITY_STALE_MS = 80;
+
+/** @type {((reason?: string) => void) | null} */
+let cancelActivePointerGestureImpl = null;
+
+/**
+ * Safely end the in-flight page/Sheet pointer sequence and residual close guards.
+ * Used by system back and app lifecycle (background / orientation).
+ */
+export function cancelActivePointerGesture(reason = 'external') {
+  cancelActivePointerGestureImpl?.(reason);
+}
 
 /**
  * Controls activated by the gesture router when it claimed the pointer as Sheet.
@@ -565,4 +577,33 @@ export function initHorizontalGestures() {
     event.preventDefault();
     event.stopPropagation();
   }, true);
+
+  cancelActivePointerGestureImpl = (reason = 'external') => {
+    finishClosingSheets();
+    clearAllGhostClickGuards(reason);
+    if (active) {
+      if (isSheetDebugEnabled()) {
+        logGestureSession('pointer cancelled externally', {
+          sessionId: gestureSessionId || nextGestureSessionId(),
+          owner: 'gestures',
+          clearReason: reason,
+          cancelled: true
+        });
+      }
+      endGesture({ pointerId, timeStamp: performance.now() }, true);
+      return;
+    }
+    clearClickSuppression(reason);
+  };
+
+  const cancelForLifecycle = () => cancelActivePointerGestureImpl?.('lifecycle');
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      cancelActivePointerGestureImpl?.('visibility-hidden');
+    }
+  });
+  window.addEventListener('pagehide', cancelForLifecycle);
+  window.addEventListener('orientationchange', () => {
+    cancelActivePointerGestureImpl?.('orientationchange');
+  });
 }

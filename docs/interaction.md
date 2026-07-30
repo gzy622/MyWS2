@@ -156,6 +156,7 @@ gradeSort: null | { subjectId: number, direction: 'asc' | 'desc' }
 有效拖动或 Sheet 跟手后约 450ms 内抑制 click（勿用 microtask 立刻解除）。遮罩关闭须避开 Sheet `isActive`。不得删除该保护。
 Sheet 手势关闭进入落位动画时，浮层须立即退出命中并解除外壳 `inert`，但继续完成视觉动画；同一指针序列随后补发或重定向到下层的 click 仍须被抑制。下一次真实 `pointerdown` 须立即完成残余关闭状态并解除旧保护；若命中按钮/链接等控件，手势路由在 `pointerup` 直接激活一次，再抑制浏览器可能补发的 click，禁止依赖 Chromium / Android WebView 是否合成 click。
 Sheet 手势认领了指针时：未发生列表滚动/面板跟手的短触，由手势路由在 `pointerup` 上直接激活命中的按钮等控件，并抑制浏览器可能补发的 click；不以 WebView 是否合成 click 为准。列表滚动或面板跟手开始后才 `setPointerCapture`。
+IME 浮层的取消/保存/删除走 `src/scripts/pointer-guards.js` 的立即操作与幽灵点击保护（作业、考试、人员、课程、高亮科目共用）；切后台、旋转或系统返回前须先 `cancelActivePointerGesture` 结束当前指针序列并清残余保护。
 
 ## 8. 触觉反馈
 

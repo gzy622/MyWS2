@@ -19,7 +19,7 @@
 
 | 文档 | 状态 | 用途 |
 | --- | --- | --- |
-| [`milestone-one-unification-plan.md`](milestone-one-unification-plan.md) | 进行中（A–B 完成） | 跟踪里程碑一触摸可靠性、滚动与 UI 统一收口；完成后移入 `archive/` |
+| [`milestone-one-unification-plan.md`](milestone-one-unification-plan.md) | 进行中（A–C 完成） | 跟踪里程碑一触摸可靠性、滚动与 UI 统一收口；完成后移入 `archive/` |
 
 ## 指南与档案
 
