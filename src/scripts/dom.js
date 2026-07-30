@@ -49,6 +49,7 @@ export const elements = {
   studentRecordPanel: required('#studentRecordPanel'),
   studentRecordHandle: required('#studentRecordHandle'),
   studentRecordTitle: required('#studentRecordTitle'),
+  closeStudentRecordButton: required('#closeStudentRecord'),
   studentRecordStatus: required('#studentRecordStatus'),
   studentScoreControls: required('#studentScoreControls'),
   studentScoreInput: required('#studentScoreInput'),

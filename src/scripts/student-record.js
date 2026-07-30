@@ -107,6 +107,7 @@ export function initStudentRecord({ store, showToast, viewport, closeOthers }) {
     const key = event.target.closest('[data-score-key]')?.dataset.scoreKey;
     if (key) updateScoreDraft(key);
   });
+  elements.closeStudentRecordButton.addEventListener('click', close);
   elements.cancelStudentRecordButton.addEventListener('click', close);
   elements.saveStudentRecordButton.addEventListener('click', () => {
     const result = store.setScore(studentId, elements.studentScoreInput.value);
