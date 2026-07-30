@@ -15,6 +15,8 @@ const MENU_LONG_PRESS_MS = 520;
 
 /** @type {{ t: number, text: string, data?: object }[]} */
 const entries = [];
+/** Monotonic id for pointer / gesture diagnostic sessions (no PII). */
+let gestureSessionSeq = 0;
 let enabled = false;
 let expanded = false;
 let panel = null;
@@ -414,6 +416,42 @@ export function logCourseDebug(message, detail = '') {
 /** Gesture boundaries only; deliberately never used for pointermove frames. */
 export function logGestureDebug(message, detail = {}) {
   logSheetDebug({ kind: 'gesture', message, detail });
+}
+
+/** Allocate a short session id for one physical pointer sequence. */
+export function nextGestureSessionId() {
+  gestureSessionSeq += 1;
+  return `g${gestureSessionSeq}`;
+}
+
+/**
+ * Boundary log with required diagnostic fields.
+ * Callers must not pass names, scores, raw input, or per-frame move samples.
+ *
+ * @param {string} message
+ * @param {{
+ *   sessionId: string,
+ *   owner: string,
+ *   activationSource?: string | null,
+ *   clearReason?: string | null,
+ *   [key: string]: unknown
+ * }} detail
+ */
+export function logGestureSession(message, detail) {
+  const {
+    sessionId,
+    owner,
+    activationSource = null,
+    clearReason = null,
+    ...rest
+  } = detail || {};
+  logGestureDebug(message, {
+    sessionId,
+    owner,
+    activationSource,
+    clearReason,
+    ...rest
+  });
 }
 
 /** User-visible business actions without names, score values, or raw input text. */

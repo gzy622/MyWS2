@@ -21,11 +21,17 @@ import {
   getMotionDebugSnapshot,
   isSheetDebugEnabled,
   logCourseDebug,
-  logGestureDebug
+  logGestureSession,
+  nextGestureSessionId
 } from './sheet-debug.js';
+import {
+  CLICK_SUPPRESS_MS,
+  isDragBeyondTap,
+  resolveAxisLock,
+  resolvePointerRelease
+} from './gesture-policy.js';
 import { setLetterIndexPageDragging, syncLetterIndexPageVisibility } from './letter-index.js';
 
-const AXIS_LOCK_DISTANCE = 6;
 const EDGE_RESISTANCE = 0.28;
 const SWIPE_MIN_DISTANCE = 20;
 const SWIPE_VELOCITY = 0.35;
@@ -33,8 +39,6 @@ const SWIPE_PROJECTION_MS = 120;
 /** Average pointer velocity over this window to avoid last-frame spikes. */
 const VELOCITY_WINDOW_MS = 100;
 const VELOCITY_STALE_MS = 80;
-/** Keep click blocked until after the synthetic click from touch/pointerup. */
-const CLICK_SUPPRESS_MS = 450;
 
 /**
  * Controls activated by the gesture router when it claimed the pointer as Sheet.
@@ -147,8 +151,17 @@ export function initHorizontalGestures() {
   let startSubview = 0;
   let gestureTarget = '';
   let gesturePointerType = '';
+  let gestureSessionId = '';
 
-  const clearClickSuppression = () => {
+  const clearClickSuppression = (clearReason = 'timeout') => {
+    const reason = typeof clearReason === 'string' ? clearReason : 'timeout';
+    if (blockGestureClick && isSheetDebugEnabled() && gestureSessionId) {
+      logGestureSession('click suppress cleared', {
+        sessionId: gestureSessionId,
+        owner: 'gestures',
+        clearReason: reason
+      });
+    }
     blockGestureClick = false;
     if (clickSuppressTimer) {
       window.clearTimeout(clickSuppressTimer);
@@ -156,10 +169,14 @@ export function initHorizontalGestures() {
     }
   };
 
+  const clearClickSuppressionFromNewContact = () => {
+    clearClickSuppression('new-pointerdown');
+  };
+
   const armClickSuppression = () => {
     blockGestureClick = true;
     if (clickSuppressTimer) window.clearTimeout(clickSuppressTimer);
-    clickSuppressTimer = window.setTimeout(clearClickSuppression, CLICK_SUPPRESS_MS);
+    clickSuppressTimer = window.setTimeout(() => clearClickSuppression('timeout'), CLICK_SUPPRESS_MS);
   };
 
   function pushVelocitySample(timeStamp, x, y) {
@@ -207,7 +224,7 @@ export function initHorizontalGestures() {
       logCourseDebug('gesture active start', `claim=${claim ?? 'null'} hit=${describeDebugTarget(event.target)}`);
     }
 
-    clearClickSuppression();
+    clearClickSuppression('new-pointerdown');
     active = true;
     pointerId = event.pointerId;
     startX = event.clientX;
@@ -236,10 +253,13 @@ export function initHorizontalGestures() {
     startSubview = state.subviews[state.currentPage];
     gestureTarget = describeDebugTarget(event.target);
     gesturePointerType = event.pointerType || 'unknown';
+    gestureSessionId = nextGestureSessionId();
     if (isSheetDebugEnabled()) {
-      logGestureDebug('pointer start', {
-        pointerType: gesturePointerType,
+      logGestureSession('pointer start', {
+        sessionId: gestureSessionId,
+        owner: 'gestures',
         claim: claim ?? 'pass',
+        pointerType: gesturePointerType,
         target: gestureTarget,
         page: startPage,
         subview: startSubview,
@@ -262,36 +282,38 @@ export function initHorizontalGestures() {
     deltaX = event.clientX - startX;
     deltaY = event.clientY - startY;
 
-    if (!axis && Math.hypot(deltaX, deltaY) > AXIS_LOCK_DISTANCE) {
-      axis = Math.abs(deltaX) >= Math.abs(deltaY) ? 'x' : 'y';
-      // Grades table: scroll while it can; page-swipe only from a fresh edge swipe.
-      if (
-        axis === 'x'
-        && horizontalScrollPort
-        && startedAtHorizontalPageEdge(horizontalScrollPort, startHorizontalScrollLeft, deltaX)
-      ) {
-        horizontalScrollPort = null;
-      }
-      // Sheet claim: capture only after list scroll / sheet drag actually starts.
-      // Capturing on every axis lock makes Android WebView omit later clicks.
-      // Grades table uses touch-action:none + JS scroll — capture so the browser
-      // cannot pointercancel mid-pan (pan-* on the port caused recurring interrupts).
-      if (claim !== 'sheet' || axis === 'x' || isGradeScroller(scrollPage)) {
-        element.setPointerCapture?.(pointerId);
-      }
-      if (axis === 'x' && !isSegments && !horizontalScrollPort && claim !== 'sheet') {
-        setLetterIndexPageDragging(true);
-      }
-      if (isSheetDebugEnabled()) {
-        logGestureDebug('axis locked', {
-          axis,
-          deltaX: Math.round(deltaX),
-          deltaY: Math.round(deltaY),
-          velocityX: Number(velocityX.toFixed(3)),
-          velocityY: Number(velocityY.toFixed(3)),
-          claim: claim ?? 'pass',
-          gradeScroll: isGradeScroller(scrollPage) || Boolean(horizontalScrollPort)
-        });
+    if (!axis) {
+      axis = resolveAxisLock({ deltaX, deltaY });
+      if (axis) {
+        // Grades table: scroll while it can; page-swipe only from a fresh edge swipe.
+        if (
+          axis === 'x'
+          && horizontalScrollPort
+          && startedAtHorizontalPageEdge(horizontalScrollPort, startHorizontalScrollLeft, deltaX)
+        ) {
+          horizontalScrollPort = null;
+        }
+        // Sheet claim: capture only after list scroll / sheet drag actually starts.
+        // Capturing on every axis lock makes Android WebView omit later clicks.
+        // Grades table uses touch-action:none + JS scroll — capture so the browser
+        // cannot pointercancel mid-pan (pan-* on the port caused recurring interrupts).
+        if (claim !== 'sheet' || axis === 'x' || isGradeScroller(scrollPage)) {
+          element.setPointerCapture?.(pointerId);
+        }
+        if (axis === 'x' && !isSegments && !horizontalScrollPort && claim !== 'sheet') {
+          setLetterIndexPageDragging(true);
+        }
+        if (isSheetDebugEnabled()) {
+          logGestureSession('axis locked', {
+            sessionId: gestureSessionId,
+            owner: 'gestures',
+            axis,
+            claim: claim ?? 'pass',
+            deltaX: Math.round(deltaX),
+            deltaY: Math.round(deltaY),
+            gradeScroll: isGradeScroller(scrollPage) || Boolean(horizontalScrollPort)
+          });
+        }
       }
     }
 
@@ -378,11 +400,8 @@ export function initHorizontalGestures() {
     if (!active || (event.pointerId != null && event.pointerId !== pointerId)) return;
     active = false;
 
-    const wasGesture = Math.hypot(deltaX, deltaY) > 10;
+    const wasGesture = isDragBeyondTap({ deltaX, deltaY });
     const endedClaim = claim;
-    const immediatePostSheetControl = !cancelled && !wasGesture
-      ? postSheetCloseTapControl
-      : null;
     let handledSheet = false;
     let sheetMoved = false;
 
@@ -395,9 +414,21 @@ export function initHorizontalGestures() {
       if (sheetResult.closedSheetId) postSheetCloseTapPending = true;
     }
 
+    const release = resolvePointerRelease({
+      cancelled,
+      wasGesture,
+      sheetMoved,
+      handledSheet,
+      claim: endedClaim,
+      hasSheetTapControl: Boolean(sheetTapControl),
+      hasPostSheetCloseControl: Boolean(postSheetCloseTapControl)
+    });
     // Sheet claim owns the pointer: brief taps activate here; do not wait for browser click.
-    const immediateSheetControl = !cancelled && !wasGesture && !sheetMoved && endedClaim === 'sheet'
+    const immediateSheetControl = release.activationSource === 'sheet-tap'
       ? sheetTapControl
+      : null;
+    const immediatePostSheetControl = release.activationSource === 'post-sheet-close-tap'
+      ? postSheetCloseTapControl
       : null;
 
     // Settle page/segment swipes from the current delta even on pointercancel.
@@ -447,19 +478,21 @@ export function initHorizontalGestures() {
     }
 
     if (isSheetDebugEnabled()) {
-      logGestureDebug('pointer release', {
+      logGestureSession('pointer release', {
+        sessionId: gestureSessionId,
+        owner: 'gestures',
+        activationSource: release.activationSource,
+        clearReason: release.clearReason,
         pointerType: gesturePointerType,
         target: gestureTarget,
         cancelled,
         axis: axis ?? 'none',
-        claim: claim ?? 'pass',
+        claim: endedClaim ?? 'pass',
         handledSheet,
         sheetMoved,
         sheetTap: Boolean(immediateSheetControl),
         deltaX: Math.round(deltaX),
         deltaY: Math.round(deltaY),
-        velocityX: Number(velocityX.toFixed(3)),
-        velocityY: Number(velocityY.toFixed(3)),
         started: { page: startPage, subview: startSubview },
         ended: { page: state.currentPage, subview: state.subviews[state.currentPage] },
         motion: getMotionDebugSnapshot(elements.pages)
@@ -489,14 +522,17 @@ export function initHorizontalGestures() {
 
     if (tapControl) {
       if (isSheetDebugEnabled()) {
-        logGestureDebug('sheet tap', {
+        logGestureSession('sheet tap', {
+          sessionId: gestureSessionId,
+          owner: 'gestures',
+          activationSource: release.activationSource,
           target: describeDebugTarget(tapControl)
         });
       }
       tapControl.click();
     }
     // Suppress trailing browser click after drag, sheet move, or gesture-owned activation.
-    if (wasGesture || handledSheet || sheetMoved || tapControl) {
+    if (release.armClickSuppress) {
       const courseHit = event.target?.closest?.(
         '.week-slot-cell, .week-period-label, .course-edit-field, .course-slot-sheet, #weekStrip'
       );
@@ -517,15 +553,15 @@ export function initHorizontalGestures() {
   });
   // Clear a previous gesture's trailing-click guard at the earliest boundary
   // of a deliberate new contact, before any child can stop propagation.
-  document.addEventListener('pointerdown', clearClickSuppression, true);
-  document.addEventListener('touchstart', clearClickSuppression, { capture: true, passive: true });
-  element.addEventListener('keydown', clearClickSuppression, true);
+  document.addEventListener('pointerdown', clearClickSuppressionFromNewContact, true);
+  document.addEventListener('touchstart', clearClickSuppressionFromNewContact, { capture: true, passive: true });
+  element.addEventListener('keydown', () => clearClickSuppression('keydown'), true);
   element.addEventListener('click', (event) => {
     if (!blockGestureClick) return;
     if (event.target?.closest?.('.week-slot-cell, .week-period-label, .course-edit-field, #weekStrip')) {
       logCourseDebug('click swallowed by gesture', describeDebugTarget(event.target));
     }
-    clearClickSuppression();
+    clearClickSuppression('swallowed-click');
     event.preventDefault();
     event.stopPropagation();
   }, true);

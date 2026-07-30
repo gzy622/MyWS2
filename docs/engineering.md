@@ -76,6 +76,7 @@
 | 备份导入导出 | `src/scripts/backup.js` |
 | 主/子导航 | `src/scripts/navigation.js` |
 | 页面、底栏、分段与 Sheet 手势路由 | `src/scripts/gestures.js`、`src/scripts/sheet-gestures.js` |
+| 手势阈值与点击保护纯判定 | `src/scripts/gesture-policy.js` |
 | Sheet progress 与最上层栈 | `src/scripts/sheet-drag.js` |
 | 通用菜单、更多菜单与确认 | `src/scripts/drawer.js`、`src/scripts/more-sheet.js` |
 | Escape / Android 返回 | `src/scripts/system-back.js` |

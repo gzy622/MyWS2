@@ -1,6 +1,6 @@
 # 里程碑一统一收口执行计划
 
-> 状态：进行中（批次 A 已完成；下一批次 B）  
+> 状态：进行中（批次 A–B 已完成；下一批次 C）  
 > 用途：供编程智能体在每次实施前查看、实施中更新、完成后记录结果。  
 > 完成后：将最终结论同步到现行文档，并把本计划移入 `docs/archive/`。
 
@@ -49,7 +49,7 @@
 | 批次 | 状态 | 智能体执行内容 | 主要交付 |
 | --- | --- | --- | --- |
 | A. 盘点与基线 | 已完成 | 检查全部触摸监听、滚动容器、浮层、Pointer Capture 和 `touch-action` | 手势归属表、风险清单、修改范围（见 §9） |
-| B. 测试与诊断 | 未开始 | 先覆盖历史故障，补充指针序列和点击保护诊断 | 可重复的失败场景与诊断日志 |
+| B. 测试与诊断 | 已完成 | 先覆盖历史故障，补充指针序列和点击保护诊断 | `gesture-policy.js` + 测试；会话诊断字段 |
 | C. 手势可靠性 | 未开始 | 统一指针生命周期、阈值、直接激活、尾随点击保护和取消清理 | 滑动、点击、关闭行为稳定 |
 | D. 滚动统一 | 未开始 | 区分原生滚动与 JS 滚动，统一滚动条、惯性和边缘交接 | 页面、成绩表和 Sheet 不互抢手势 |
 | E. UI 统一 | 未开始 | 收敛 token 和共享组件，统一 Sheet、表单、按钮、列表及状态 | 视觉一致、重复 CSS 减少 |
@@ -68,14 +68,14 @@
 
 ### B. 测试与诊断
 
-- [ ] 为指针归属、轴锁定、激活和取消判定补充纯逻辑测试；
-- [ ] 覆盖拖动后的尾随点击；
-- [ ] 覆盖 Sheet 关闭后的底层穿透；
-- [ ] 覆盖下一次真实触摸被旧保护吞掉；
-- [ ] 覆盖 IME 保存、取消、删除的单次执行；
-- [ ] 覆盖 `pointercancel` 和 `lostpointercapture` 清理；
-- [ ] 为诊断日志增加会话 ID、owner、激活来源和清理原因；
-- [ ] 不记录逐帧移动、姓名、成绩或输入内容。
+- [x] 为指针归属、轴锁定、激活和取消判定补充纯逻辑测试；
+- [x] 覆盖拖动后的尾随点击；
+- [x] 覆盖 Sheet 关闭后的底层穿透；
+- [x] 覆盖下一次真实触摸被旧保护吞掉；
+- [x] 覆盖 IME 保存、取消、删除的单次执行；
+- [x] 覆盖 `pointercancel` 和 `lostpointercapture` 清理；
+- [x] 为诊断日志增加会话 ID、owner、激活来源和清理原因；
+- [x] 不记录逐帧移动、姓名、成绩或输入内容。
 
 ### C. 手势可靠性
 
@@ -147,6 +147,7 @@
 | --- | --- | --- | --- | --- | --- |
 | 2026-07-30 | — | 待执行 | 计划已建立 | 未执行代码检查 | 从批次 A 开始 |
 | 2026-07-30 | A | 已完成 | 完成手势/Sheet/`touch-action`/幽灵点击/壳层盘点；交付见 §9 | `git status`；源码与 CSS 检索；未改业务代码 | 进入批次 B：补纯逻辑测试与诊断会话字段 |
+| 2026-07-30 | B | 已完成 | 新增 `gesture-policy.js` 与 11 项纯逻辑测试；诊断补 sessionId/owner/activationSource/clearReason；`gestures.js` 接入判定 | `node --check`；`node --test` 66 通过；`git diff --check` | 进入批次 C：收敛五套 ghost/IME 保护并统一取消清理 |
 
 ## 8. 完成条件
 
@@ -219,17 +220,17 @@
 3. **激活双路径**：Sheet 认领短触靠路由 `pointerup` 直接激活；大量控件仍靠合成 `click` → WebView 行为差异风险。
 4. **Capture 时机分裂**：座位/字母 down 即 capture；Sheet 延迟到滚动/跟手；IME 按钮 down capture — 与「归属确定后不转交」需在 C 批对齐。
 5. **取消清理覆盖不均**：座位与手势路由较完整；业务 ghost timer、长按 Map、Sheet session 在 blur/后台/旋转上的统一清理未证明。
-6. **测试缺口**：无指针归属/幽灵点击/穿透的 `node:test`；验收依赖真机与 `verify-web`（需授权）。
+6. **测试缺口（部分关闭）**：批次 B 已补指针策略纯逻辑测试；DOM/真机验收仍依赖授权后的 `verify-web` / APK。
 7. **滚动条策略未统一**：页面/多数 Sheet 隐藏滚动条；作业/考试列表与人员选择名单显示 4px 细条 — 属 D 批范围。
 
 ### 9.6 后续批次修改范围（建议）
 
 | 批次 | 首选触达 |
 | --- | --- |
-| B | 新建可测纯函数（阈值/归属/保护判定）；扩展 `sheet-debug.js` 会话字段；`tests/*.test.mjs` |
-| C | `gestures.js`、`sheet-gestures.js`、`sheet-drag.js`；收敛五套 IME/ghost 到单一共享策略（仅当职责清晰可测时抽模块）；局部：`student-interactions`、`courses-interactions`、`people-interactions`、`assignments`/`exams`/`highlight-subjects`；`system-back.js` 结束手势 |
+| B | ~~完成~~：`gesture-policy.js`、`tests/gesture-policy.test.mjs`、`sheet-debug` 会话字段 |
+| C | `gestures.js`、`sheet-gestures.js`、`sheet-drag.js`；收敛五套 IME/ghost 到单一共享策略（复用 `gesture-policy`）；局部：`student-interactions`、`courses-interactions`、`people-interactions`、`assignments`/`exams`/`highlight-subjects`；`system-back.js` 结束手势 |
 | D | `.grade-scroll`、作业/考试列表滚动与边缘交接；`content.css` / `assignments.css` / `sheets.css` / `controls.css` 的 scrollbar 与 `overscroll-behavior` |
 | E | `tokens.css` 与共享 Sheet/按钮/列表样式收敛 |
 | F | 现行 `interaction.md` / `visual-design.md` / `engineering.md` / `guides/development.md`；授权后的 Web/APK 验收 |
 
-下一批次：**B. 测试与诊断**。
+下一批次：**C. 手势可靠性**。
