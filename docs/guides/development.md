@@ -64,7 +64,7 @@ npm run code:id
 
 内容指纹只覆盖 `src/index.html`、`src/styles/` 和 `src/scripts/`，用于对比电脑源码、LAN 服务和 APK 内 Web 资源是否一致。
 
-打开通用菜单即可在面板右下角看到当前内容指纹及生成时间（UTC+8，精确到秒）。长按左上菜单、连续点击菜单 3 次，或使用 `?sheetDebug=1` 可开启按需诊断：调试条会保留最近 120 条手势边界、Sheet 落位与计算动效、登记业务结果，以及未捕获异常；手势边界日志含 `sessionId`、`owner`、`activationSource`、`clearReason`，不记录逐帧触摸、姓名、分数值或输入原文。调试开启时控制台只输出以 `[twb-debug]` 开头的单行 JSON，方便过滤；`?courseDebug=1` 保持兼容但启用同一套诊断。`origin` 为局域网地址时使用 Live Reload；原生 `https://localhost` 一类地址通常表示使用 APK 内资源。
+打开设置页即可在右下角看到当前内容指纹及生成时间（UTC+8，精确到秒）。长按左上角设置、连续点击设置 3 次，或使用 `?sheetDebug=1` 可开启按需诊断：调试条会保留最近 120 条手势边界、Sheet 落位与计算动效、登记业务结果，以及未捕获异常；手势边界日志含 `sessionId`、`owner`、`activationSource`、`clearReason`，不记录逐帧触摸、姓名、分数值或输入原文。调试开启时控制台只输出以 `[twb-debug]` 开头的单行 JSON，方便过滤；`?courseDebug=1` 保持兼容但启用同一套诊断。`origin` 为局域网地址时使用 Live Reload；原生 `https://localhost` 一类地址通常表示使用 APK 内资源。
 
 手势阈值与点击保护的纯逻辑在 `src/scripts/gesture-policy.js`，对应 `tests/gesture-policy.test.mjs`；IME 立即操作与幽灵点击保护的 DOM 实现在 `src/scripts/pointer-guards.js`。
 
@@ -182,7 +182,7 @@ npm run deploy:apk -- -Serial <序列号> -Fresh
    npm run deploy:apk -- -Serial $deviceSerial
    ```
 
-4. 在 App 内长按左上角菜单约 0.5 秒，或连续点击该菜单 3 次，开启会话级诊断。右上角出现 `build <内容指纹> · <记录数>` 即表示已开启；点击 `×` 或重复上述手势可关闭。优先通过该可见控件开启，不要依赖特定设备的 ADB 坐标。
+4. 在 App 内长按左上角设置约 0.5 秒，或连续点击该按钮 3 次，开启会话级诊断。右上角出现 `build <内容指纹> · <记录数>` 即表示已开启；点击 `×` 或重复上述手势可关闭。优先通过该可见控件开启，不要依赖特定设备的 ADB 坐标。
 
 5. 只读取项目的结构化日志。不要依据原始 Logcat 的 `E/W` 数量判断问题：Android 厂商、媒体和 WebView 会输出与项目无关的噪声。`[twb-debug]` 是本项目唯一的运行时诊断前缀。
 

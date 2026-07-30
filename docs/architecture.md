@@ -97,7 +97,7 @@ Capacitor 依赖只用于原生壳。浏览器代码通过 `globalThis.Capacitor
 | `overlay-stack.js` | 浮层 ID、类型、视觉层级和唯一关闭优先级；不承载业务规则 |
 | `sheet-drag.js` | Sheet progress 控制器、注册表和从 `overlay-stack.js` 派生的最上层顺序 |
 | `sheet-gestures.js` | Sheet 全屏纵向跟手与滚动优先桥接 |
-| `drawer.js`、`more-sheet.js` | 通用菜单、上下文更多菜单和确认面板 |
+| `drawer.js`、`more-sheet.js` | 全屏设置页，以及底部“更多”上下文动作与确认面板 |
 | `system-back.js` | Escape 与 Android 系统返回键的统一关闭入口，按 `overlay-stack.js` 顺序路由 |
 | `sheet-debug.js` | 显式开启的 Sheet/构建调试信息 |
 
@@ -132,7 +132,7 @@ CSS class、ARIA 属性和 CSS 自定义属性都是状态的渲染结果，不�
 
 页面、导航和状态数组通过从 0 开始的 `data-page`、`data-index`、`data-sub`、`data-view` 一一对应。业务命令使用 `data-action`。完整必需 ID、class 和 data 契约见 [`engineering.md`](engineering.md)。
 
-所有移动端手势继续使用 Pointer Events；纵向 Sheet 的关闭顺序由 `sheet-drag.js` 与 `system-back.js` 共同维护。改变任何一方时必须同步另一方和 [`interaction.md`](interaction.md)。
+所有移动端手势继续使用 Pointer Events；纵向 Sheet（含更多）的关闭顺序由 `sheet-drag.js` 与 `system-back.js` 共同维护；全屏设置页只进入返回关闭栈，不注册为 Sheet。改变任何一方时必须同步另一方和 [`interaction.md`](interaction.md)。
 
 ## 8. 样式架构
 
@@ -143,7 +143,7 @@ CSS class、ARIA 属性和 CSS 自定义属性都是状态的渲染结果，不�
 3. `shell.css`：应用外壳、顶栏、页面视口；
 4. `content.css`：页面内容、网格、座位、人员和课程；
 5. `sheets.css`：共享 Sheet 基础；
-6. `controls.css`：底栏、菜单、确认、Popover 与 Toast；
+6. `controls.css`：底栏、全屏设置页、更多底部 Sheet、确认、Popover 与 Toast；
 7. `assignments.css`：作业列表、作业名称、考试列表与考试名称。
 
 深色主题只覆盖语义 token，不复制组件样式。

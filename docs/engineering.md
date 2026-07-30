@@ -82,7 +82,7 @@
 | 细滚动条滑动显隐 | `src/scripts/scroll-thin.js`、`sheets.css` `.scroll-thin` |
 | 浮层 ID、类型、视觉层与关闭优先级 | `src/scripts/overlay-stack.js` |
 | Sheet progress 与最上层栈 | `src/scripts/sheet-drag.js`（读取 `overlay-stack.js`） |
-| 通用菜单、更多菜单与确认 | `src/scripts/drawer.js`、`src/scripts/more-sheet.js` |
+| 全屏设置、更多底部 Sheet 与确认 | `src/scripts/drawer.js`、`src/scripts/more-sheet.js` |
 | Escape / Android 返回 | `src/scripts/system-back.js`（读取 `overlay-stack.js`） |
 | 主题、视口、触觉、焦点、Toast | 对应同名模块 |
 | 初始化和依赖注入 | `src/scripts/main.js` |
@@ -126,13 +126,13 @@
 
 `src/scripts/dom.js` 是跨模块必需 selector 的事实来源。当前不可删除或复用的 ID 包括：
 
-- 外壳与导航：`#app`、`#viewport`、`#pages`、`#nav`、`#glider`、`#topbarTitle`、`#topbarTitleLabel`、`#menuButton`、`#moreButton`；
+- 外壳与导航：`#app`、`#viewport`、`#pages`、`#nav`、`#glider`、`#topbarTitle`、`#topbarTitleLabel`、`#settingsButton`、`#moreButton`；
 - 登记与座位：`#studentGrid`、`#gridLetterIndex`、`#studentFontSize`、`#studentFontSizeValue`、`#seatViewport`、`#seatStage`、`#seatGrid`、`#seatHint`、`#seatFitButton`、`#seatLandscapeButton`、`#seatModeBar`、`#seatEditStatus`、`#exitSeatEdit`、`#seatLetterIndex`；
 - 人员与课程：`#roleList`、`#dutyList`、`#weekStrip`、`#gradeTable`；
-- 通用菜单与反馈：`#fontSizePopover`、`#menuDrawer`、`#menuDrawerHandle`、`#menuDrawerBuild`、`#closeMenuDrawer`、`#scrim`、`#toast`；
+- 设置、更多与反馈：`#fontSizePopover`、`#menuDrawer`、`#menuDrawerBuild`、`#closeMenuDrawer`、`#moreMenu`、`#moreMenuPanel`、`#moreMenuHandle`、`#closeMoreMenu`、`#toast`；
 - 备份文件选择：`#backupFileInput`；
 - 学生记录：`#studentRecordSheet`、`#studentRecordPanel`、`#studentRecordHandle`、`#studentRecordTitle`、`#closeStudentRecord`、`#studentRecordStatus`、`#studentScoreControls`、`#studentScoreInput`、`#studentScoreError`、`#cancelStudentRecord`、`#saveStudentRecord`；
-- 更多与确认：`#moreMenu`、`#confirmSheet`、`#confirmTitle`、`#confirmMessage`、`#cancelConfirm`、`#acceptConfirm`。
+- 上下文动作与确认：`#moreMenu [data-more-action]`、`#confirmSheet`、`#confirmTitle`、`#confirmMessage`、`#cancelConfirm`、`#acceptConfirm`。
 
 模块私有标题、字段和面板 selector 也属于各模块内部契约；修改对应 HTML 时必须搜索 `querySelector`、`getElementById` 和事件委托选择器。
 
@@ -144,7 +144,7 @@
 - 外壳瞬时态：`.is-sheet-gesturing`、`.is-page-gesturing`（跟手/落位时关闭顶栏 backdrop-filter）；
 - 登记：`.student-grid`、`.student-card`、`.seat-cell`、`.seat-card`、`.letter-index`、`.letter-index-item`、`.letter-index-badge`；
 - 人员与课程：`.people-row`、`.week-slot-cell`、`.week-period-label`、`.grade-score-cell`、`.grade-subject-head`；
-- 浮层：`.menu-drawer`、`.student-record-sheet`、`.assignment-sheet`、`.assignment-name-sheet`、`.exam-sheet`、`.exam-name-sheet`、`.people-pick-sheet`、`.people-edit-sheet`、`.course-slot-sheet`、`.course-period-sheet`、`.course-subject-sheet`、`.course-grade-sheet`、`.course-stats-sheet`、`.course-highlight-sheet`、`.confirm-sheet`、`.more-menu`；
+- 浮层与全屏页：`.menu-drawer`、`.more-menu`、`.student-record-sheet`、`.assignment-sheet`、`.assignment-name-sheet`、`.exam-sheet`、`.exam-name-sheet`、`.people-pick-sheet`、`.people-edit-sheet`、`.course-slot-sheet`、`.course-period-sheet`、`.course-subject-sheet`、`.course-grade-sheet`、`.course-stats-sheet`、`.course-highlight-sheet`、`.confirm-sheet`；
 - 字母索引拖动态：`.is-scrubbing`、`.is-scrubbing-shown`、`.is-letter-hit`。
 
 学生格可选 `data-score` 驱动分数角标；座位卡必须维护 `data-student-id` 与 `data-seat-index`。
@@ -160,7 +160,7 @@
 | `teacher-workbench.theme` | `theme.js` | `light` 或 `dark` |
 | `teacher-workbench.highlight-subjects` | `highlight-subjects.js` | 关键词 JSON |
 
-禁止保存导航、子视图、通用菜单、浮层、座位编辑模式或画布 transform。所有读取、解析和写入都必须捕获存储不可用异常。
+禁止保存导航、子视图、设置页、浮层、座位编辑模式或画布 transform。所有读取、解析和写入都必须捕获存储不可用异常。
 
 ### 6.1 业务 Schema Version 5
 
