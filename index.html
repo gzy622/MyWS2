@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta http-equiv="refresh" content="0; url=./src/" />
+    <title>教师工作台</title>
+  </head>
+  <body>
+    <p>正在打开教师工作台… <a id="appLink" href="./src/">继续打开</a></p>
+    <script>
+      const destination = new URL('./src/', window.location.href);
+      destination.search = window.location.search;
+      destination.hash = window.location.hash;
+      document.querySelector('#appLink').href = destination.href;
+      window.location.replace(destination.href);
+    </script>
+  </body>
+</html>

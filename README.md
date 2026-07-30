@@ -10,9 +10,15 @@
 node lan-server.js
 ```
 
-浏览器访问 <http://localhost:8080>。不要直接双击 `src/index.html`，浏览器会限制 ES Modules 加载。
+浏览器访问 <http://localhost:8080>。不要直接双击 `src/index.html`，浏览器会限制 ES Modules 加载。项目根目录的 `index.html` 是静态托管兼容入口，会转至完整的 `src/` 应用。
 
 Windows 也可双击 `start-lan-server.bat`。
+
+## GitHub Pages 部署
+
+仓库已包含 `.github/workflows/deploy-pages.yml`：推送至 `main` 分支后会将 `src/` 部署为 GitHub Pages 站点根目录，并生成用于版本显示的 `build-id.json`。
+
+首次启用时，在仓库 **Settings → Pages → Build and deployment** 中将 Source 设为 **GitHub Actions**。工作流完成后，从该页提供的站点地址访问；所有资源均使用相对路径，因此项目页（`https://<用户名>.github.io/<仓库名>/`）可直接打开。
 
 ## 常用命令
 
@@ -42,6 +48,7 @@ Android 命令需要先执行 `npm install`，并准备 JDK 21+、Android SDK �
 
 ```text
 .
+├─ index.html           静态托管兼容入口，转至 src/ 应用
 ├─ src/                 Web 源码：HTML、浏览器脚本与样式
 ├─ tests/               零依赖 Node 单元测试
 ├─ tools/               构建、同步、内容指纹与 Android 辅助工具
