@@ -4,20 +4,48 @@ import { logGestureDebug, logLogicDebug } from './sheet-debug.js';
 
 const MOVE_CANCEL_DISTANCE = 9;
 const LONG_PRESS_MS = 480;
-const CLICK_SUPPRESSION_MS = 250;
+const CLICK_SUPPRESSION_MS = 450;
 
 export function initStudentInteractions({ store, showToast, openStudentRecord }) {
   const presses = new Map();
+  const longPressedPointers = new Map();
+  let suppressedClickCard = null;
   let suppressClickUntil = 0;
-  function clearPress(pointerId) { const press = presses.get(pointerId); if (press) clearTimeout(press.timer); presses.delete(pointerId); }
+
+  function clearPress(pointerId) {
+    const press = presses.get(pointerId);
+    if (press) {
+      clearTimeout(press.timer);
+      press.card.classList.remove('is-pressing');
+    }
+    presses.delete(pointerId);
+  }
+
+  function suppressLongPressClick(card) {
+    suppressedClickCard = card;
+    suppressClickUntil = performance.now() + CLICK_SUPPRESSION_MS;
+  }
+
+  function shouldSuppressClick(card) {
+    if (card !== suppressedClickCard) return false;
+    const suppress = performance.now() < suppressClickUntil;
+    suppressedClickCard = null;
+    return suppress;
+  }
+
   elements.studentGrid.addEventListener('pointerdown', (event) => {
+    // A new contact cannot belong to the long-press sequence whose click is pending.
+    suppressedClickCard = null;
     const card = event.target.closest('.student-card'); if (!card || !elements.studentGrid.contains(card)) return;
+    card.classList.add('is-pressing');
     const press = { x: event.clientX, y: event.clientY, card, timer: null };
     press.timer = setTimeout(() => {
       if (!presses.has(event.pointerId)) return;
       const studentId = Number(card.dataset.studentId);
       clearPress(event.pointerId);
-      suppressClickUntil = performance.now() + CLICK_SUPPRESSION_MS;
+      // Opening the Sheet can retarget the eventual pointerup away from the grid.
+      // Keep ownership globally until that physical pointer sequence actually ends.
+      longPressedPointers.set(event.pointerId, card);
       logLogicDebug('student record opened', {
         source: 'grid-long-press',
         assignmentId: store.getCurrentAssignment().id,
@@ -41,6 +69,17 @@ export function initStudentInteractions({ store, showToast, openStudentRecord })
     });
   });
   for (const type of ['pointerup', 'pointercancel', 'lostpointercapture', 'pointerleave']) elements.studentGrid.addEventListener(type, (event) => clearPress(event.pointerId));
+  window.addEventListener('pointerup', (event) => {
+    const card = longPressedPointers.get(event.pointerId);
+    if (!card) return;
+    longPressedPointers.delete(event.pointerId);
+    // Start the bounded guard from release, immediately before the browser may
+    // synthesize click, rather than from the earlier long-press timeout.
+    suppressLongPressClick(card);
+  }, true);
+  window.addEventListener('pointercancel', (event) => {
+    longPressedPointers.delete(event.pointerId);
+  }, true);
   elements.studentGrid.addEventListener('contextmenu', (event) => {
     const card = event.target.closest('.student-card');
     if (!card || !elements.studentGrid.contains(card)) return;
@@ -55,7 +94,7 @@ export function initStudentInteractions({ store, showToast, openStudentRecord })
   });
   elements.studentGrid.addEventListener('click', (event) => {
     const card = event.target.closest('.student-card');
-    if (!card || !elements.studentGrid.contains(card) || performance.now() < suppressClickUntil) return;
+    if (!card || !elements.studentGrid.contains(card) || shouldSuppressClick(card)) return;
     const studentId = Number(card.dataset.studentId);
     const wasCompleted = card.getAttribute('aria-pressed') === 'true';
     if (!store.toggleCompletion(studentId)) return;

@@ -187,10 +187,6 @@
   outline-offset: -2px;
 }
 
-.student-card:active {
-  background: var(--control);
-}
-
 @media (hover: hover) and (pointer: fine) {
   .student-card:hover {
     background: color-mix(in srgb, var(--control) 55%, transparent);
@@ -199,6 +195,13 @@
   .student-card.is-completed:hover {
     background: color-mix(in srgb, var(--control) 35%, color-mix(in srgb, var(--paper) 40%, var(--card)));
   }
+}
+
+.student-card:active,
+.student-card.is-pressing,
+.student-card.is-completed:active,
+.student-card.is-completed.is-pressing {
+  background: var(--control);
 }
 
 .student-card[data-score]::after {
