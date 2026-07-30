@@ -1,6 +1,6 @@
 # 里程碑一统一收口执行计划
 
-> 状态：进行中（批次 A–D 已完成；下一批次 E）
+> 状态：进行中（批次 A–E 已完成；下一批次 F）
 > 用途：供编程智能体在每次实施前查看、实施中更新、完成后记录结果。
 > 完成后：将最终结论同步到现行文档，并把本计划移入 `docs/archive/`。
 
@@ -52,7 +52,7 @@
 | B. 测试与诊断 | 已完成 | 先覆盖历史故障，补充指针序列和点击保护诊断 | `gesture-policy.js` + 测试；会话诊断字段 |
 | C. 手势可靠性 | 已完成 | 统一指针生命周期、阈值、直接激活、尾随点击保护和取消清理 | `pointer-guards.js`；五模块收敛；返回/生命周期清理 |
 | D. 滚动统一 | 已完成 | 区分原生滚动与 JS 滚动，统一滚动条、惯性和边缘交接 | `.scroll-thin`；边缘交接；课表格 `touch-action` |
-| E. UI 统一 | 未开始 | 收敛 token 和共享组件，统一 Sheet、表单、按钮、列表及状态 | 视觉一致、重复 CSS 减少 |
+| E. UI 统一 | 已完成 | 收敛 token 和共享组件，统一 Sheet、表单、按钮、列表及状态 | `sheets.css` 共享字段/按钮/列表；触控 44px |
 | F. 验收与文档 | 未开始 | 执行检查、记录结果、同步现行规范和遗留风险 | 验收报告与文档收口 |
 
 ## 5. 各批次检查清单
@@ -100,13 +100,13 @@
 
 ### E. UI 统一
 
-- [ ] 颜色、圆角、阴影、间距和动效优先使用 token；
-- [ ] 统一顶部 Sheet、底部 Sheet、更多菜单和 Popover；
-- [ ] 统一输入框、主按钮、次按钮、危险按钮和禁用态；
-- [ ] 统一列表行高、分隔线、标题、辅助文字和按下反馈；
-- [ ] 触控目标不小于 44px；
-- [ ] 检查浅色、深色、IME、短横屏和 reduced motion；
-- [ ] 不改变固定文案、页面数量、业务状态和数据 Schema。
+- [x] 颜色、圆角、阴影、间距和动效优先使用 token；
+- [x] 统一顶部 Sheet、底部 Sheet、更多菜单和 Popover；
+- [x] 统一输入框、主按钮、次按钮、危险按钮和禁用态；
+- [x] 统一列表行高、分隔线、标题、辅助文字和按下反馈；
+- [x] 触控目标不小于 44px；
+- [x] 检查浅色、深色、IME、短横屏和 reduced motion；
+- [x] 不改变固定文案、页面数量、业务状态和数据 Schema。
 
 ### F. 验收与文档
 
@@ -150,6 +150,7 @@
 | 2026-07-30 | B | 已完成 | 新增 `gesture-policy.js` 与 11 项纯逻辑测试；诊断补 sessionId/owner/activationSource/clearReason；`gestures.js` 接入判定 | `node --check`；`node --test` 66 通过；`git diff --check` | 进入批次 C：收敛五套 ghost/IME 保护并统一取消清理 |
 | 2026-07-30 | C | 已完成 | 新增 `pointer-guards.js`；作业/考试/人员/课程/高亮改用共享 IME+ghost；`cancelActivePointerGesture` + 后台/旋转清理；返回前先结束手势 | `node --check`；`node --test` 66 通过；`git diff --check` | 进入批次 D：滚动统一 |
 | 2026-07-30 | D | 已完成 | 统一 `.scroll-thin`/隐藏滚动条；课表格等改回 `touch-action:none`；Sheet 列表边缘交接接入 `canHandOffAtScrollEdge` | `node --check`；`node --test`；`git diff --check` | 进入批次 E：UI 统一 |
+| 2026-07-30 | E | 已完成 | Sheet 字段/按钮/提示/列表共享样式；作业考试目录去重；新增钮 44px；圆角/阴影走 token；按下反馈统一 | `git diff --check`；未改 Schema/文案 | 进入批次 F：验收与文档收口 |
 
 ## 8. 完成条件
 
@@ -232,7 +233,7 @@
 | B | ~~完成~~：`gesture-policy.js`、`tests/gesture-policy.test.mjs`、`sheet-debug` 会话字段 |
 | C | ~~完成~~：`pointer-guards.js`；五业务模块共享 IME/ghost；`cancelActivePointerGesture` + 生命周期/返回 |
 | D | ~~完成~~：滚动条 token/`.scroll-thin`；边缘交接；课表格 `touch-action:none` |
-| E | `tokens.css` 与共享 Sheet/按钮/列表样式收敛 |
+| E | ~~完成~~：`sheets.css` 共享 `.sheet-field`/按钮/提示/列表；作业考试目录样式合并 |
 | F | 现行 `interaction.md` / `visual-design.md` / `engineering.md` / `guides/development.md`；授权后的 Web/APK 验收 |
 
-下一批次：**E. UI 统一**。
+下一批次：**F. 验收与文档**。

@@ -58,37 +58,38 @@
   backface-visibility: hidden;
 }
 
-.assignment-panel .sheet-head {
-  margin-bottom: 16px;
-}
-
 .assignment-panel .assignment-select,
 .assignment-panel .assignment-action,
-.assignment-panel .assignment-add {
-  min-height: 40px;
+.assignment-panel .assignment-add,
+.exam-panel .exam-select,
+.exam-panel .exam-action,
+.exam-panel .exam-add {
   border: 0;
   cursor: pointer;
   color: var(--ink);
 }
 
-.assignment-panel .assignment-add {
-  border-radius: 12px;
+.assignment-panel .assignment-add,
+.exam-panel .exam-add {
+  min-height: 44px;
+  border-radius: var(--radius-control);
   background: var(--control);
   padding: 9px 11px;
+  font-weight: 600;
 }
 
-.assignment-list {
+.assignment-list,
+.exam-list {
   flex: 1 1 auto;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   touch-action: none;
-  border-radius: 16px;
-  background: var(--paper);
 }
 
-.assignment-item {
+.assignment-item,
+.exam-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
@@ -97,11 +98,13 @@
   padding: 0 4px 0 2px;
 }
 
-.assignment-item + .assignment-item {
+.assignment-item + .assignment-item,
+.exam-item + .exam-item {
   border-top: .5px solid var(--line);
 }
 
-.assignment-select {
+.assignment-select,
+.exam-select {
   min-width: 0;
   min-height: 48px;
   padding: 10px 12px;
@@ -112,11 +115,13 @@
   font-weight: 600;
 }
 
-.assignment-select[aria-pressed="true"] {
+.assignment-select[aria-pressed="true"],
+.exam-select[aria-pressed="true"] {
   color: var(--accent-text);
 }
 
-.assignment-item small {
+.assignment-item small,
+.exam-item small {
   display: block;
   margin-top: 2px;
   color: var(--muted);
@@ -124,7 +129,8 @@
   font-weight: 450;
 }
 
-.assignment-panel .assignment-action {
+.assignment-panel .assignment-action,
+.exam-panel .exam-action {
   width: 36px;
   height: 36px;
   min-height: 36px;
@@ -136,12 +142,14 @@
   color: var(--muted);
 }
 
-.assignment-panel .assignment-action:disabled {
+.assignment-panel .assignment-action:disabled,
+.exam-panel .exam-action:disabled {
   color: var(--disabled);
   cursor: default;
 }
 
-.assignment-action svg {
+.assignment-action svg,
+.exam-action svg {
   width: 18px;
   height: 18px;
   fill: none;
@@ -238,32 +246,7 @@
   backface-visibility: hidden;
 }
 
-.assignment-name-panel .sheet-title {
-  margin-bottom: 2px;
-}
-
-.assignment-name-panel p { margin: 6px 0 16px; color: var(--muted); font-size: 13px; }
-.assignment-name-field { display: block; }
-.assignment-name-field span { display: block; margin: 0 2px 7px; color: var(--muted); font-size: 12px; font-weight: 600; }
-.assignment-name-field input {
-  width: 100%;
-  height: 48px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: 12px;
-  outline: 0;
-  background: var(--control);
-  color: var(--ink);
-  touch-action: manipulation;
-  -webkit-user-select: text;
-  user-select: text;
-}
-.assignment-name-field input:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
-.assignment-name-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
-.assignment-name-actions button { min-height: 44px; border: 0; border-radius: 12px; background: var(--control); color: var(--ink); cursor: pointer; font-weight: 600; }
-.assignment-name-actions .primary { color: var(--on-accent); background: var(--accent); }
-
-/* Exam list / name top sheets — mirrored from assignment sheets. */
+/* Exam list / name top sheets — shared catalog rules above; exam-only chrome below. */
 .exam-sheet {
   position: absolute;
   z-index: 31;
@@ -322,99 +305,6 @@
   transition: none;
   will-change: transform;
   backface-visibility: hidden;
-}
-
-.exam-panel .sheet-head {
-  margin-bottom: 16px;
-}
-
-.exam-panel .exam-select,
-.exam-panel .exam-action,
-.exam-panel .exam-add {
-  min-height: 40px;
-  border: 0;
-  cursor: pointer;
-  color: var(--ink);
-}
-
-.exam-panel .exam-add {
-  border-radius: 12px;
-  background: var(--control);
-  padding: 9px 11px;
-}
-
-.exam-list {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  touch-action: none;
-  border-radius: 16px;
-  background: var(--paper);
-}
-
-.exam-item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 0;
-  min-height: 48px;
-  padding: 0 4px 0 2px;
-}
-
-.exam-item + .exam-item {
-  border-top: .5px solid var(--line);
-}
-
-.exam-select {
-  min-width: 0;
-  min-height: 48px;
-  padding: 10px 12px;
-  border-radius: 0;
-  background: transparent;
-  text-align: left;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.exam-select[aria-pressed="true"] {
-  color: var(--accent-text);
-}
-
-.exam-item small {
-  display: block;
-  margin-top: 2px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 450;
-}
-
-.exam-panel .exam-action {
-  width: 36px;
-  height: 36px;
-  min-height: 36px;
-  padding: 0;
-  display: grid;
-  place-items: center;
-  border-radius: 10px;
-  background: transparent;
-  color: var(--muted);
-}
-
-.exam-panel .exam-action:disabled {
-  color: var(--disabled);
-  cursor: default;
-}
-
-.exam-action svg {
-  width: 18px;
-  height: 18px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.7;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 .exam-panel .exam-add {
@@ -503,31 +393,6 @@
   will-change: transform;
   backface-visibility: hidden;
 }
-
-.exam-name-panel .sheet-title {
-  margin-bottom: 2px;
-}
-
-.exam-name-panel p { margin: 6px 0 16px; color: var(--muted); font-size: 13px; }
-.exam-name-field { display: block; }
-.exam-name-field span { display: block; margin: 0 2px 7px; color: var(--muted); font-size: 12px; font-weight: 600; }
-.exam-name-field input {
-  width: 100%;
-  height: 48px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: 12px;
-  outline: 0;
-  background: var(--control);
-  color: var(--ink);
-  touch-action: manipulation;
-  -webkit-user-select: text;
-  user-select: text;
-}
-.exam-name-field input:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
-.exam-name-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
-.exam-name-actions button { min-height: 44px; border: 0; border-radius: 12px; background: var(--control); color: var(--ink); cursor: pointer; font-weight: 600; }
-.exam-name-actions .primary { color: var(--on-accent); background: var(--accent); }
 
 /* IME: only the focused overlay yields to the keyboard; shell stays full height. */
 .assignment-name-sheet.is-ime-host,

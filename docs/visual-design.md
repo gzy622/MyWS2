@@ -131,6 +131,7 @@
 **共享 Sheet 规则**
 
 - 面板圆角 `--radius-sheet`（26px）；标题 `h2` 24px；关闭钮 38×38 圆形、`--control` 底（`.sheet-close`）。
+- 表单字段、操作按钮、提示文案与列表分组优先复用 `sheets.css` 共享规则（`.sheet-field` / `.sheet-btn*` / `.sheet-hint` / `.sheet-list-*`）；圆角控件用 `--radius-control`，分组列表用 `--radius-card`。主按钮 `--accent`+`--on-accent`，次按钮 `--control`，危险操作 `--accent-text`；禁用统一降透明并改 `--muted`。触控主操作不小于 44px（列表行内 36px 图标钮除外）。
 - 遮罩淡入 `--duration-fade`，面板滑入 `--duration-sheet` + `--ease`；面板与遮罩动画分离，关闭完成后再隐藏。
 - 遮罩不透明度在跟手、归位、常态三段之间切换时必须连续：进入跟手态前先写入当前进度，禁止出现回落到 `.show` 常态（不透明度 1）的中间帧。
 - 内容可滚时隐藏系统滚动条；作业列表与考试列表除外，仅在溢出时使用共享 `.scroll-thin`（4px，滑块 `--scrollbar-thumb`、轨道 `--scrollbar-track`），深浅色随 token 切换。人员选择名单等原生滚动面同样隐藏滚动条。

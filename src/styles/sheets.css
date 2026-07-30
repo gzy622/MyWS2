@@ -210,3 +210,246 @@
 .scroll-thin::-webkit-scrollbar-thumb:active {
   background: var(--muted);
 }
+
+/* —— Shared Sheet form / action / list chrome (Batch E) —— */
+
+.sheet-title--form,
+.assignment-name-panel .sheet-title,
+.exam-name-panel .sheet-title,
+.confirm-panel .sheet-title,
+.people-edit-panel .sheet-title {
+  margin-bottom: 2px;
+}
+
+.sheet-hint,
+.assignment-name-panel > p,
+.exam-name-panel > p,
+.confirm-panel > p,
+.people-edit-hint,
+.course-edit-hint {
+  margin: 6px 0 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.sheet-field,
+.assignment-name-field,
+.exam-name-field,
+.people-edit-field,
+.course-edit-field,
+.course-highlight-field {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.assignment-name-field,
+.exam-name-field {
+  margin-bottom: 0;
+}
+
+.sheet-field > span,
+.assignment-name-field > span,
+.exam-name-field > span,
+.people-edit-field > span,
+.course-edit-field > span,
+.course-highlight-field > span {
+  display: block;
+  margin: 0 2px 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sheet-field input,
+.sheet-field textarea,
+.assignment-name-field input,
+.exam-name-field input,
+.people-edit-field input,
+.course-edit-field input,
+.course-highlight-field textarea {
+  width: 100%;
+  border: 0;
+  border-radius: var(--radius-control);
+  outline: 0;
+  background: var(--control);
+  color: var(--ink);
+  touch-action: manipulation;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.sheet-field input,
+.assignment-name-field input,
+.exam-name-field input,
+.people-edit-field input,
+.course-edit-field input {
+  height: 48px;
+  padding: 0 14px;
+}
+
+.sheet-field textarea,
+.course-highlight-field textarea {
+  min-height: 112px;
+  padding: 12px 14px;
+  font: inherit;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.sheet-field input:focus-visible,
+.sheet-field textarea:focus-visible,
+.assignment-name-field input:focus-visible,
+.exam-name-field input:focus-visible,
+.people-edit-field input:focus-visible,
+.course-edit-field input:focus-visible,
+.course-highlight-field textarea:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+.sheet-actions,
+.assignment-name-actions,
+.exam-name-actions,
+.confirm-actions,
+.people-pick-actions,
+.people-edit-actions,
+.course-edit-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.assignment-name-actions,
+.exam-name-actions {
+  margin-top: 16px;
+}
+
+.people-pick-actions {
+  flex: none;
+  margin-top: 10px;
+}
+
+.people-edit-actions,
+.course-edit-actions {
+  margin-top: 4px;
+}
+
+.student-record-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.sheet-btn,
+.assignment-name-actions button,
+.exam-name-actions button,
+.confirm-actions button,
+.people-pick-actions button,
+.people-edit-actions button,
+.course-edit-actions button,
+.people-edit-delete,
+.course-edit-clear,
+.course-edit-delete,
+.student-record-panel > .student-record-actions button,
+.student-record-panel .student-record-actions button,
+.course-grade-panel .student-record-actions button {
+  min-height: 44px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--control);
+  color: var(--ink);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sheet-btn--primary,
+.assignment-name-actions .primary,
+.exam-name-actions .primary,
+.people-pick-actions .primary,
+.people-edit-actions .primary,
+.course-edit-actions .primary,
+#acceptConfirm,
+#saveStudentRecord,
+.course-grade-panel .student-record-actions [data-action="save"] {
+  color: var(--on-accent);
+  background: var(--accent);
+  font-weight: 650;
+}
+
+.sheet-btn--muted,
+#cancelStudentRecord,
+.course-grade-panel .student-record-actions [data-action="clear"] {
+  color: var(--muted);
+}
+
+.sheet-btn--danger,
+.people-edit-delete,
+.course-edit-clear,
+.course-edit-delete {
+  width: 100%;
+  margin-top: 10px;
+  color: var(--accent-text);
+}
+
+.sheet-btn:disabled,
+.people-pick-actions [data-action="clear"]:disabled,
+.people-edit-delete:disabled,
+.course-edit-delete:disabled {
+  opacity: .45;
+  cursor: default;
+  color: var(--muted);
+}
+
+.sheet-btn:active:not(:disabled),
+.assignment-name-actions button:active:not(:disabled),
+.exam-name-actions button:active:not(:disabled),
+.confirm-actions button:active:not(:disabled),
+.people-pick-actions button:active:not(:disabled),
+.people-edit-actions button:active:not(:disabled),
+.course-edit-actions button:active:not(:disabled),
+.people-edit-delete:active:not(:disabled),
+.course-edit-clear:active:not(:disabled),
+.course-edit-delete:active:not(:disabled),
+.student-record-panel .student-record-actions button:active:not(:disabled),
+.course-grade-panel .student-record-actions button:active:not(:disabled),
+.assignment-add:active:not(:disabled),
+.exam-add:active:not(:disabled) {
+  filter: brightness(0.97);
+}
+
+.sheet-btn--primary:active:not(:disabled),
+.assignment-name-actions .primary:active:not(:disabled),
+.exam-name-actions .primary:active:not(:disabled),
+.people-pick-actions .primary:active:not(:disabled),
+.people-edit-actions .primary:active:not(:disabled),
+.course-edit-actions .primary:active:not(:disabled),
+#acceptConfirm:active:not(:disabled),
+#saveStudentRecord:active:not(:disabled),
+.course-grade-panel .student-record-actions [data-action="save"]:active:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.sheet-list-group,
+.assignment-list,
+.exam-list,
+.people-pick-list {
+  border-radius: var(--radius-card);
+  background: var(--paper);
+}
+
+.sheet-list-row:active,
+.assignment-select:active,
+.exam-select:active,
+.people-pick-option:active:not(.is-selected) {
+  background: var(--control);
+}
+
+.assignment-panel .sheet-head,
+.exam-panel .sheet-head {
+  margin-bottom: 14px;
+}
+
+.people-pick-panel .sheet-head {
+  margin-bottom: 14px;
+}

@@ -8,8 +8,8 @@
   background: var(--control);
   display: grid; grid-template-columns: repeat(3, 1fr); touch-action: none; user-select: none;
 }
-.nav-glider { position: absolute; z-index: 0; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3); border-radius: 16px; background: var(--card); box-shadow: 0 3px 12px rgba(0, 0, 0, .08); opacity: 1; transition: transform .42s var(--ease); will-change: transform; }
-.nav-btn { position: relative; z-index: 1; border: 0; background: transparent; color: var(--muted); border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; }
+.nav-glider { position: absolute; z-index: 0; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3); border-radius: var(--radius-card); background: var(--card); box-shadow: var(--shadow-soft); opacity: 1; transition: transform .42s var(--ease); will-change: transform; }
+.nav-btn { position: relative; z-index: 1; border: 0; background: transparent; color: var(--muted); border-radius: var(--radius-control); cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; }
 .nav-btn.active { color: var(--accent-text); }
 .nav-btn::after { content: attr(aria-label); font-size: 12px; font-weight: 520; line-height: 1.2; }
 .nav-btn.active::after { font-weight: 650; }
@@ -71,7 +71,7 @@
 .menu-drawer-title p { margin: 7px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
 .menu-drawer-section + .menu-drawer-section { margin-top: 18px; }
 .menu-drawer-section h3 { margin: 0 2px 8px; color: var(--muted); font-size: 12px; font-weight: 600; }
-.menu-drawer-action-list { overflow: hidden; border-radius: 16px; background: var(--paper); }
+.menu-drawer-action-list { overflow: hidden; border-radius: var(--radius-card); background: var(--paper); }
 .menu-item { width: 100%; min-height: 68px; padding: 10px 12px; border: 0; background: transparent; color: var(--ink); display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 11px; text-align: left; cursor: pointer; transition: background-color 120ms var(--ease), transform 100ms var(--ease); }
 .menu-item + .menu-item { border-top: .5px solid var(--line); }
 .menu-item:active { background: var(--control); transform: translateY(1px); }
@@ -83,12 +83,12 @@
 .menu-copy b { font-size: 15px; font-weight: 650; white-space: nowrap; }
 .menu-copy small { margin-top: 3px; overflow: hidden; color: var(--muted); font-size: 12px; font-weight: 450; white-space: nowrap; text-overflow: ellipsis; }
 .menu-copy [data-theme-value] { color: var(--ink); font-weight: 600; }
-.theme-switch { width: 42px; height: 24px; padding: 3px; border-radius: 12px; background: var(--control); transition: background-color 140ms var(--ease); }
+.theme-switch { width: 42px; height: 24px; padding: 3px; border-radius: var(--radius-control); background: var(--control); transition: background-color 140ms var(--ease); }
 .theme-switch span { display: block; width: 18px; height: 18px; border-radius: 50%; background: var(--card); box-shadow: var(--shadow-soft); transition: transform 140ms var(--ease); }
 .menu-item--theme[aria-pressed="true"] .theme-switch { background: var(--accent); }
 .menu-item--theme[aria-pressed="true"] .theme-switch span { transform: translateX(18px); }
 .menu-backup-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; overflow: visible; background: transparent; }
-.menu-item--backup { min-height: 82px; grid-template-columns: 36px minmax(0, 1fr); gap: 9px; border-radius: 16px; background: var(--paper); }
+.menu-item--backup { min-height: 82px; grid-template-columns: 36px minmax(0, 1fr); gap: 9px; border-radius: var(--radius-card); background: var(--paper); }
 .menu-item--backup + .menu-item--backup { border-top: 0; }
 .menu-item--backup .menu-icon { background: transparent; box-shadow: none; }
 .menu-item--backup .menu-copy b { font-size: 14px; }
@@ -106,7 +106,8 @@
   .course-edit-actions button:not(.primary):hover,
   .course-edit-clear:hover,
   .course-edit-delete:hover:not(:disabled),
-  .assignment-name-actions button:not(.primary):hover {
+  .assignment-name-actions button:not(.primary):hover,
+  .exam-name-actions button:not(.primary):hover {
     filter: brightness(0.97);
   }
   #saveStudentRecord:hover,
@@ -116,7 +117,9 @@
   .people-edit-actions .primary:hover,
   .course-edit-actions .primary:hover,
   .assignment-panel .assignment-add:hover,
-  .assignment-name-actions .primary:hover {
+  .exam-panel .exam-add:hover,
+  .assignment-name-actions .primary:hover,
+  .exam-name-actions .primary:hover {
     filter: brightness(1.05);
   }
 }
@@ -158,9 +161,7 @@
 }
 .student-record-panel .student-record-status,
 .course-grade-panel .student-record-status { margin: 7px 0 14px; color: var(--muted); font-size: 13px; }
-.student-record-panel button:not(.sheet-close),
-.course-grade-panel button:not(.sheet-close) { min-height: 44px; border: 0; border-radius: 12px; background: var(--control); color: var(--ink); cursor: pointer; }
-.student-score-display { padding: 14px 18px 12px; border-radius: 18px; background: var(--paper); }
+.student-score-display { padding: 14px 18px 12px; border-radius: var(--radius-popover); background: var(--paper); }
 .student-score-display > label { display: block; color: var(--muted); font-size: 11px; font-weight: 600; }
 .student-score-display > div { display: flex; align-items: baseline; justify-content: center; gap: 8px; margin-top: 4px; }
 .student-record-panel .student-score-display input,
@@ -169,14 +170,9 @@
 .student-score-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 10px; }
 .student-score-keypad button { min-height: 48px; background: var(--paper); font-size: 19px; font-weight: 560; font-variant-numeric: tabular-nums; }
 .student-score-keypad svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-.student-score-keypad button:active { color: var(--accent-text); background: var(--accent-soft); }
+.student-score-keypad button:active { filter: none; color: var(--accent-text); background: var(--accent-soft); }
 .student-record-panel #studentScoreError,
 .course-grade-panel #courseGradeError { min-height: 18px; margin: 5px 2px 0; color: var(--accent-text); font-size: 12px; }
-.student-record-actions { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; margin-top: 4px; }
-#cancelStudentRecord,
-.course-grade-panel .student-record-actions [data-action="clear"] { color: var(--muted); }
-#saveStudentRecord,
-.course-grade-panel .student-record-actions [data-action="save"] { color: var(--on-accent); background: var(--accent); font-weight: 650; }
 
 /* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4
  * Landscape score sheet: compact header + score left + keypad/actions right.
@@ -392,11 +388,6 @@
   will-change: transform;
   backface-visibility: hidden;
 }
-.confirm-panel .sheet-title { margin-bottom: 2px; }
-.confirm-panel p { margin: 6px 0 16px; color: var(--muted); font-size: 13px; }
-.confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.confirm-actions button { min-height: 44px; border: 0; border-radius: 12px; background: var(--control); color: var(--ink); cursor: pointer; }
-#acceptConfirm { color: var(--on-accent); background: var(--accent); }
 
 .people-pick-sheet,
 .people-edit-sheet {
@@ -476,7 +467,7 @@
   will-change: transform;
   backface-visibility: hidden;
 }
-.people-pick-panel .sheet-head { flex: none; margin-bottom: 12px; }
+.people-pick-panel .sheet-head { flex: none; }
 .people-pick-panel .sheet-title { min-width: 0; }
 .people-pick-count {
   margin: 4px 0 0;
@@ -493,8 +484,6 @@
   overscroll-behavior: contain;
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
-  border-radius: 16px;
-  background: var(--paper);
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -526,70 +515,10 @@
   box-shadow: inset 3px 0 0 var(--accent);
 }
 .people-pick-option:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; }
-.people-pick-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  flex: none;
-  margin-top: 10px;
-}
-.people-pick-actions button {
-  min-height: 44px;
-  border: 0;
-  border-radius: 12px;
-  background: var(--control);
-  color: var(--ink);
-  font-weight: 600;
-  cursor: pointer;
-}
-.people-pick-actions .primary { color: var(--on-accent); background: var(--accent); }
-.people-pick-actions [data-action="clear"]:disabled { opacity: .45; cursor: default; }
-.people-edit-panel .sheet-title { margin-bottom: 2px; }
-.people-edit-hint { margin: 6px 0 16px; color: var(--muted); font-size: 13px; }
-.people-edit-field { display: block; margin-bottom: 12px; }
-.people-edit-field span { display: block; margin: 0 2px 7px; color: var(--muted); font-size: 12px; font-weight: 600; }
-.people-edit-field input {
-  width: 100%;
-  height: 48px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: 12px;
-  outline: 0;
-  background: var(--control);
-  color: var(--ink);
-  touch-action: manipulation;
-  -webkit-user-select: text;
-  user-select: text;
-}
-.people-edit-field input:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
-.people-edit-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
-.people-edit-actions button {
-  min-height: 44px;
-  border: 0;
-  border-radius: 12px;
-  background: var(--control);
-  color: var(--ink);
-  cursor: pointer;
-  font-weight: 600;
-}
-.people-edit-actions .primary { color: var(--on-accent); background: var(--accent); }
-.people-edit-delete {
-  width: 100%;
-  min-height: 44px;
-  margin-top: 10px;
-  border: 0;
-  border-radius: 12px;
-  background: var(--control);
-  color: var(--accent-text);
-  font-weight: 600;
-  cursor: pointer;
-}
-.people-edit-delete:disabled { opacity: .45; cursor: default; color: var(--muted); }
 .people-pick-sheet.is-ime-host,
 .people-edit-sheet.is-ime-host {
   bottom: var(--ime-inset-bottom, 0px);
 }
-
 .course-slot-sheet,
 .course-period-sheet,
 .course-subject-sheet,
@@ -742,64 +671,6 @@
   will-change: transform;
   backface-visibility: hidden;
 }
-.course-edit-hint { margin: 6px 0 16px; color: var(--muted); font-size: 13px; }
-.course-edit-field { display: block; margin-bottom: 12px; }
-.course-edit-field span { display: block; margin: 0 2px 7px; color: var(--muted); font-size: 12px; font-weight: 600; }
-.course-edit-field input {
-  width: 100%;
-  height: 48px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: 12px;
-  outline: 0;
-  background: var(--control);
-  color: var(--ink);
-  touch-action: manipulation;
-  -webkit-user-select: text;
-  user-select: text;
-}
-.course-edit-field input:focus-visible,
-.course-edit-field textarea:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
-.course-highlight-field textarea {
-  width: 100%;
-  min-height: 112px;
-  padding: 12px 14px;
-  border: 0;
-  border-radius: 12px;
-  outline: 0;
-  resize: vertical;
-  background: var(--control);
-  color: var(--ink);
-  font: inherit;
-  line-height: 1.45;
-  touch-action: manipulation;
-  -webkit-user-select: text;
-  user-select: text;
-}
-.course-edit-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
-.course-edit-actions button {
-  min-height: 44px;
-  border: 0;
-  border-radius: 12px;
-  background: var(--control);
-  color: var(--ink);
-  cursor: pointer;
-  font-weight: 600;
-}
-.course-edit-actions .primary { color: var(--on-accent); background: var(--accent); }
-.course-edit-clear,
-.course-edit-delete {
-  width: 100%;
-  min-height: 44px;
-  margin-top: 10px;
-  border: 0;
-  border-radius: 12px;
-  background: var(--control);
-  color: var(--accent-text);
-  font-weight: 600;
-  cursor: pointer;
-}
-.course-edit-delete:disabled { opacity: .45; cursor: default; color: var(--muted); }
 .course-slot-sheet.is-ime-host,
 .course-period-sheet.is-ime-host,
 .course-subject-sheet.is-ime-host,
