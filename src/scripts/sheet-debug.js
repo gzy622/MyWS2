@@ -104,7 +104,7 @@ function ensurePanel() {
     right: '8px',
     left: 'auto',
     bottom: 'auto',
-    zIndex: '99999',
+    zIndex: 'var(--layer-debug)',
     display: 'none',
     flexDirection: 'column',
     alignItems: 'flex-end',

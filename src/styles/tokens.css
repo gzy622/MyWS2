@@ -1,3 +1,4 @@
+/* Hallmark · genre: modern-minimal · tone: focused · anchor hue: blue · macrostructure: Workbench Stack */
 :root {
   --ink: #000;
   --ink-soft: #191919;
@@ -11,6 +12,8 @@
   --accent: #d93632;
   --accent-text: #c62828;
   --accent-soft: #fde9e8;
+  --action-primary: #e2ecfa;
+  --action-primary-text: #24558a;
   --teal: #0c74fc;
   --success: #20a88c;
   --amber: #fca428;
@@ -32,6 +35,14 @@
   --shadow-sheet-up: 0 -6px 20px rgba(0, 0, 0, .1);
   --shadow-sheet-down: 0 16px 40px rgba(0, 0, 0, .18);
   --shadow-phone: 0 24px 72px rgba(0, 0, 0, .16);
+  /* Workbench Stack: one visual layer vocabulary for app chrome and overlays. */
+  --layer-chrome: 10;
+  --layer-popover: 20;
+  --layer-scrim: 30;
+  --layer-modal: 40;
+  --layer-nested: 50;
+  --layer-feedback: 60;
+  --layer-debug: 70;
   --scrim: rgba(0, 0, 0, .32);
   /* 二级浮层叠在一级遮罩之上，叠加后约等于 .40，避免整屏亮度突跳 */
   --scrim-stacked: rgba(0, 0, 0, .12);
@@ -65,6 +76,8 @@
   --accent: #d93833;
   --accent-text: #ff8a85;
   --accent-soft: #402423;
+  --action-primary: #24364f;
+  --action-primary-text: #aecbff;
   --teal: #6aa6ff;
   --success: #55c7aa;
   --amber: #ffc15c;

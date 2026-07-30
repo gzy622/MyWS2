@@ -991,12 +991,12 @@
 }
 
 .week-matrix-day.is-today {
-  color: var(--accent-text);
+  color: var(--ink);
   font-weight: 700;
 }
 
 .week-matrix-day.is-today::after {
-  background: var(--accent);
+  background: var(--teal);
 }
 
 .week-matrix-body {
@@ -1068,7 +1068,7 @@
 }
 
 .week-slot-cell.is-today-col {
-  background: color-mix(in srgb, var(--accent-soft) 38%, var(--control));
+  background: color-mix(in srgb, var(--teal) 4%, var(--control));
 }
 
 .week-slot-cell.is-filled {
@@ -1094,11 +1094,11 @@
 
 .week-slot-cell.is-filled.is-today-col {
   color: var(--ink);
-  background: var(--accent-soft);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, var(--line));
+  background: color-mix(in srgb, var(--teal) 5%, color-mix(in srgb, var(--paper) 55%, var(--card)));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--teal) 10%, var(--line));
 }
 
-/* Highlighted subjects: soft teal wash — quieter than today / accent. */
+/* Highlighted subjects: stronger than the quiet today-column wash. */
 .week-slot-cell.is-filled.is-highlight {
   color: var(--ink);
   background: color-mix(in srgb, var(--teal) 10%, var(--card));
@@ -1110,8 +1110,8 @@
 }
 
 .week-slot-cell.is-filled.is-highlight.is-today-col {
-  background: color-mix(in srgb, var(--teal) 12%, var(--accent-soft));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--teal) 22%, var(--accent));
+  background: color-mix(in srgb, var(--teal) 14%, var(--card));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--teal) 24%, var(--line));
 }
 
 .week-slot-cell.is-filled.is-highlight.is-today-col::before {
@@ -1128,7 +1128,7 @@
 }
 
 .week-slot-cell.is-filled.is-today-col:active {
-  background: color-mix(in srgb, var(--accent-soft) 70%, var(--control));
+  background: color-mix(in srgb, var(--teal) 8%, var(--control));
 }
 
 .week-period-label:active {

@@ -1,6 +1,6 @@
 .assignment-sheet {
   position: absolute;
-  z-index: 31;
+  z-index: var(--layer-modal);
   inset: 0;
   display: grid;
   place-items: start center;
@@ -117,7 +117,7 @@
 
 .assignment-select[aria-pressed="true"],
 .exam-select[aria-pressed="true"] {
-  color: var(--accent-text);
+  color: var(--teal);
 }
 
 .assignment-item small,
@@ -167,8 +167,8 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: var(--on-accent);
-  background: var(--accent);
+  color: var(--action-primary-text);
+  background: var(--action-primary);
   font-weight: 600;
 }
 
@@ -184,7 +184,7 @@
 
 .assignment-name-sheet {
   position: absolute;
-  z-index: 32;
+  z-index: var(--layer-nested);
   inset: 0;
   display: grid;
   place-items: start center;
@@ -249,7 +249,7 @@
 /* Exam list / name top sheets — shared catalog rules above; exam-only chrome below. */
 .exam-sheet {
   position: absolute;
-  z-index: 31;
+  z-index: var(--layer-modal);
   inset: 0;
   display: grid;
   place-items: start center;
@@ -315,8 +315,8 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: var(--on-accent);
-  background: var(--accent);
+  color: var(--action-primary-text);
+  background: var(--action-primary);
   font-weight: 600;
 }
 
@@ -332,7 +332,7 @@
 
 .exam-name-sheet {
   position: absolute;
-  z-index: 32;
+  z-index: var(--layer-nested);
   inset: 0;
   display: grid;
   place-items: start center;
@@ -397,7 +397,7 @@
 /* Student name editor over the roster fullscreen page. */
 .roster-student-name-sheet {
   position: absolute;
-  z-index: 32;
+  z-index: var(--layer-nested);
   inset: 0;
   display: grid;
   place-items: start center;

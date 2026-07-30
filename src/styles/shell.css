@@ -4,7 +4,7 @@
   box-shadow: var(--shadow-phone);
 }
 .topbar {
-  position: absolute; z-index: 4; inset: 0 0 auto; height: calc(var(--topbar-h) + env(safe-area-inset-top));
+  position: absolute; z-index: var(--layer-chrome); inset: 0 0 auto; height: calc(var(--topbar-h) + env(safe-area-inset-top));
   padding: max(0px, env(safe-area-inset-top)) var(--page-inset) 0;
   display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
   background: color-mix(in srgb, var(--paper) 94%, transparent);
@@ -133,7 +133,7 @@ button.topbar-title { cursor: default; }
 /* Full-screen roster editor (opened from settings; not a Sheet). */
 .roster-editor {
   position: absolute;
-  z-index: 30;
+  z-index: var(--layer-modal);
   inset: 0;
   pointer-events: none;
   visibility: hidden;
@@ -267,8 +267,8 @@ button.topbar-title { cursor: default; }
   padding: 9px 11px;
   border: 0;
   border-radius: var(--radius-control);
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--action-primary);
+  color: var(--action-primary-text);
   font-weight: 600;
   display: inline-flex;
   align-items: center;
