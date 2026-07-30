@@ -57,23 +57,24 @@ let people;
 let courses;
 let highlightSubjects;
 function closeOverlays(except) {
-  const keep = isOverlayId(except) ? except : null;
-  if (keep !== 'people-pick') people?.closePick({ restoreFocus: false });
-  if (keep !== 'people-edit') people?.closeEdit({ restoreFocus: false });
-  if (keep !== 'course-slot') courses?.closeSlot({ restoreFocus: false });
-  if (keep !== 'course-period') courses?.closePeriod({ restoreFocus: false });
-  if (keep !== 'course-subject') courses?.closeSubject({ restoreFocus: false });
-  if (keep !== 'course-grade') courses?.closeGrade({ restoreFocus: false });
-  if (keep !== 'course-stats') courses?.closeStats({ restoreFocus: false });
-  if (keep !== 'course-highlight') highlightSubjects?.close({ restoreFocus: false });
-  if (keep !== 'student-record') studentRecord?.close();
-  if (keep !== 'assignments') assignments?.close();
-  if (keep !== 'roster-editor' && keep !== 'confirm') rosterEditor?.close();
-  if (keep !== 'exams') exams?.close();
-  if (keep !== 'more') moreSheet?.close({ restoreFocus: false });
-  if (keep !== 'confirm') moreSheet?.closeConfirm({ restoreFocus: false });
-  if (keep !== 'font-size') fontSize.close();
-  if (keep !== 'drawer') closeDrawer({ restoreFocus: false });
+  const candidates = Array.isArray(except) ? except : [except];
+  const keep = new Set(candidates.filter(isOverlayId));
+  if (!keep.has('people-pick')) people?.closePick({ restoreFocus: false });
+  if (!keep.has('people-edit')) people?.closeEdit({ restoreFocus: false });
+  if (!keep.has('course-slot')) courses?.closeSlot({ restoreFocus: false });
+  if (!keep.has('course-period')) courses?.closePeriod({ restoreFocus: false });
+  if (!keep.has('course-subject')) courses?.closeSubject({ restoreFocus: false });
+  if (!keep.has('course-grade')) courses?.closeGrade({ restoreFocus: false });
+  if (!keep.has('course-stats')) courses?.closeStats({ restoreFocus: false });
+  if (!keep.has('course-highlight')) highlightSubjects?.close({ restoreFocus: false });
+  if (!keep.has('student-record')) studentRecord?.close();
+  if (!keep.has('assignments')) assignments?.close();
+  if (!keep.has('roster-editor') && !keep.has('confirm')) rosterEditor?.close();
+  if (!keep.has('exams')) exams?.close();
+  if (!keep.has('more')) moreSheet?.close({ restoreFocus: false });
+  if (!keep.has('confirm')) moreSheet?.closeConfirm({ restoreFocus: false });
+  if (!keep.has('font-size')) fontSize.close();
+  if (!keep.has('drawer')) closeDrawer({ restoreFocus: false });
 }
 highlightSubjects = initHighlightSubjects({
   showToast,
@@ -149,7 +150,7 @@ initDrawer({
   showToast,
   onBackupImport: () => backup.importBackup(),
   onBackupExport: () => backup.exportBackup(),
-  onEditRoster: () => rosterEditor.open(),
+  onEditRoster: (options) => rosterEditor.open({ ...options, preserveDrawer: true }),
 });
 initHorizontalGestures();
 createSystemBackController({

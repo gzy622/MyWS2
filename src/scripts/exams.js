@@ -45,7 +45,7 @@ export function initExams({ store, showToast, viewport, closeOthers, confirm, on
     owner: 'exams',
     appElement: elements.app,
     appClass: 'is-exam-name-ghost-guard',
-    hitSelector: '#nav, .nav-btn, .topbar, #menuButton, #moreButton, #topbarTitle, #gradeTable, .grade-score-cell, .grade-subject-head, .segment, .exam-sheet, .exam-item, .exam-select, .exam-add, .exam-action, .exam-name-sheet'
+    hitSelector: '#nav, .nav-btn, .topbar, #settingsButton, #moreButton, #topbarTitle, #gradeTable, .grade-score-cell, .grade-subject-head, .segment, .exam-sheet, .exam-item, .exam-select, .exam-add, .exam-action, .exam-name-sheet'
   });
 
   function notifyGradesUiChange() {

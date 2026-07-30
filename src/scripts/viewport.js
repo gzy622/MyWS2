@@ -15,8 +15,8 @@ const IME_HOST_SELECTOR = [
   '.course-highlight-sheet',
   '.roster-student-name-sheet',
   '.confirm-sheet',
-  '.menu-drawer',
   '.more-menu',
+  '.menu-drawer',
   '.font-size-popover'
 ].join(',');
 

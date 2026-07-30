@@ -62,13 +62,15 @@ export function initRosterEditor({ store, showToast, viewport, closeOthers, conf
   let nameReturnFocus = null;
   let nameSheet;
   let closing = false;
+  let editorReturnFocus = null;
+  let preserveDrawer = false;
 
   const nameGhostGuard = createGhostClickGuard({
     owner: 'roster-editor',
     appElement: elements.app,
     appClass: 'is-roster-student-name-ghost-guard',
     hitSelector: [
-      '#nav, .nav-btn, .topbar, #menuButton, #moreButton, #topbarTitle',
+      '#nav, .nav-btn, .topbar, #settingsButton, #moreButton, #topbarTitle',
       '#studentGrid, .student-card, #seatViewport, .seat-card, .letter-index',
       '.roster-editor, .roster-editor-item, .roster-editor-add, .roster-editor-back',
       '.roster-student-name-sheet'
@@ -84,6 +86,7 @@ export function initRosterEditor({ store, showToast, viewport, closeOthers, conf
     layer.classList.toggle('show', open);
     layer.setAttribute('aria-hidden', open ? 'false' : 'true');
     layer.inert = !open;
+    if (state.drawerOpen) elements.menuDrawer.inert = open;
     if (open) setActiveOverlay('roster-editor');
     else if (state.activeOverlay === 'roster-editor') setActiveOverlay(null);
     syncChromeInert();
@@ -112,7 +115,11 @@ export function initRosterEditor({ store, showToast, viewport, closeOthers, conf
     closing = true;
     syncChrome(false);
     closing = false;
-    blurIfSheetChrome();
+    const focus = editorReturnFocus;
+    editorReturnFocus = null;
+    preserveDrawer = false;
+    if (focus?.isConnected) focusSilently(focus);
+    else blurIfSheetChrome();
   }
 
   function openNameEditor({ mode, student = null, trigger }) {
@@ -197,6 +204,7 @@ export function initRosterEditor({ store, showToast, viewport, closeOthers, conf
           title: '删除学生',
           message: `将删除「${target.name}」及其作业记录、课程成绩与人员指派。`,
           returnFocus: event.currentTarget,
+          preserveDrawer,
           action: () => {
             if (!store.deleteStudent(target.id)) showToast?.('至少保留一名学生');
             else showToast?.(`已删除「${target.name}」`);
@@ -268,9 +276,11 @@ export function initRosterEditor({ store, showToast, viewport, closeOthers, conf
     }
   });
 
-  function open() {
+  function open({ preserveDrawer: keepDrawer = false, returnFocus = null } = {}) {
     if (isPresented()) return;
-    closeOthers?.('roster-editor');
+    preserveDrawer = keepDrawer;
+    editorReturnFocus = returnFocus;
+    closeOthers?.(keepDrawer ? ['roster-editor', 'drawer'] : 'roster-editor');
     syncChrome(true);
     render();
     focusSilently(backButton);

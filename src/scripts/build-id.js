@@ -1,5 +1,5 @@
 /**
- * Load content fingerprint shown in menu drawer corner / debug UI / data-twb-build.
+ * Load content fingerprint shown in the settings page / debug UI / data-twb-build.
  * LAN: /__build-id or /__health (live hash of PC source)
  * APK: /build-id.json (written by sync:www)
  */

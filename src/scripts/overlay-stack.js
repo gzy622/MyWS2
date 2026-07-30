@@ -46,7 +46,7 @@ const definitions = [
   [OVERLAY_IDS.studentRecord, 'sheet', 'modal'],
   [OVERLAY_IDS.more, 'sheet', 'modal'],
   [OVERLAY_IDS.fontSize, 'popover', 'popover'],
-  [OVERLAY_IDS.drawer, 'sheet', 'modal'],
+  [OVERLAY_IDS.drawer, 'fullscreen', 'modal'],
   [OVERLAY_IDS.seatLandscape, 'mode', 'chrome']
 ].map(([id, type, layer], closePriority) => Object.freeze({ id, type, layer, closePriority }));
 

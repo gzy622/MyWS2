@@ -83,8 +83,13 @@ button.topbar-title { cursor: default; }
   touch-action: none;
 }
 .topbar-action svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
-.topbar-menu { justify-content: flex-start; }
-.topbar-menu span { display: none; }
+.topbar-settings { justify-content: flex-start; }
+.topbar-settings svg { stroke-linejoin: round; }
+.topbar-settings:active,
+.topbar-settings[aria-expanded="true"] { color: var(--teal); }
+@media (hover: hover) and (pointer: fine) {
+  .topbar-settings:hover { color: var(--teal); }
+}
 .topbar-more { justify-self: end; justify-content: flex-end; }
 .topbar-more span { display: none; }
 .topbar-more circle { fill: none; stroke: currentColor; stroke-width: 2.2; }

@@ -1,71 +1,39 @@
 import { elements } from './dom.js';
 import { setDrawerOpen } from './state.js';
-import { createSheetController } from './sheet-drag.js';
-import { blurIfSheetChrome, focusSilently, syncChromeInert } from './focus.js';
+import { focusSilently, syncChromeInert } from './focus.js';
 import { refreshBuildId } from './build-id.js';
 
 let closeBusinessOverlays = () => {};
 let drawerTrigger = null;
-let sheet;
-
-function setDrawerScrimProgress(progress, mode = 'drag') {
-  if (mode === 'clear' || (progress == null && mode !== 'settle')) {
-    elements.scrim.style.removeProperty('opacity');
-    elements.app.classList.remove('drawer-revealing', 'drawer-settling');
-    return;
-  }
-
-  if (mode === 'settle') {
-    if (!elements.app.classList.contains('drawer-settling')) {
-      elements.app.classList.remove('drawer-revealing');
-      elements.app.classList.add('drawer-settling');
-    }
-  } else if (!elements.app.classList.contains('drawer-revealing')) {
-    elements.app.classList.add('drawer-revealing');
-    elements.app.classList.remove('drawer-settling');
-  }
-
-  if (progress != null) {
-    const token = (Math.round(progress * 1000) / 1000).toFixed(3);
-    // Inline opacity only — never set a CSS variable on .app (invalidates the tree).
-    if (elements.scrim.style.opacity !== token) elements.scrim.style.opacity = token;
-  }
-}
+let renderDrawerContent;
 
 function syncDrawerChrome(open) {
   setDrawerOpen(open);
   elements.app.classList.toggle('drawer-open', open);
   elements.menuDrawer.setAttribute('aria-hidden', open ? 'false' : 'true');
   elements.menuDrawer.inert = !open;
-  if (!open) {
-    elements.menuDrawer.classList.remove('dragging');
-    elements.menuDrawer.style.transform = '';
-    elements.menuDrawer.style.visibility = '';
-  }
+  elements.settingsButton.setAttribute('aria-expanded', String(open));
   syncChromeInert();
 }
 
 export function openDrawer() {
-  if (sheet?.isOpen() || sheet?.isActive()) return;
+  if (elements.app.classList.contains('drawer-open')) return;
   drawerTrigger = document.activeElement instanceof HTMLElement
     ? document.activeElement
-    : elements.menuButton;
-  sheet.openInstant();
+    : elements.settingsButton;
+  closeBusinessOverlays('drawer');
+  refreshBuildId();
+  renderDrawerContent?.();
+  syncDrawerChrome(true);
+  focusSilently(elements.closeMenuDrawerButton);
 }
 
 export function closeDrawer({ restoreFocus = true } = {}) {
-  if (!sheet?.isPresented() && !elements.app.classList.contains('drawer-open')) return;
-  if (!restoreFocus) drawerTrigger = null;
-  if (sheet?.isPresented()) sheet.closeInstant();
-  else {
-    syncDrawerChrome(false);
-    setDrawerScrimProgress(null, 'clear');
-    syncChromeInert();
-    const focus = drawerTrigger;
-    drawerTrigger = null;
-    if (restoreFocus && focus) focusSilently(focus);
-    else blurIfSheetChrome();
-  }
+  if (!elements.app.classList.contains('drawer-open')) return;
+  const focus = restoreFocus ? drawerTrigger : null;
+  drawerTrigger = null;
+  syncDrawerChrome(false);
+  if (focus) focusSilently(focus);
 }
 
 export function initDrawer({
@@ -85,8 +53,9 @@ export function initDrawer({
     themeButton?.setAttribute('aria-pressed', String(isDark));
     if (themeValue) themeValue.textContent = isDark ? '深色' : '浅色';
   }
+  renderDrawerContent = renderContent;
 
-  elements.menuButton.addEventListener('click', openDrawer);
+  elements.settingsButton.addEventListener('click', openDrawer);
   elements.closeMenuDrawerButton.addEventListener('click', () => closeDrawer());
   elements.menuItems.forEach((button) => button.addEventListener('click', () => {
     const action = button.dataset.action;
@@ -96,59 +65,11 @@ export function initDrawer({
       showToast?.(nextTheme === 'dark' ? '已切换到深色模式' : '已切换到浅色模式');
       return;
     }
-    if (action === 'edit-roster') { onEditRoster?.(); return; }
+    if (action === 'edit-roster') {
+      onEditRoster?.({ returnFocus: button });
+      return;
+    }
     if (action === 'backup-import') { onBackupImport?.(); return; }
     if (action === 'backup-export') { onBackupExport?.(); return; }
   }));
-  elements.scrim.addEventListener('click', () => {
-    if (sheet?.isActive()) return;
-    closeDrawer();
-  });
-
-  sheet = createSheetController({
-    id: 'drawer',
-    panel: elements.menuDrawer,
-    direction: 'from-bottom',
-    useShowClass: false,
-    scrollPorts: [elements.menuDrawer],
-    scrimElement: elements.scrim,
-    isOpen: () => elements.app.classList.contains('drawer-open') && !sheet?.isActive(),
-    onPrepare({ source } = {}) {
-      closeBusinessOverlays('drawer');
-      refreshBuildId();
-      renderContent();
-      if (source === 'gesture') {
-        drawerTrigger = null;
-      } else if (!drawerTrigger) {
-        drawerTrigger = document.activeElement instanceof HTMLElement
-          ? document.activeElement
-          : elements.menuButton;
-      }
-      syncDrawerChrome(true);
-    },
-    onOpened({ source } = {}) {
-      syncDrawerChrome(true);
-      setDrawerScrimProgress(null, 'clear');
-      if (source === 'control') {
-        focusSilently(elements.closeMenuDrawerButton);
-      }
-    },
-    onClosed() {
-      syncDrawerChrome(false);
-      setDrawerScrimProgress(null, 'clear');
-      const focus = drawerTrigger;
-      drawerTrigger = null;
-      if (focus) focusSilently(focus);
-      else blurIfSheetChrome();
-    },
-    setScrimProgress: setDrawerScrimProgress
-  });
-}
-
-export function getDrawerReveal() {
-  return sheet;
-}
-
-export function getDrawerSheet() {
-  return sheet;
 }

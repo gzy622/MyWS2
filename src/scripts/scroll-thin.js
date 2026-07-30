@@ -1,5 +1,5 @@
 /**
- * Soft auto-hide scrollbar chrome for `.scroll-thin`.
+ * Soft auto-hide scrollbar chrome for `.scroll-thin` Sheet lists and full-screen pages.
  *
  * Native `::-webkit-scrollbar*` cannot fade in WebView, so the thumb is a
  * custom overlay. It is mounted on the Sheet panel (or sticky inside a
@@ -15,8 +15,7 @@ const SHEET_LAYER_SELECTOR = [
   '.roster-student-name-sheet',
   '.roster-editor',
   '.people-pick-sheet',
-  '.people-edit-sheet',
-  '.menu-drawer'
+  '.people-edit-sheet'
 ].join(', ');
 
 const PANEL_SELECTOR = [
@@ -28,7 +27,7 @@ const PANEL_SELECTOR = [
   '.roster-editor-panel',
   '.people-pick-panel',
   '.people-edit-panel',
-  '.menu-drawer',
+  '.menu-drawer-body',
   '.sheet-panel'
 ].join(', ');
 

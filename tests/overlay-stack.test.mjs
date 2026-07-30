@@ -24,13 +24,15 @@ test('Sheet 栈是权威浮层定义的有序投影', () => {
     .map(({ id }) => id);
   assert.deepEqual(SHEET_STACK_ORDER, expected);
   assert.ok(SHEET_STACK_ORDER.includes(OVERLAY_IDS.more));
+  assert.ok(!SHEET_STACK_ORDER.includes(OVERLAY_IDS.drawer));
   assert.ok(!SHEET_STACK_ORDER.includes(OVERLAY_IDS.rosterEditor));
   assert.ok(!SHEET_STACK_ORDER.includes(OVERLAY_IDS.fontSize));
 });
 
 test('浮层查询只接受已注册 ID', () => {
   assert.equal(isOverlayId(OVERLAY_IDS.rosterEditor), true);
-  assert.equal(getOverlayMeta(OVERLAY_IDS.more)?.layer, 'modal');
+  assert.equal(getOverlayMeta(OVERLAY_IDS.more)?.type, 'sheet');
+  assert.equal(getOverlayMeta(OVERLAY_IDS.drawer)?.type, 'fullscreen');
   assert.equal(isOverlayId('unknown-overlay'), false);
   assert.equal(getOverlayMeta('unknown-overlay'), null);
 });

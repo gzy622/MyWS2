@@ -70,7 +70,7 @@ export function subscribeHighlightSubjects(listener) {
 }
 
 /**
- * Settings sheet + more-menu entry wiring helpers.
+ * Settings page contextual-action wiring helpers.
  */
 export function initHighlightSubjects({ showToast, viewport, closeOthers }) {
   restore();

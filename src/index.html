@@ -11,11 +11,11 @@
   <body>
     <main class="app" id="app" aria-label="教师工作台">
       <header class="topbar" aria-label="应用顶栏">
-        <button class="topbar-action topbar-menu" id="menuButton" aria-label="打开菜单">
+        <button class="topbar-action topbar-settings" id="settingsButton" type="button" aria-label="设置" aria-controls="menuDrawer" aria-expanded="false" aria-haspopup="dialog">
           <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 6.5h16M4 12h16M4 17.5h16" />
+            <circle cx="12" cy="12" r="3.2" />
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.09a2 2 0 0 1 1 1.73v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z" />
           </svg>
-          <span>菜单</span>
         </button>
         <button class="topbar-title" id="topbarTitle" type="button">
           <span class="topbar-title-core">
@@ -25,7 +25,7 @@
             </svg>
           </span>
         </button>
-        <button class="topbar-action topbar-more" id="moreButton" aria-label="更多功能" aria-controls="moreMenu" aria-expanded="false" aria-haspopup="dialog">
+        <button class="topbar-action topbar-more" id="moreButton" type="button" aria-label="更多功能" aria-controls="moreMenu" aria-expanded="false" aria-haspopup="dialog">
           <span>更多</span>
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="12" cy="7" r="2.2" /><circle cx="12" cy="17" r="2.2" />
@@ -211,35 +211,34 @@
           </div>
         </div>
       </section>
-      <div class="scrim" id="scrim"></div>
-      <aside class="menu-drawer" id="menuDrawer" aria-hidden="true" inert>
-        <div class="menu-drawer-handle-zone" id="menuDrawerHandle">
-          <div class="sheet-handle"></div>
+      <aside class="menu-drawer" id="menuDrawer" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" aria-hidden="true" inert>
+        <header class="menu-drawer-head">
+          <button class="menu-drawer-back" id="closeMenuDrawer" type="button" aria-label="返回主界面"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7" /></svg></button>
+          <h1 id="settingsTitle">设置</h1>
+          <span aria-hidden="true"></span>
+        </header>
+        <div class="menu-drawer-body scroll-thin">
+          <section class="menu-drawer-section" aria-labelledby="drawerAppearanceTitle">
+            <h2 id="drawerAppearanceTitle">外观</h2>
+            <div class="menu-drawer-action-list">
+              <button class="menu-item menu-item--theme" type="button" data-action="toggle-theme" aria-pressed="false"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" /><circle cx="12" cy="12" r="4" /></svg></span><span class="menu-copy"><b>深浅色切换</b><small>当前使用<span data-theme-value>浅色</span>模式</small></span><span class="theme-switch" aria-hidden="true"><span></span></span></button>
+            </div>
+          </section>
+          <section class="menu-drawer-section" aria-labelledby="drawerRosterTitle">
+            <h2 id="drawerRosterTitle">名单</h2>
+            <div class="menu-drawer-action-list">
+              <button class="menu-item" type="button" data-action="edit-roster"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg></span><span class="menu-copy"><b>学生名单</b><small>新增、改名或删除学生</small></span></button>
+            </div>
+          </section>
+          <section class="menu-drawer-section" aria-labelledby="drawerBackupTitle">
+            <h2 id="drawerBackupTitle">备份</h2>
+            <div class="menu-drawer-action-list menu-backup-grid">
+              <button class="menu-item menu-item--backup" type="button" data-action="backup-import"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></svg></span><span class="menu-copy"><b>导入备份</b><small>恢复本地数据</small></span></button>
+              <button class="menu-item menu-item--backup" type="button" data-action="backup-export"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 11l4 4 4-4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></svg></span><span class="menu-copy"><b>导出备份</b><small>保存到文件</small></span></button>
+            </div>
+          </section>
+          <div class="menu-drawer-foot" id="menuDrawerBuild" aria-label="内容指纹" hidden>—</div>
         </div>
-        <div class="menu-drawer-head sheet-head">
-          <div class="menu-drawer-title sheet-title"><span>工作台</span><h2>设置</h2><p>调整主题、名单与本地数据。</p></div>
-          <button class="sheet-close" id="closeMenuDrawer" aria-label="关闭菜单">×</button>
-        </div>
-        <section class="menu-drawer-section" aria-labelledby="drawerAppearanceTitle">
-          <h3 id="drawerAppearanceTitle">外观</h3>
-          <div class="menu-drawer-action-list">
-            <button class="menu-item menu-item--theme" type="button" data-action="toggle-theme" aria-pressed="false"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" /><circle cx="12" cy="12" r="4" /></svg></span><span class="menu-copy"><b>深浅色切换</b><small>当前使用<span data-theme-value>浅色</span>模式</small></span><span class="theme-switch" aria-hidden="true"><span></span></span></button>
-          </div>
-        </section>
-        <section class="menu-drawer-section" aria-labelledby="drawerRosterTitle">
-          <h3 id="drawerRosterTitle">名单</h3>
-          <div class="menu-drawer-action-list">
-            <button class="menu-item" type="button" data-action="edit-roster"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg></span><span class="menu-copy"><b>学生名单</b><small>新增、改名或删除学生</small></span></button>
-          </div>
-        </section>
-        <section class="menu-drawer-section" aria-labelledby="drawerBackupTitle">
-          <h3 id="drawerBackupTitle">备份</h3>
-          <div class="menu-drawer-action-list menu-backup-grid">
-            <button class="menu-item menu-item--backup" type="button" data-action="backup-import"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></svg></span><span class="menu-copy"><b>导入备份</b><small>恢复本地数据</small></span></button>
-            <button class="menu-item menu-item--backup" type="button" data-action="backup-export"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 11l4 4 4-4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></svg></span><span class="menu-copy"><b>导出备份</b><small>保存到文件</small></span></button>
-          </div>
-        </section>
-        <div class="menu-drawer-foot" id="menuDrawerBuild" aria-label="内容指纹" hidden>—</div>
       </aside>
       <div class="toast" id="toast" role="status"></div>
       <input type="file" id="backupFileInput" accept=".json,application/json" style="display:none" tabindex="-1" aria-hidden="true" />

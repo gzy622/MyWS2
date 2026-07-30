@@ -14,7 +14,7 @@ export function focusSilently(element) {
 /** Drop focus from chrome that should not keep a ring after a sheet gesture. */
 export function blurIfSheetChrome(element = document.activeElement) {
   if (!(element instanceof HTMLElement)) return;
-  if (element.closest?.('.topbar, .assignment-sheet, .assignment-name-sheet, .exam-sheet, .exam-name-sheet, .menu-drawer, .student-record-sheet, .people-pick-sheet, .people-edit-sheet, .course-slot-sheet, .course-period-sheet, .course-subject-sheet, .course-grade-sheet, .course-stats-sheet, .course-highlight-sheet, .confirm-sheet, .roster-editor, .roster-student-name-sheet')) {
+  if (element.closest?.('.topbar, .assignment-sheet, .assignment-name-sheet, .exam-sheet, .exam-name-sheet, .menu-drawer, .more-menu, .student-record-sheet, .people-pick-sheet, .people-edit-sheet, .course-slot-sheet, .course-period-sheet, .course-subject-sheet, .course-grade-sheet, .course-stats-sheet, .course-highlight-sheet, .confirm-sheet, .roster-editor, .roster-student-name-sheet')) {
     element.blur();
   }
 }

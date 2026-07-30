@@ -116,7 +116,6 @@ export function createSheetGestureBridge() {
 
     if (event.button > 0) return finish('blocked', 'button>0');
     if (state.fontSizePopoverOpen) return finish('blocked', 'fontSizePopover');
-    if (state.activeOverlay === 'more') return finish('blocked', 'more');
     if (isInteractiveField(event.target)) return finish('blocked', 'interactiveField');
     // No sheet claim — leave the pointer to the page gesture router (horizontal swipe).
     if (isCourseControl(event.target)) return finish(null, 'courseControl');
@@ -127,7 +126,14 @@ export function createSheetGestureBridge() {
       blurIfSheetChrome(document.activeElement);
     }
 
+    // Resolve the presented Sheet before generic overlay blocking. In particular,
+    // `activeOverlay === 'more'` identifies the Sheet that must receive this scrub.
     const top = getTopSheet();
+    // The roster editor may intentionally sit above the still-open settings page.
+    // Only nested roster/confirm Sheets may scrub through that full-screen layer.
+    if (state.rosterEditorOpen && !top) {
+      return finish('blocked', 'rosterEditor');
+    }
     if (top) {
       // Native-scroll ports keep browser momentum; do not claim the pointer.
       // Check before sheetAction — list rows are often <button>s (people-pick).
@@ -157,12 +163,7 @@ export function createSheetGestureBridge() {
       return finish('sheet', `scrub top=${top.id} scrollPort=${Boolean(scrollPort)}`);
     }
 
-    // Fullscreen roster editor is not a Sheet; do not open drawer/assignments from
-    // the underlying register grid while it covers the shell.
-    if (state.rosterEditorOpen) {
-      return finish('blocked', 'rosterEditor');
-    }
-
+    if (state.drawerOpen) return finish('blocked', 'settings');
     if (event.target.closest?.('.seat-viewport')) return finish('blocked', 'seatViewport');
 
     const gradeScrollPort = event.target instanceof Element
@@ -176,7 +177,7 @@ export function createSheetGestureBridge() {
         started: false,
         allowAssignments: isRegisterGrid(),
         allowExams,
-        allowDrawer: true,
+        allowMore: true,
         scrollPort: null,
         // Grades table: scroll first; open sheet only from a fresh edge swipe.
         gradeScrollPort: allowExams ? gradeScrollPort : null,
@@ -220,8 +221,8 @@ export function createSheetGestureBridge() {
           session.sheet = getSheet('assignments');
         } else if (deltaY > 0 && session.allowExams) {
           session.sheet = getSheet('exams');
-        } else if (deltaY < 0 && session.allowDrawer) {
-          session.sheet = getSheet('drawer');
+        } else if (deltaY < 0 && session.allowMore) {
+          session.sheet = getSheet('more');
         } else {
           return false;
         }
@@ -289,12 +290,12 @@ export function createSheetGestureBridge() {
     );
     const moved = Boolean(session.started);
     const scrollPort = session.scrollPort;
-    let openedDrawer = false;
+    let openedMore = false;
     let closedSheetId = null;
 
     if (wasSheet) {
       const shouldOpen = sheet.endDrag({ velocityY, cancelled });
-      if (shouldOpen && sheet.id === 'drawer') openedDrawer = true;
+      if (shouldOpen && sheet.id === 'more') openedMore = true;
       if (!shouldOpen && session.mode === 'scrub') closedSheetId = sheet.id;
     }
 
@@ -311,7 +312,7 @@ export function createSheetGestureBridge() {
 
     clear();
     if (wasScrollOnly && !cancelled) startScrollPortInertia(scrollPort, velocityY);
-    if (openedDrawer) haptic(Haptic.light);
+    if (openedMore) haptic(Haptic.light);
     return { handled: wasSheet, closedSheetId, moved };
   }
 

@@ -127,7 +127,7 @@ export function createSheetController({
   scrollPorts = [],
   /** Ports that keep browser-native pan/momentum instead of JS scrub scroll. */
   nativeScrollPorts = [],
-  /** Optional real scrim element (the drawer uses #scrim instead of a layer pseudo-element). */
+  /** Optional real scrim element for controllers that do not use a layer pseudo-element. */
   scrimElement = null,
   isOpen: isOpenFn = null,
   onPrepare,

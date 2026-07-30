@@ -478,7 +478,3 @@
 .font-size-popover.is-ime-host {
   bottom: var(--ime-inset-bottom, 0px);
 }
-
-.menu-drawer.is-ime-host {
-  bottom: max(16px, env(safe-area-inset-bottom), var(--ime-inset-bottom, 0px));
-}

@@ -46,7 +46,7 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
       elements.confirmSheet.classList.remove('show');
       elements.confirmSheet.setAttribute('aria-hidden', 'true');
       elements.confirmSheet.inert = true;
-      setActiveOverlay(null);
+      setActiveOverlay(state.rosterEditorOpen ? 'roster-editor' : null);
       syncChromeInert();
       const focus = confirmReturnFocus;
       confirmAction = null;
@@ -76,7 +76,7 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
     },
     onClosed() {
       elements.confirmSheet.setAttribute('aria-hidden', 'true');
-      setActiveOverlay(null);
+      setActiveOverlay(state.rosterEditorOpen ? 'roster-editor' : null);
       confirmAction = null;
       const focus = confirmReturnFocus;
       confirmReturnFocus = null;
@@ -85,10 +85,10 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
     }
   });
 
-  function confirm({ title, message, action, returnFocus }) {
+  function confirm({ title, message, action, returnFocus, preserveDrawer = false }) {
     close({ restoreFocus: false });
-    closeDrawer({ restoreFocus: false });
-    closeOthers?.('confirm');
+    if (!preserveDrawer) closeDrawer({ restoreFocus: false });
+    closeOthers?.(preserveDrawer ? ['confirm', 'drawer'] : 'confirm');
     elements.confirmTitle.textContent = title;
     elements.confirmMessage.textContent = message;
     confirmAction = action;
@@ -145,7 +145,15 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
     direction: 'from-bottom',
     scrollPorts: [elements.moreMenuPanel],
     isOpen: () => elements.moreMenu.classList.contains('show') && !moreSheet?.isActive(),
-    onPrepare() {
+    onPrepare({ source } = {}) {
+      if (source === 'gesture') {
+        closeOthers?.('more');
+        closeDrawer({ restoreFocus: false });
+        fontSize.close();
+        trigger = null;
+        restoreMoreFocus = false;
+        render();
+      }
       setActiveOverlay('more');
       elements.moreMenu.setAttribute('aria-hidden', 'false');
     },
@@ -168,14 +176,6 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
   });
 
   function open() {
-    if (
-      state.currentPage !== REGISTER_PAGE_INDEX
-      && state.currentPage !== PEOPLE_PAGE_INDEX
-      && state.currentPage !== COURSES_PAGE_INDEX
-    ) {
-      showToast('更多功能即将推出');
-      return;
-    }
     if (moreSheet.isPresented() || elements.moreMenu.classList.contains('show')) {
       close();
       return;

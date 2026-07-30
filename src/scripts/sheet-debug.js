@@ -1,6 +1,6 @@
 /**
  * On-demand runtime diagnostics. Off by default.
- * Enable: 长按左上角菜单约 0.5s  |  连点菜单 3 次  |  ?sheetDebug=1  |  ?courseDebug=1  |  __sheetDebug.toggle()
+ * Enable: 长按左上角设置约 0.5s  |  连点设置 3 次  |  ?sheetDebug=1  |  ?courseDebug=1  |  __sheetDebug.toggle()
  * Disable: 再次长按/连点  |  条上「×」  |  ?sheetDebug=0
  *
  * Default UI is a compact top-right chip (build + log count). Tap chip to expand logs.
@@ -340,7 +340,7 @@ function clearLongPress() {
 }
 
 function bindMenuToggle() {
-  const menu = document.getElementById('menuButton');
+  const menu = document.getElementById('settingsButton');
   if (!menu) return;
 
   menu.addEventListener('pointerdown', (event) => {
@@ -366,7 +366,7 @@ function bindMenuToggle() {
   }, true);
 
   document.addEventListener('pointerup', (event) => {
-    const hit = event.target?.closest?.('#menuButton');
+    const hit = event.target?.closest?.('#settingsButton');
     if (!hit) return;
     const now = Date.now();
     menuTaps = menuTaps.filter((t) => now - t < MENU_TAP_WINDOW_MS);

@@ -43,7 +43,7 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
     owner: 'assignments',
     appElement: elements.app,
     appClass: 'is-assignment-name-ghost-guard',
-    hitSelector: '#nav, .nav-btn, .topbar, #menuButton, #moreButton, #topbarTitle, #studentGrid, .student-card, #seatViewport, .seat-card, .letter-index, .assignment-sheet, .assignment-item, .assignment-select, .assignment-add, .assignment-action, .assignment-name-sheet'
+    hitSelector: '#nav, .nav-btn, .topbar, #settingsButton, #moreButton, #topbarTitle, #studentGrid, .student-card, #seatViewport, .seat-card, .letter-index, .assignment-sheet, .assignment-item, .assignment-select, .assignment-add, .assignment-action, .assignment-name-sheet'
   });
 
   function closeNameEditor({ restoreFocus = true } = {}) {
