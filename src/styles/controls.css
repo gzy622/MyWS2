@@ -639,9 +639,8 @@
 .course-slot-sheet-panel,
 .course-period-sheet-panel,
 .course-subject-sheet-panel,
-.course-stats-panel { touch-action: none; }
-/* Highlight keeps native pan-y so Android IME can focus the textarea. */
-.course-highlight-panel { touch-action: pan-y; }
+.course-stats-panel,
+.course-highlight-panel { touch-action: none; }
 .course-slot-sheet .sheet-handle-zone,
 .course-period-sheet .sheet-handle-zone,
 .course-subject-sheet .sheet-handle-zone,

@@ -68,12 +68,25 @@ npm run code:id
 
 手势阈值与点击保护的纯逻辑在 `src/scripts/gesture-policy.js`，对应 `tests/gesture-policy.test.mjs`；IME 立即操作与幽灵点击保护的 DOM 实现在 `src/scripts/pointer-guards.js`。
 
-PowerShell 7 中仅查看本应用的结构化调试输出：
+### 只读实时结构化日志快速入口
+
+适用于已获当前任务授权的 Android 运行时排查：设备已通过 ADB 连接、Debug App 已打开，且右上角显示 `build <内容指纹> · <记录数>`。先用 `adb devices -l` 确认设备；同一设备可能同时出现 IP 与 mDNS 两条记录，必须选定一个序列号并在后续命令中始终显式传给 `-s`。
 
 ```powershell
-$deviceSerial = '192.168.1.123:37803'
-adb -s $deviceSerial logcat -v threadtime Capacitor/Console:I '*:S' | Select-String -SimpleMatch '[twb-debug]'
+adb devices -l
+$twbDeviceSerial = '<设备序列号>'
+$twbAppPid = (adb -s $twbDeviceSerial shell pidof com.teacherworkbench.app).Trim()
+
+# 持续读取当前 App 进程的新日志；按 Ctrl+C 停止。
+adb -s $twbDeviceSerial logcat -v threadtime --pid $twbAppPid Capacitor/Console:I '*:S' |
+  Select-String -SimpleMatch '[twb-debug]'
+
+# 复现已经完成时，读取当前 App 进程缓冲区内的已有日志。
+adb -s $twbDeviceSerial logcat -d -v threadtime --pid $twbAppPid |
+  Select-String -SimpleMatch '[twb-debug]'
 ```
+
+看到以 `[twb-debug]` 开头、且 JSON 中 `source` 为 `teacher-workbench` 的记录，即表示读取链路有效。该入口只读取本项目结构化日志，不代表已执行构建、部署或交互验收；App 未运行、诊断条未开启或任务未授权 Android 调试时不适用。不要执行 `adb logcat -c`，以免清空整台设备的日志缓冲区。完整真机排查步骤见本页「真机运行时调试（智能体执行清单）」。
 
 ## 4. 单文件导出
 
