@@ -3,6 +3,7 @@
 /node_modules/
 .idea/
 .cursor/
+.reasonix/
 *.iml
 .gradle/
 local.properties
