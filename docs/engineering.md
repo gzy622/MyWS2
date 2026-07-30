@@ -223,6 +223,7 @@
 - 常量使用语义化名称；手势阈值不散落为魔法数字。
 - 事件监听只在初始化函数中注册一次。
 - 所有手势结束路径（up、cancel、lost capture、卸载）恢复临时视觉状态。
+- 与切页 / Sheet 跟手共享指针的滚动面须 `touch-action: none` 并由脚本滚，禁止 `pan-x`/`pan-y`（否则浏览器中途 `pointercancel`；详见 `interaction.md` §7「防复发」）。
 - Store 和 UI 状态必须经过各自边界函数修改。
 - CSS 优先使用 token；同一新值重复出现 3 次以上时评估提取变量。
 - 不留下无条件 `console.log`、调试边框、注释掉的大段代码或无用 selector。

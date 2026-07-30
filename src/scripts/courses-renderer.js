@@ -142,16 +142,6 @@ function renderWeekStrip({ periods, scheduleSlots }, matchesHighlight) {
   elements.weekStrip.replaceChildren(root);
 }
 
-function syncGradeScrollTouchAction(scroller) {
-  if (!scroller?.isConnected) return;
-  const canX = scroller.scrollWidth > scroller.clientWidth + 1;
-  const canY = scroller.scrollHeight > scroller.clientHeight + 1;
-  if (canX && canY) scroller.style.touchAction = 'pan-x pan-y';
-  else if (canX) scroller.style.touchAction = 'pan-x';
-  else if (canY) scroller.style.touchAction = 'pan-y';
-  else scroller.style.touchAction = 'none';
-}
-
 function renderGradeTable({ students, subjects, courseGrades }, examId) {
   const grades = gradeMap(courseGrades, examId);
   const sort = state.gradeSort
@@ -225,8 +215,6 @@ function renderGradeTable({ students, subjects, courseGrades }, examId) {
 
   scroller.append(table);
   elements.gradeTable.replaceChildren(scroller);
-  syncGradeScrollTouchAction(scroller);
-  requestAnimationFrame(() => syncGradeScrollTouchAction(scroller));
 }
 
 export function initCoursesRenderer(store, highlightSubjects) {
@@ -236,12 +224,6 @@ export function initCoursesRenderer(store, highlightSubjects) {
     if (examId != null) renderGradeTable(snapshot, examId);
     else elements.gradeTable.replaceChildren();
   }
-
-  const gradeResizeObserver = new ResizeObserver(() => {
-    const scroller = elements.gradeTable.querySelector('.grade-scroll');
-    if (scroller) syncGradeScrollTouchAction(scroller);
-  });
-  gradeResizeObserver.observe(elements.gradeTable);
 
   store.subscribe(render);
   highlightSubjects?.subscribe?.(render);

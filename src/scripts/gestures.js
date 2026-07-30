@@ -8,7 +8,13 @@ import {
   getSegmentGliderWidth
 } from './navigation.js';
 import { haptic, Haptic } from './haptics.js';
-import { finishClosingSheets, getTopSheet, isAnySheetDragging } from './sheet-drag.js';
+import {
+  applyScrollPortDelta,
+  finishClosingSheets,
+  getTopSheet,
+  isAnySheetDragging,
+  startScrollPortInertia
+} from './sheet-drag.js';
 import { createSheetGestureBridge } from './sheet-gestures.js';
 import {
   describeDebugTarget,
@@ -56,11 +62,24 @@ function canScrollY(element) {
   return Boolean(element) && element.scrollHeight > element.clientHeight + 1;
 }
 
-/** Grade table: horizontal drag scrolls the port when it overflows. */
+/** Grade table: JS owns dual-axis scroll when the port overflows horizontally. */
 function findHorizontalScrollPort(target) {
   if (!(target instanceof Element)) return null;
   const port = target.closest('.grade-scroll');
   return canScrollX(port) ? port : null;
+}
+
+/**
+ * True when a grades-table swipe starts already at the horizontal edge in the
+ * swipe direction — only then may the gesture page-swipe (deferred edge handoff).
+ */
+function startedAtHorizontalPageEdge(port, startScrollLeft, deltaX) {
+  if (!port) return false;
+  const max = port.scrollWidth - port.clientWidth;
+  if (max <= 1) return true;
+  if (deltaX > 0) return startScrollLeft <= 1;
+  if (deltaX < 0) return startScrollLeft >= max - 1;
+  return false;
 }
 
 /**
@@ -80,8 +99,14 @@ function findVerticalScrollPort(target, pageElement) {
   return pageElement;
 }
 
-function isNativeGradeScroller(element) {
+function isGradeScroller(element) {
   return Boolean(element?.classList?.contains('grade-scroll'));
+}
+
+function applyHorizontalScrollDelta(port, deltaXFromStart, startScrollLeft) {
+  if (!port) return;
+  const max = Math.max(0, port.scrollWidth - port.clientWidth);
+  port.scrollLeft = Math.min(max, Math.max(0, startScrollLeft - deltaXFromStart));
 }
 
 export function initHorizontalGestures() {
@@ -105,9 +130,8 @@ export function initHorizontalGestures() {
   let startScrollTop = 0;
   let horizontalScrollPort = null;
   let startHorizontalScrollLeft = 0;
-  /** Native overflow ports: skip pointer capture / preventDefault so inertia works. */
-  let nativeHorizontal = false;
-  let nativeVertical = false;
+  /** True once this pointer moved a grades-table scroll port (for release inertia). */
+  let gradePortScrolled = false;
   let isNav = false;
   let isSegments = false;
   let blockGestureClick = false;
@@ -207,10 +231,7 @@ export function initHorizontalGestures() {
       ? findHorizontalScrollPort(event.target)
       : null;
     startHorizontalScrollLeft = horizontalScrollPort?.scrollLeft || 0;
-    nativeHorizontal = Boolean(horizontalScrollPort);
-    nativeVertical = isNativeGradeScroller(scrollPage)
-      && event.target instanceof Element
-      && scrollPage.contains(event.target);
+    gradePortScrolled = false;
     startPage = state.currentPage;
     startSubview = state.subviews[state.currentPage];
     gestureTarget = describeDebugTarget(event.target);
@@ -243,12 +264,19 @@ export function initHorizontalGestures() {
 
     if (!axis && Math.hypot(deltaX, deltaY) > AXIS_LOCK_DISTANCE) {
       axis = Math.abs(deltaX) >= Math.abs(deltaY) ? 'x' : 'y';
+      // Grades table: scroll while it can; page-swipe only from a fresh edge swipe.
+      if (
+        axis === 'x'
+        && horizontalScrollPort
+        && startedAtHorizontalPageEdge(horizontalScrollPort, startHorizontalScrollLeft, deltaX)
+      ) {
+        horizontalScrollPort = null;
+      }
       // Sheet claim: capture only after list scroll / sheet drag actually starts.
       // Capturing on every axis lock makes Android WebView omit later clicks.
-      // Native grade/table/tabs scroll must NOT capture — pointer capture kills inertia.
-      const useNativeOverflow = (axis === 'x' && nativeHorizontal)
-        || (axis === 'y' && nativeVertical);
-      if (claim !== 'sheet' && !useNativeOverflow) {
+      // Grades table uses touch-action:none + JS scroll — capture so the browser
+      // cannot pointercancel mid-pan (pan-* on the port caused recurring interrupts).
+      if (claim !== 'sheet' || axis === 'x' || isGradeScroller(scrollPage)) {
         element.setPointerCapture?.(pointerId);
       }
       if (axis === 'x' && !isSegments && !horizontalScrollPort && claim !== 'sheet') {
@@ -262,7 +290,7 @@ export function initHorizontalGestures() {
           velocityX: Number(velocityX.toFixed(3)),
           velocityY: Number(velocityY.toFixed(3)),
           claim: claim ?? 'pass',
-          nativeOverflow: useNativeOverflow
+          gradeScroll: isGradeScroller(scrollPage) || Boolean(horizontalScrollPort)
         });
       }
     }
@@ -286,12 +314,13 @@ export function initHorizontalGestures() {
         event.preventDefault();
         return;
       }
-      if (nativeVertical) {
-        // Browser owns grades dual-axis scroll (sticky + inertia).
-        return;
-      }
       if (scrollPage) {
-        scrollPage.scrollTop = startScrollTop - deltaY;
+        if (isGradeScroller(scrollPage)) {
+          applyScrollPortDelta(scrollPage, deltaY, startScrollTop);
+          gradePortScrolled = true;
+        } else {
+          scrollPage.scrollTop = startScrollTop - deltaY;
+        }
       }
       event.preventDefault();
       return;
@@ -302,7 +331,9 @@ export function initHorizontalGestures() {
     if (getTopSheet()) return;
 
     if (horizontalScrollPort) {
-      // Browser owns table/tabs horizontal overflow; do not page-swipe.
+      applyHorizontalScrollDelta(horizontalScrollPort, deltaX, startHorizontalScrollLeft);
+      gradePortScrolled = true;
+      event.preventDefault();
       return;
     }
 
@@ -370,7 +401,7 @@ export function initHorizontalGestures() {
       : null;
 
     // Settle page/segment swipes from the current delta even on pointercancel.
-    // Android may end a fit-width grade-table pan with cancel after pan-x claims x.
+    // Grades-table pans used to end in cancel when pan-* fought JS page swipe.
     if (!handledSheet && axis === 'x' && !horizontalScrollPort && !getTopSheet()) {
       const distanceThreshold = Math.min(56, elements.viewport.clientWidth * 0.14);
       if (event.timeStamp - sampleTime > VELOCITY_STALE_MS) velocityX = 0;
@@ -437,14 +468,24 @@ export function initHorizontalGestures() {
 
     isNav = false;
     isSegments = false;
+    const scrolledGradePort = gradePortScrolled && isGradeScroller(scrollPage) ? scrollPage : null;
+    const shouldCoastGrade = Boolean(
+      scrolledGradePort && axis === 'y' && !handledSheet && !cancelled
+    );
+    const gradeVelocityY = shouldCoastGrade
+      ? (event.timeStamp - sampleTime > VELOCITY_STALE_MS ? 0 : readTrailVelocity('y'))
+      : 0;
     horizontalScrollPort = null;
     startHorizontalScrollLeft = 0;
-    nativeHorizontal = false;
-    nativeVertical = false;
+    gradePortScrolled = false;
     claim = null;
     postSheetCloseTapControl = null;
     const tapControl = immediateSheetControl || immediatePostSheetControl;
     sheetTapControl = null;
+
+    if (shouldCoastGrade) {
+      startScrollPortInertia(scrolledGradePort, gradeVelocityY);
+    }
 
     if (tapControl) {
       if (isSheetDebugEnabled()) {

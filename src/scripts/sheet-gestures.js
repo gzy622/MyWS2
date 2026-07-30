@@ -17,6 +17,9 @@ const GRID_SUBVIEW_INDEX = 0;
 const COURSE_PAGE_INDEX = 2;
 const GRADES_SUBVIEW_INDEX = 1;
 
+/** Top list sheets: edge handoff to dismiss only after a new pointer session. */
+const DEFER_DISMISS_ON_SCROLL_EDGE = new Set(['assignments', 'exams']);
+
 function isRegisterGrid() {
   return state.currentPage === REGISTER_PAGE_INDEX
     && state.subviews[REGISTER_PAGE_INDEX] === GRID_SUBVIEW_INDEX;
@@ -37,15 +40,15 @@ function isInteractiveField(target) {
 }
 
 /**
- * Course-page controls that open editors.
+ * Week-matrix controls that open editors.
  * Must not claim Sheet Y-scrub (that swallowed taps / IME), but must NOT return
  * `blocked` either — otherwise horizontal page swipe never starts on the matrix.
+ * Grade score/subject cells live in `.grade-scroll` and intentionally claim open
+ * gestures so top-edge / bottom-edge swipes can reveal exams / drawer.
  */
 function isCourseControl(target) {
   if (!(target instanceof Element)) return false;
-  return Boolean(target.closest(
-    '.week-slot-cell, .week-period-label, .grade-score-cell, .grade-subject-head'
-  ));
+  return Boolean(target.closest('.week-slot-cell, .week-period-label'));
 }
 
 /** Buttons/links inside the presented sheet — scrubbing them swallows the click (Save appears dead). */
@@ -64,6 +67,10 @@ function isSheetActionControl(target, sheet) {
  */
 function isDismissDeltaY(sheet, deltaY) {
   return sheet?.getDirection?.() === 'from-top' ? deltaY < 0 : deltaY > 0;
+}
+
+function defersDismissOnScrollEdge(sheet) {
+  return DEFER_DISMISS_ON_SCROLL_EDGE.has(sheet?.id);
 }
 
 /**
@@ -150,6 +157,7 @@ export function createSheetGestureBridge() {
         scrollPort,
         startScrollTop: scrollPort?.scrollTop ?? 0,
         scrollLocked: false,
+        scrolledInPort: false,
         sheetLocked: false,
         sheetStartClientY: 0
       };
@@ -158,8 +166,10 @@ export function createSheetGestureBridge() {
 
     if (event.target.closest?.('.seat-viewport')) return finish('blocked', 'seatViewport');
 
-    const onGradeScroll = Boolean(event.target.closest?.('.grade-scroll'));
-    const allowExams = isCourseGrades() && !onGradeScroll;
+    const gradeScrollPort = event.target instanceof Element
+      ? event.target.closest('.grade-scroll')
+      : null;
+    const allowExams = isCourseGrades();
     if (isRegisterGrid() || allowExams || event.target.closest?.('#nav')) {
       session = {
         sheet: null,
@@ -169,12 +179,17 @@ export function createSheetGestureBridge() {
         allowExams,
         allowDrawer: true,
         scrollPort: null,
+        // Grades table: scroll first; open sheet only from a fresh edge swipe.
+        gradeScrollPort: allowExams ? gradeScrollPort : null,
         startScrollTop: 0,
         scrollLocked: false,
+        scrolledInPort: false,
         sheetLocked: false,
         sheetStartClientY: 0
       };
-      return finish('sheet', 'open-from-grid/grades/nav');
+      return finish('sheet', gradeScrollPort
+        ? 'open-from-grades-scroll'
+        : 'open-from-grid/grades/nav');
     }
 
     return finish(null, 'no-claim');
@@ -194,6 +209,14 @@ export function createSheetGestureBridge() {
 
     if (session.mode === 'open') {
       if (!session.started) {
+        // Grades list: prefer table scroll; same-gesture edge overscroll does not open.
+        if (session.gradeScrollPort) {
+          if (scrollPortCanScroll(session.gradeScrollPort, deltaY)) {
+            session.scrolledInPort = true;
+            return false;
+          }
+          if (session.scrolledInPort) return false;
+        }
         if (deltaY > 0 && session.allowAssignments) {
           session.sheet = getSheet('assignments');
         } else if (deltaY > 0 && session.allowExams) {
@@ -231,13 +254,17 @@ export function createSheetGestureBridge() {
 
     if (session.scrollLocked && session.scrollPort) {
       const unused = applyScrollPortDelta(session.scrollPort, deltaY, session.startScrollTop);
+      if (Math.abs(deltaY - unused) > 0.5) session.scrolledInPort = true;
       if (
         Math.abs(unused) > 0.5
         && !scrollPortCanScroll(session.scrollPort, deltaY)
         && shouldLockSheetFromScrub(sheet, deltaY)
       ) {
-        lockSheet(clientY);
-        session.sheet.moveByDeltaY(0);
+        // List scrolled in this gesture — require a fresh swipe to dismiss.
+        if (!(session.scrolledInPort && defersDismissOnScrollEdge(sheet))) {
+          lockSheet(clientY);
+          session.sheet.moveByDeltaY(0);
+        }
       }
       return true;
     }

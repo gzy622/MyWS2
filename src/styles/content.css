@@ -616,9 +616,11 @@
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  /* Dual-axis native scroll so sticky head/name work in one port; synced in renderer. */
+  /* Dual-axis sticky port; JS owns scroll (see interaction.md §7). Do NOT use
+     pan-x/pan-y here — browser pan fights page/sheet gestures and pointercancel
+     mid-drag (recurring grades-table interrupt). */
   padding: 0 16px;
-  touch-action: pan-x pan-y;
+  touch-action: none;
   scrollbar-width: none;
 }
 .grade-scroll::-webkit-scrollbar { display: none; }
