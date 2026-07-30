@@ -889,12 +889,10 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     showToast(ok ? '已清除成绩' : '当前没有成绩');
     closeGrade();
   }, 'grade clear', armGridClickSuppress);
-  gradeKeypad.addEventListener('pointerdown', (event) => {
+  gradeKeypad.addEventListener('click', (event) => {
     const key = event.target.closest('[data-score-key]')?.dataset.scoreKey;
-    if (!key) return;
-    event.stopPropagation();
-    updateGradeDraft(key);
-  }, { capture: true });
+    if (key) updateGradeDraft(key);
+  });
   gradeLayer.addEventListener('click', (event) => {
     if (event.target === gradeLayer && !gradeSheet.isActive()) closeGrade();
   });

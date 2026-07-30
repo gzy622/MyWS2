@@ -100,7 +100,6 @@ export function initStudentRecord({ store, showToast, viewport, closeOthers }) {
     elements.studentScoreInput.focus({ preventScroll: true });
   }
 
-  elements.closeStudentRecordButton.addEventListener('click', close);
   elements.studentRecordSheet.addEventListener('click', (event) => {
     if (event.target === elements.studentRecordSheet && !sheet.isActive()) close();
   });
@@ -108,16 +107,7 @@ export function initStudentRecord({ store, showToast, viewport, closeOthers }) {
     const key = event.target.closest('[data-score-key]')?.dataset.scoreKey;
     if (key) updateScoreDraft(key);
   });
-  elements.clearStudentRecordButton.addEventListener('click', () => {
-    const changed = store.clearStudentRecord(studentId);
-    logLogicDebug('student record cleared', {
-      assignmentId: store.getCurrentAssignment().id,
-      studentId,
-      changed
-    });
-    if (changed) showToast('已清除记录');
-    close();
-  });
+  elements.cancelStudentRecordButton.addEventListener('click', close);
   elements.saveStudentRecordButton.addEventListener('click', () => {
     const result = store.setScore(studentId, elements.studentScoreInput.value);
     if (result === 'invalid') {

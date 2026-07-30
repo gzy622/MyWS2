@@ -186,7 +186,7 @@ npm run deploy:apk -- -Serial <序列号> -Fresh
 
    - `gesture`：Sheet 归属、按下、轴锁定、释放、位移、速度与落点；不逐帧记录 `pointermove`。
    - `motion`：Sheet 进入落位时的实际 CSS `transition-property`、时长、缓动和 reduced-motion 状态。
-   - `logic`：网格/座位登记、学生记录打开、清除与保存的结果，只保留作业和学生 ID，不含姓名、分数值或输入原文。
+   - `logic`：网格/座位登记、学生记录打开与保存的结果，只保留作业和学生 ID，不含姓名、分数值或输入原文。
    - `runtime`：未捕获异常与未处理的 Promise 拒绝。
 
 7. 收尾时保留必要的截图、结构化日志片段和复现步骤；不执行 `adb logcat -c`（会清空整台设备的日志缓冲区）。若不需要继续观察，关闭 App 内诊断条，避免它遮挡顶栏。
