@@ -104,6 +104,33 @@ test('释放激活：Sheet 关闭后底层短触可激活，拖动或取消则�
   assert.equal(cancelled.clearReason, 'pointercancel');
 });
 
+test('释放激活：横滑切页后的首次控件短触直接激活', () => {
+  const tap = resolvePointerRelease({
+    cancelled: false,
+    wasGesture: false,
+    sheetMoved: false,
+    handledSheet: false,
+    claim: null,
+    hasSheetTapControl: false,
+    hasPostSheetCloseControl: false,
+    hasPostPageSwipeControl: true
+  });
+  assert.equal(tap.activationSource, 'post-page-swipe-tap');
+  assert.equal(tap.armClickSuppress, true);
+
+  const afterDrag = resolvePointerRelease({
+    cancelled: false,
+    wasGesture: true,
+    sheetMoved: false,
+    handledSheet: false,
+    claim: null,
+    hasSheetTapControl: false,
+    hasPostSheetCloseControl: false,
+    hasPostPageSwipeControl: true
+  });
+  assert.equal(afterDrag.activationSource, null);
+});
+
 test('释放激活：Sheet 已跟手移动时不把短触当按钮激活', () => {
   const result = resolvePointerRelease({
     cancelled: false,

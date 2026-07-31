@@ -53,15 +53,15 @@ export function cancelActivePointerGesture(reason = 'external') {
 }
 
 /**
- * Controls activated by the gesture router when it claimed the pointer as Sheet.
+ * Controls the gesture router may activate directly after a claimed gesture.
  * Do not rely on browser click after touch-action:none + optional pointer capture.
  */
-const SHEET_TAP_CONTROL_SELECTOR =
+const GESTURE_TAP_CONTROL_SELECTOR =
   'button, a[href], [role="button"], .student-score-keypad [data-score-key]';
 
-function findSheetTapControl(target) {
+function findGestureTapControl(target) {
   if (!(target instanceof Element)) return null;
-  const control = target.closest(SHEET_TAP_CONTROL_SELECTOR);
+  const control = target.closest(GESTURE_TAP_CONTROL_SELECTOR);
   if (!control || control.disabled) return null;
   return control;
 }
@@ -157,6 +157,9 @@ export function initHorizontalGestures() {
   /** The first deliberate contact after a gesture-dismiss must not rely on a WebView click. */
   let postSheetCloseTapPending = false;
   let postSheetCloseTapControl = null;
+  /** Android WebView may omit click for the first control tap after a captured page swipe. */
+  let postPageSwipeTapPending = false;
+  let postPageSwipeTapControl = null;
   /** Control under pointerdown when claim === 'sheet'; activated on brief tap. */
   let sheetTapControl = null;
   let startPage = 0;
@@ -191,6 +194,13 @@ export function initHorizontalGestures() {
     clickSuppressTimer = window.setTimeout(() => clearClickSuppression('timeout'), CLICK_SUPPRESS_MS);
   };
 
+  const clearDeferredTapActivation = () => {
+    postSheetCloseTapPending = false;
+    postSheetCloseTapControl = null;
+    postPageSwipeTapPending = false;
+    postPageSwipeTapControl = null;
+  };
+
   function pushVelocitySample(timeStamp, x, y) {
     velocityTrail.push({ t: timeStamp, x, y });
     const oldest = timeStamp - VELOCITY_WINDOW_MS;
@@ -214,12 +224,15 @@ export function initHorizontalGestures() {
   element.addEventListener('pointerdown', (event) => {
     const followsSheetClose = postSheetCloseTapPending;
     postSheetCloseTapPending = false;
-    postSheetCloseTapControl = followsSheetClose ? findSheetTapControl(event.target) : null;
+    postSheetCloseTapControl = followsSheetClose ? findGestureTapControl(event.target) : null;
+    const followsPageSwipe = postPageSwipeTapPending;
+    postPageSwipeTapPending = false;
+    postPageSwipeTapControl = followsPageSwipe ? findGestureTapControl(event.target) : null;
     // Closing overlays already pass hit-testing through. Complete their visual/state
     // lifecycle now so this pointer is routed against the underlying UI.
     finishClosingSheets();
     claim = sheets.claimPointerDown(event);
-    sheetTapControl = claim === 'sheet' ? findSheetTapControl(event.target) : null;
+    sheetTapControl = claim === 'sheet' ? findGestureTapControl(event.target) : null;
     if (claim === 'blocked') return;
 
     // Horizontal page gestures only when no vertical sheet is presented.
@@ -433,7 +446,8 @@ export function initHorizontalGestures() {
       handledSheet,
       claim: endedClaim,
       hasSheetTapControl: Boolean(sheetTapControl),
-      hasPostSheetCloseControl: Boolean(postSheetCloseTapControl)
+      hasPostSheetCloseControl: Boolean(postSheetCloseTapControl),
+      hasPostPageSwipeControl: Boolean(postPageSwipeTapControl)
     });
     // Sheet claim owns the pointer: brief taps activate here; do not wait for browser click.
     const immediateSheetControl = release.activationSource === 'sheet-tap'
@@ -441,6 +455,9 @@ export function initHorizontalGestures() {
       : null;
     const immediatePostSheetControl = release.activationSource === 'post-sheet-close-tap'
       ? postSheetCloseTapControl
+      : null;
+    const immediatePostPageSwipeControl = release.activationSource === 'post-page-swipe-tap'
+      ? postPageSwipeTapControl
       : null;
 
     // Settle page/segment swipes from the current delta even on pointercancel.
@@ -489,6 +506,10 @@ export function initHorizontalGestures() {
       syncLetterIndexPageVisibility();
     }
 
+    if (wasGesture && axis === 'x' && state.currentPage !== startPage) {
+      postPageSwipeTapPending = true;
+    }
+
     if (isSheetDebugEnabled()) {
       logGestureSession('pointer release', {
         sessionId: gestureSessionId,
@@ -525,7 +546,10 @@ export function initHorizontalGestures() {
     gradePortScrolled = false;
     claim = null;
     postSheetCloseTapControl = null;
-    const tapControl = immediateSheetControl || immediatePostSheetControl;
+    postPageSwipeTapControl = null;
+    const tapControl = immediateSheetControl
+      || immediatePostSheetControl
+      || immediatePostPageSwipeControl;
     sheetTapControl = null;
 
     if (shouldCoastGrade) {
@@ -591,8 +615,11 @@ export function initHorizontalGestures() {
         });
       }
       endGesture({ pointerId, timeStamp: performance.now() }, true);
+      clearDeferredTapActivation();
+      clearClickSuppression(reason);
       return;
     }
+    clearDeferredTapActivation();
     clearClickSuppression(reason);
   };
 

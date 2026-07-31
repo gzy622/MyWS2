@@ -47,7 +47,8 @@ export function isDragBeyondTap({ deltaX, deltaY, tolerance = TAP_MOVE_TOLERANCE
  *   handledSheet: boolean,
  *   claim: 'sheet' | 'blocked' | null,
  *   hasSheetTapControl: boolean,
- *   hasPostSheetCloseControl: boolean
+ *   hasPostSheetCloseControl: boolean,
+ *   hasPostPageSwipeControl?: boolean
  * }} input
  */
 export function resolvePointerRelease({
@@ -57,14 +58,17 @@ export function resolvePointerRelease({
   handledSheet,
   claim,
   hasSheetTapControl,
-  hasPostSheetCloseControl
+  hasPostSheetCloseControl,
+  hasPostPageSwipeControl = false
 }) {
   const immediatePostSheet = !cancelled && !wasGesture && hasPostSheetCloseControl;
+  const immediatePostPageSwipe = !cancelled && !wasGesture && hasPostPageSwipeControl;
   const immediateSheet = !cancelled && !wasGesture && !sheetMoved && claim === 'sheet' && hasSheetTapControl;
 
   let activationSource = null;
   if (immediateSheet) activationSource = 'sheet-tap';
   else if (immediatePostSheet) activationSource = 'post-sheet-close-tap';
+  else if (immediatePostPageSwipe) activationSource = 'post-page-swipe-tap';
 
   const armClickSuppress = Boolean(
     wasGesture || handledSheet || sheetMoved || activationSource
