@@ -140,12 +140,16 @@ button.topbar-title { cursor: default; }
   position: absolute;
   z-index: var(--layer-modal);
   inset: 0;
+  display: flex;
+  flex-direction: column;
   pointer-events: none;
+  touch-action: none;
   visibility: hidden;
   background: var(--paper);
-  transform: translateX(100%);
+  transform: translateX(-100%);
   transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet);
 }
+.roster-editor.is-dragging { transition: none; }
 .roster-editor.show {
   pointer-events: auto;
   visibility: visible;
@@ -157,15 +161,18 @@ button.topbar-title { cursor: default; }
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  padding: max(8px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom));
+  padding: 0 0 max(24px, env(safe-area-inset-bottom));
 }
 .roster-editor-head {
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr) 44px;
   align-items: center;
-  min-height: 52px;
-  margin-bottom: 10px;
+  min-height: calc(60px + env(safe-area-inset-top));
+  padding: max(0px, env(safe-area-inset-top)) 16px 0;
   flex: none;
+  background: color-mix(in srgb, var(--paper) 94%, transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 .roster-editor-back {
   width: 44px;
@@ -198,10 +205,10 @@ button.topbar-title { cursor: default; }
 .roster-editor-title h1 {
   margin: 0;
   color: var(--ink);
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   letter-spacing: -.02em;
-  line-height: 1.2;
+  line-height: 1;
 }
 .roster-editor-title p {
   margin: 3px 0 0;
@@ -213,6 +220,7 @@ button.topbar-title { cursor: default; }
 .roster-editor-list {
   flex: 1 1 auto;
   min-height: 0;
+  margin: 10px 20px 0;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -265,9 +273,9 @@ button.topbar-title { cursor: default; }
   background: var(--control);
 }
 .roster-editor-add {
-  width: 100%;
+  width: auto;
   flex: none;
-  margin-top: 12px;
+  margin: 12px 20px 0;
   min-height: 44px;
   padding: 9px 11px;
   border: 0;

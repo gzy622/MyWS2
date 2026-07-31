@@ -8,7 +8,7 @@ import { SEAT_COUNT, STUDENT_NAME_MAX_LENGTH } from './roster-model.js';
 const RENAME_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17v3zM13.5 6.5l3 3" /></svg>';
 const DELETE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5" /></svg>';
 const ADD_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>';
-const BACK_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6 9 12l6 6" /></svg>';
+const BACK_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7" /></svg>';
 
 export function initRosterEditor({ store, showToast, viewport, closeOthers, confirm }) {
   const layer = document.createElement('div');
@@ -17,10 +17,11 @@ export function initRosterEditor({ store, showToast, viewport, closeOthers, conf
   layer.setAttribute('aria-hidden', 'true');
   layer.innerHTML = [
     '<section class="roster-editor-panel" role="dialog" aria-modal="true" aria-labelledby="rosterEditorTitle">',
-    '<header class="roster-editor-head">',
-    `<button type="button" class="roster-editor-back" data-action="back" aria-label="返回">${BACK_ICON}</button>`,
+    '<header class="roster-editor-head menu-drawer-head">',
+    `<button type="button" class="roster-editor-back menu-drawer-back" data-action="back" aria-label="返回">${BACK_ICON}</button>`,
     '<div class="roster-editor-title"><h1 id="rosterEditorTitle">学生名单</h1>',
     '<p data-field="count">0 人</p></div>',
+    '<span aria-hidden="true"></span>',
     '</header>',
     '<div class="roster-editor-list scroll-thin" role="list"></div>',
     `<button type="button" class="roster-editor-add">${ADD_ICON}新增学生</button>`,

@@ -134,7 +134,7 @@ function applyHorizontalScrollDelta(port, deltaXFromStart, startScrollLeft) {
   port.scrollLeft = Math.min(max, Math.max(0, startScrollLeft - deltaXFromStart));
 }
 
-export function initHorizontalGestures() {
+export function initHorizontalGestures({ closeRosterEditor = () => {} } = {}) {
   const sheets = createSheetGestureBridge();
 
   let active = false;
@@ -176,9 +176,10 @@ export function initHorizontalGestures() {
   let gestureTarget = '';
   let gesturePointerType = '';
   let gestureSessionId = '';
-  /** Settings drawer leftward drag session (full-screen drawer slides in from the left). */
-  let drawerDrag = false;
-  let drawerDragStarted = false;
+  /** Full-screen leftward drag session for settings or the roster editor. */
+  let fullscreenDrag = false;
+  let fullscreenDragStarted = false;
+  let fullscreenSurface = null;
 
   const clearClickSuppression = (clearReason = 'timeout') => {
     const reason = typeof clearReason === 'string' ? clearReason : 'timeout';
@@ -246,18 +247,20 @@ export function initHorizontalGestures() {
     claim = sheets.claimPointerDown(event);
     sheetTapControl = claim === 'sheet' ? findGestureTapControl(event.target) : null;
 
-    // Settings drawer is a full-screen left drawer: a leftward drag (swipe from
-    // right to left) pulls it closed and follows the finger. Only while the drawer
-    // is the topmost surface — nested roster pages/sheets are claimed by the bridge.
-    const drawerEligible = claim === 'blocked'
-      && state.drawerOpen
-      && !state.rosterEditorOpen
+    // Settings and the roster editor share the same full-screen leftward drag:
+    // both enter from the left and close by following a right-to-left swipe.
+    // Nested roster Sheets are claimed by the bridge before this route.
+    const fullscreenSurfaceCandidate = state.rosterEditorOpen
+      ? (state.activeOverlay === 'roster-editor' ? 'roster-editor' : null)
+      : (state.drawerOpen && !state.activeOverlay ? 'drawer' : null);
+    const fullscreenEligible = claim === 'blocked'
+      && fullscreenSurfaceCandidate
       && !state.fontSizePopoverOpen
-      && !state.activeOverlay
       && !getTopSheet();
-    if (drawerEligible && event.button === 0) {
-      drawerDrag = true;
-      drawerDragStarted = false;
+    if (fullscreenEligible && event.button === 0) {
+      fullscreenDrag = true;
+      fullscreenSurface = fullscreenSurfaceCandidate;
+      fullscreenDragStarted = false;
       active = true;
       pointerId = event.pointerId;
       startX = event.clientX;
@@ -358,28 +361,32 @@ export function initHorizontalGestures() {
     deltaX = event.clientX - startX;
     deltaY = event.clientY - startY;
 
-    if (drawerDrag) {
+    if (fullscreenDrag) {
+      const layer = fullscreenSurface === 'roster-editor'
+        ? element.querySelector('.roster-editor')
+        : elements.menuDrawer;
       if (!axis) {
         axis = resolveAxisLock({ deltaX, deltaY });
         if (axis === 'x' && deltaX < 0) {
-          drawerDragStarted = true;
+          fullscreenDragStarted = true;
           element.setPointerCapture?.(pointerId);
-          elements.menuDrawer.classList.add('is-dragging');
+          layer?.classList.add('is-dragging');
           elements.app.classList.add('is-drawer-gesturing');
           if (isSheetDebugEnabled()) {
-            logGestureSession('drawer axis locked', {
+            logGestureSession('fullscreen axis locked', {
               sessionId: gestureSessionId,
               owner: 'gestures',
+              surface: fullscreenSurface,
               target: gestureTarget,
               deltaX: Math.round(deltaX)
             });
           }
         }
       }
-      if (drawerDragStarted && elements.app.classList.contains('drawer-open')) {
+      if (fullscreenDragStarted && layer) {
         const width = elements.viewport.clientWidth || elements.app.clientWidth || 0;
         const offset = Math.max(-width, Math.min(0, deltaX));
-        elements.menuDrawer.style.transform = `translate3d(${offset}px, 0, 0)`;
+        layer.style.transform = `translate3d(${offset}px, 0, 0)`;
         event.preventDefault();
       }
       return;
@@ -504,19 +511,23 @@ export function initHorizontalGestures() {
     globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
 
   /**
-   * Settle a settings-drawer drag: close when the leftward travel or flick is
-   * enough, otherwise bounce back open. The panel keeps its dragged inline
-   * transform until the next frames so the CSS transition starts from the
-   * position the finger left it at (strictly following the finger). The head
-   * blur stays off until the settle animation finishes.
+   * Settle a full-screen leftward drag: close when the leftward travel or flick
+   * is enough, otherwise bounce back open. Settings and the roster editor use
+   * the same thresholds, transition and blur handoff.
    */
-  function settleDrawerDrag({ cancelled, velocityX, wasGesture }) {
-    const drawer = elements.menuDrawer;
-    drawer.classList.remove('is-dragging');
+  function settleFullscreenDrag({ surface, cancelled, velocityX, wasGesture }) {
+    const layer = surface === 'roster-editor'
+      ? element.querySelector('.roster-editor')
+      : elements.menuDrawer;
+    layer?.classList.remove('is-dragging');
     const releaseSettleChrome = () => elements.app.classList.remove('is-drawer-gesturing');
 
+    if (!layer) {
+      releaseSettleChrome();
+      return { close: false, reason: 'missing-layer' };
+    }
     if (!wasGesture) {
-      drawer.style.removeProperty('transform');
+      layer.style.removeProperty('transform');
       releaseSettleChrome();
       return { close: false, reason: 'tap-tolerance' };
     }
@@ -537,8 +548,11 @@ export function initHorizontalGestures() {
     }
 
     const finalize = () => {
-      drawer.style.removeProperty('transform');
-      if (close) closeDrawer();
+      layer.style.removeProperty('transform');
+      if (close) {
+        if (surface === 'roster-editor') closeRosterEditor();
+        else closeDrawer();
+      }
     };
 
     if (prefersReducedMotion()) {
@@ -552,14 +566,14 @@ export function initHorizontalGestures() {
         finalize();
         // Keep the head blur off through the exit/return animation, then release.
         const onSettleEnd = (event) => {
-          if (event.target !== drawer) return;
+          if (event.target !== layer) return;
           if (event.propertyName === 'transform' || event.propertyName === 'visibility') {
             releaseSettleChrome();
           }
         };
-        drawer.addEventListener('transitionend', onSettleEnd);
+        layer.addEventListener('transitionend', onSettleEnd);
         window.setTimeout(() => {
-          drawer.removeEventListener('transitionend', onSettleEnd);
+          layer.removeEventListener('transitionend', onSettleEnd);
           releaseSettleChrome();
         }, DRAWER_SETTLE_MS);
       });
@@ -573,25 +587,28 @@ export function initHorizontalGestures() {
 
     const wasGesture = isDragBeyondTap({ deltaX, deltaY });
 
-    // Settings drawer: settle the leftward slide (close or bounce) first, then
-    // guard the trailing click exactly like other claimed gestures.
-    if (drawerDrag) {
-      drawerDrag = false;
-      const draggedDrawer = drawerDragStarted;
-      drawerDragStarted = false;
+    // Full-screen surfaces settle their leftward slide first, then guard the
+    // trailing click exactly like other claimed gestures.
+    if (fullscreenDrag) {
+      fullscreenDrag = false;
+      const surface = fullscreenSurface;
+      fullscreenSurface = null;
+      const draggedFullscreen = fullscreenDragStarted;
+      fullscreenDragStarted = false;
       const releaseVelocityX = event.timeStamp - sampleTime > VELOCITY_STALE_MS
         ? 0
         : readTrailVelocity('x');
-      const decision = draggedDrawer
-        ? settleDrawerDrag({ cancelled, velocityX: releaseVelocityX, wasGesture })
+      const decision = draggedFullscreen
+        ? settleFullscreenDrag({ surface, cancelled, velocityX: releaseVelocityX, wasGesture })
         : { close: false, reason: 'no-drag' };
       if (isSheetDebugEnabled()) {
-        logGestureSession('drawer release', {
+        logGestureSession('fullscreen release', {
           sessionId: gestureSessionId,
           owner: 'gestures',
+          surface,
           target: gestureTarget,
           cancelled,
-          dragged: draggedDrawer,
+          dragged: draggedFullscreen,
           close: decision.close,
           reason: decision.reason,
           deltaX: Math.round(deltaX),

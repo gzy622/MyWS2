@@ -152,7 +152,7 @@ initDrawer({
   onBackupExport: () => backup.exportBackup(),
   onEditRoster: (options) => rosterEditor.open({ ...options, preserveDrawer: true }),
 });
-initHorizontalGestures();
+initHorizontalGestures({ closeRosterEditor: () => rosterEditor.close() });
 createSystemBackController({
   beforeDismiss: () => cancelActivePointerGesture('system-back'),
   closeConfirm: () => moreSheet.closeConfirm(),
