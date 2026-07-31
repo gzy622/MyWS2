@@ -17,6 +17,7 @@ const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 const webRoot = path.join(projectRoot, 'src');
 const port = Number(process.env.PORT || process.argv[2] || 8080);
 const liveReload = process.env.DISABLE_LIVE_RELOAD !== '1';
+const debugRecDir = path.join(projectRoot, '.debug-rec');
 let cachedContentId = null;
 
 function getContentId() {
@@ -135,6 +136,45 @@ function startWatchers() {
   }
 }
 
+/**
+ * Debug record upload from the app (src/scripts/sheet-debug.js). Body is a text
+ * report (build, origin, recId, entries). Stored under .debug-rec/ (git-ignored)
+ * so the agent can read it directly; never part of the web root.
+ */
+function handleRecordUpload(request, response) {
+  const chunks = [];
+  let size = 0;
+  request.on('data', (chunk) => {
+    size += chunk.length;
+    if (size > 512 * 1024) {
+      request.destroy();
+      return;
+    }
+    chunks.push(chunk);
+  });
+  request.on('end', () => {
+    try {
+      if (!fs.existsSync(debugRecDir)) fs.mkdirSync(debugRecDir, { recursive: true });
+      const body = Buffer.concat(chunks).toString('utf8');
+      const recMatch = body.match(/recId:\s*([^\n\r]+)/);
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const safeId = recMatch ? recMatch[1].trim().replace(/[^a-zA-Z0-9_-]/g, '') : '';
+      const fileName = safeId ? `${safeId}-${stamp}.log` : `rec-${stamp}.log`;
+      fs.writeFileSync(path.join(debugRecDir, fileName), body, 'utf8');
+      console.log(`[debug-rec] saved ${fileName} (${body.length} bytes)`);
+      sendHeaders(response, 200, { 'Content-Type': 'application/json; charset=utf-8' });
+      response.end(JSON.stringify({ ok: true, file: fileName }));
+    } catch (error) {
+      sendHeaders(response, 500, { 'Content-Type': 'application/json; charset=utf-8' });
+      response.end(JSON.stringify({ ok: false, error: String((error && error.message) || error) }));
+    }
+  });
+  request.on('error', () => {
+    sendHeaders(response, 400, { 'Content-Type': 'application/json; charset=utf-8' });
+    response.end(JSON.stringify({ ok: false, error: 'upload aborted' }));
+  });
+}
+
 const server = http.createServer((request, response) => {
   const urlPath = decodeURIComponent((request.url || '/').split('?')[0]);
 
@@ -169,6 +209,11 @@ const server = http.createServer((request, response) => {
   if (urlPath === '/__build-id') {
     sendHeaders(response, 200, { 'Content-Type': 'application/json; charset=utf-8' });
     response.end(JSON.stringify(buildIdPayload()));
+    return;
+  }
+
+  if (urlPath === '/__rec' && request.method === 'POST') {
+    handleRecordUpload(request, response);
     return;
   }
 

@@ -14,3 +14,6 @@ local.properties
 
 # Windows reserved device name accidentally created by Unix-like shells.
 /NUL
+
+# Runtime debug recording uploads from the app (dev-only, git-ignored).
+/.debug-rec/
