@@ -64,13 +64,13 @@ npm run code:id
 
 内容指纹只覆盖 `src/index.html`、`src/styles/` 和 `src/scripts/`，用于对比电脑源码、LAN 服务和 APK 内 Web 资源是否一致。
 
-打开设置页即可在右下角看到当前内容指纹及生成时间（UTC+8，精确到秒）。长按左上角设置、连续点击设置 3 次，或使用 `?sheetDebug=1` 可开启按需诊断：调试条会保留最近 120 条手势边界、Sheet 落位与计算动效、登记业务结果，以及未捕获异常；手势边界日志含 `sessionId`、`owner`、`activationSource`、`clearReason`，不记录逐帧触摸、姓名、分数值或输入原文。调试开启时控制台只输出以 `[twb-debug]` 开头的单行 JSON，方便过滤；`?courseDebug=1` 保持兼容但启用同一套诊断。`origin` 为局域网地址时使用 Live Reload；原生 `https://localhost` 一类地址通常表示使用 APK 内资源。
+打开设置页即可在右下角看到当前内容指纹及生成时间（UTC+8，精确到秒）；「更多」底部 Sheet 底部同样显示当前内容指纹。长按左上角设置、连续点击设置 3 次，或使用 `?sheetDebug=1` 可开启按需诊断：调试条会保留最近 120 条手势边界、Sheet 落位与计算动效、登记业务结果，以及未捕获异常；手势边界日志含 `sessionId`、`owner`、`activationSource`、`clearReason`，不记录逐帧触摸、姓名、分数值或输入原文。调试开启时控制台只输出以 `[twb-debug]` 开头的单行 JSON，方便过滤；`?courseDebug=1` 保持兼容但启用同一套诊断。`origin` 为局域网地址时使用 Live Reload；原生 `https://localhost` 一类地址通常表示使用 APK 内资源。
 
 手势阈值与点击保护的纯逻辑在 `src/scripts/gesture-policy.js`，对应 `tests/gesture-policy.test.mjs`；IME 立即操作与幽灵点击保护的 DOM 实现在 `src/scripts/pointer-guards.js`。
 
 ### 只读实时结构化日志快速入口
 
-适用于已获当前任务授权的 Android 运行时排查：设备已通过 ADB 连接、Debug App 已打开，且右上角显示 `build <内容指纹> · <记录数>`。先用 `adb devices -l` 确认设备；同一设备可能同时出现 IP 与 mDNS 两条记录，必须选定一个序列号并在后续命令中始终显式传给 `-s`。
+适用于已获当前任务授权的 Android 运行时排查：设备已通过 ADB 连接、Debug App 已打开，且顶栏下方右侧出现调试胶囊（左侧空心圆为标记复现、标记中变为蓝色方块，中间「详情」为展开按钮、右侧为日志条数）。先用 `adb devices -l` 确认设备；同一设备可能同时出现 IP 与 mDNS 两条记录，必须选定一个序列号并在后续命令中始终显式传给 `-s`。
 
 ```powershell
 adb devices -l
@@ -87,6 +87,27 @@ adb -s $twbDeviceSerial logcat -d -v threadtime --pid $twbAppPid |
 ```
 
 看到以 `[twb-debug]` 开头、且 JSON 中 `source` 为 `teacher-workbench` 的记录，即表示读取链路有效。该入口只读取本项目结构化日志，不代表已执行构建、部署或交互验收；App 未运行、诊断条未开启或任务未授权 Android 调试时不适用。不要执行 `adb logcat -c`，以免清空整台设备的日志缓冲区。完整真机排查步骤见本页「真机运行时调试（智能体执行清单）」。
+
+### 录制复现日志（自动上报，无需手动转移）
+
+发现 bug 想立刻复现并交给智能体修复时，在 App 调试面板点**左侧空心圆**（复现前点）标记复现；标记中会变为蓝色方块，复现后再次点按停止并上报；或直接点「上报最近日志」把当前缓冲一键上报。停止/上报后日志**自动送达电脑**，无需在手机上复制粘贴：
+
+- **热更新 / LAN 模式**：自动 POST 到 LAN 服务，保存为项目根目录 `.debug-rec/` 下的文本文件（git 忽略），服务控制台打印 `[debug-rec] saved <文件名>`；
+- **App 打包模式**：自动写入应用私有目录 `files/`，文件名为 `twb-rec-<recId>.log`；
+- **剪贴板兜底**：同步复制到剪贴板，可手动粘贴。
+
+智能体获取：
+
+```powershell
+# LAN / 热更新模式：取最新一条
+Get-ChildItem .debug-rec\ | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+
+# App 模式：列出并读取私有文件（debug APK 可用 run-as）
+adb -s <序列号> shell run-as com.teacherworkbench.app ls files
+adb -s <序列号> exec-out run-as com.teacherworkbench.app cat files/twb-rec-<recId>.log
+```
+
+录制期间每条控制台日志带 `recId`，也可用 logcat 按 `recId` 抓取（见上「只读实时结构化日志快速入口」）。标记复现条数上限与总缓冲相同（120 条）；begin/end 标记不计入复现内容。面板状态行显示「已存电脑 / 已存 App / 已复制」等上报结果。
 
 ## 4. 单文件导出
 
@@ -182,7 +203,7 @@ npm run deploy:apk -- -Serial <序列号> -Fresh
    npm run deploy:apk -- -Serial $deviceSerial
    ```
 
-4. 在 App 内长按左上角设置约 0.5 秒，或连续点击该按钮 3 次，开启会话级诊断。顶栏下方右侧出现 `build <内容指纹> · <记录数>` 胶囊即表示已开启；点击胶囊展开/收起日志，展开面板内「关闭」或重复上述手势可关闭调试，点面板外空白可收起日志。优先通过该可见控件开启，不要依赖特定设备的 ADB 坐标。
+4. 在 App 内长按左上角设置约 0.5 秒，或连续点击该按钮 3 次，开启会话级诊断。顶栏下方右侧出现调试胶囊（左空心圆 = 标记复现，标记中变蓝色方块；中「详情」= 展开/收起，右数字 = 日志条数）即表示已开启；胶囊整体可拖拽移动位置（会话内保留），详情面板会自动在胶囊上方或下方选择可见方向，并限制在视口内；展开面板内「关闭」或重复上述手势可关闭调试，点面板外空白可收起日志。优先通过该可见控件开启，不要依赖特定设备的 ADB 坐标。
 
 5. 只读取项目的结构化日志。不要依据原始 Logcat 的 `E/W` 数量判断问题：Android 厂商、媒体和 WebView 会输出与项目无关的噪声。`[twb-debug]` 是本项目唯一的运行时诊断前缀。
 
@@ -203,6 +224,7 @@ npm run deploy:apk -- -Serial <序列号> -Fresh
    - `motion`：Sheet 进入落位时的实际 CSS `transition-property`、时长、缓动和 reduced-motion 状态。
    - `logic`：网格/座位登记、学生记录打开与保存的结果，只保留作业和学生 ID，不含姓名、分数值或输入原文。
    - `runtime`：未捕获异常与未处理的 Promise 拒绝。
+   - `record`：录制会话的 begin/end 标记，携带 `recId` 与起止时间，配合上方「录制复现日志」按 `recId` 抓取。
 
 7. 收尾时保留必要的截图、结构化日志片段和复现步骤；不执行 `adb logcat -c`（会清空整台设备的日志缓冲区）。若不需要继续观察，关闭 App 内诊断条，避免它遮挡顶栏。
 

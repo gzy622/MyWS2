@@ -56,6 +56,7 @@ Android 命令需要先执行 `npm install`，并准备 JDK 21+、Android SDK �
 ├─ android/             可选 Capacitor Android 工程
 ├─ dist/                单文件导出（生成目录，不提交）
 ├─ www/                 Capacitor Web 资源（生成目录，不提交）
+├─ .debug-rec/          调试录制上报产物（运行期生成，不提交）
 ├─ lan-server.js        零依赖开发服务器与 Live Reload
 └─ *.bat                Windows 便捷启动入口
 ```

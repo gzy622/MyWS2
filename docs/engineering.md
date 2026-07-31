@@ -129,7 +129,7 @@
 - 外壳与导航：`#app`、`#viewport`、`#pages`、`#nav`、`#glider`、`#topbarTitle`、`#topbarTitleLabel`、`#settingsButton`、`#moreButton`；
 - 登记与座位：`#studentGrid`、`#gridLetterIndex`、`#studentFontSize`、`#studentFontSizeValue`、`#seatViewport`、`#seatStage`、`#seatGrid`、`#seatHint`、`#seatFitButton`、`#seatLandscapeButton`、`#seatModeBar`、`#seatEditStatus`、`#exitSeatEdit`、`#seatLetterIndex`；
 - 人员与课程：`#roleList`、`#dutyList`、`#weekStrip`、`#gradeTable`；
-- 设置、更多与反馈：`#fontSizePopover`、`#menuDrawer`、`#menuDrawerBuild`、`#closeMenuDrawer`、`#moreMenu`、`#moreMenuPanel`、`#moreMenuHandle`、`#closeMoreMenu`、`#toast`；
+- 设置、更多与反馈：`#fontSizePopover`、`#menuDrawer`、`#menuDrawerBuild`、`#closeMenuDrawer`、`#moreMenu`、`#moreMenuPanel`、`#moreMenuHandle`、`#closeMoreMenu`、`#moreMenuBuild`、`#toast`；
 - 备份文件选择：`#backupFileInput`；
 - 学生记录：`#studentRecordSheet`、`#studentRecordPanel`、`#studentRecordHandle`、`#studentRecordTitle`、`#closeStudentRecord`、`#studentRecordStatus`、`#studentScoreControls`、`#studentScoreInput`、`#studentScoreError`、`#cancelStudentRecord`、`#saveStudentRecord`；
 - 上下文动作与确认：`#moreMenu [data-more-action]`、`#confirmSheet`、`#confirmTitle`、`#confirmMessage`、`#cancelConfirm`、`#acceptConfirm`。
@@ -211,6 +211,7 @@
 - `tools/content-id.cjs` 只对上述 Web 源码计算指纹。
 - `tools/verify-web.ps1` 使用本机 PowerShell 7、Node.js 与 Microsoft Edge，通过临时 LAN 服务和 CDP 模拟 320px、390px、430px 视口，并检查 DOM、控制台、成绩表横拖、幽灵点击和 Sheet 合成层生命周期；不引入第三方依赖，不写入 Web 源码或业务存储。
 - `tools/build-single-html.ps1` 默认从 `src/index.html` 生成 `dist/teacher-workbench.single.html`。
+- `lan-server.js` 的 `POST /__rec` 接收 App 调试录制文本并保存到 `.debug-rec/`（git 忽略）；该目录是运行期调试产物，不属于 Web 源码或生成物，`www/`、`dist/` 重建不涉及它。
 - 源码、文档与配置文本默认保持 UTF-8 无 BOM + LF；根目录 `.bat` 必须保持纯 ASCII + CRLF，`tools/*.ps1` 保持 UTF-8 BOM + CRLF。
 - `.editorconfig` 统一编辑器写入格式，`.gitattributes` 统一 Git 检出换行并阻止二进制规范化；新增文本类型时必须同步评估两者。
 - 生成文件不得纳入日常源码评审；如需验证，重建后检查结果而非手工补丁。
@@ -254,6 +255,7 @@
 - [ ] 无远程运行时资源、内联业务脚本样式或第三方 Web 依赖。
 - [ ] `localStorage` 只使用 4 个受控键；Capacitor 包未被浏览器模块静态导入。
 - [ ] `www/` 同步结果不包含 `tools/`、`tests/` 或文档。
+- [ ] `.debug-rec/` 为运行期调试产物（`POST /__rec` 写入），不入库、不参与同步。
 - [ ] `git diff --check` 无空白错误。
 
 ### 10.2 运行检查
