@@ -74,8 +74,25 @@
 .menu-copy b { font-size: 15px; font-weight: 650; white-space: nowrap; }
 .menu-copy small { margin-top: 3px; overflow: hidden; color: var(--muted); font-size: 12px; font-weight: 450; white-space: nowrap; text-overflow: ellipsis; }
 .menu-copy [data-theme-value] { color: var(--ink); font-weight: 600; }
-.theme-switch { width: 42px; height: 24px; padding: 3px; border-radius: var(--radius-control); background: var(--control); transition: background-color 140ms var(--ease); }
-.theme-switch span { display: block; width: 18px; height: 18px; border-radius: 50%; background: var(--card); box-shadow: var(--shadow-soft); transition: transform 140ms var(--ease); }
+/* Settings entries use the same single-layer, low-emphasis row language as the app's content cards. */
+.menu-drawer-action-list:not(.menu-backup-grid) .menu-item {
+  min-height: 68px;
+  padding: 10px 14px;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  gap: 12px;
+}
+.menu-drawer-action-list:not(.menu-backup-grid) .menu-icon {
+  width: 34px;
+  height: 34px;
+  background: var(--control);
+  box-shadow: none;
+}
+.menu-drawer-action-list:not(.menu-backup-grid) .menu-icon svg { width: 19px; height: 19px; }
+.menu-drawer-action-list:not(.menu-backup-grid) .menu-copy b { font-weight: 600; }
+.menu-drawer-action-list:not(.menu-backup-grid) .menu-copy small { margin-top: 3px; line-height: normal; }
+.menu-item--theme .menu-icon { color: var(--teal); background: color-mix(in srgb, var(--teal) 10%, var(--card)); }
+.theme-switch { width: 40px; height: 22px; padding: 3px; border-radius: var(--radius-control); background: var(--control); transition: background-color 140ms var(--ease); }
+.theme-switch span { display: block; width: 16px; height: 16px; border-radius: 50%; background: var(--card); box-shadow: var(--shadow-soft); transition: transform 140ms var(--ease); }
 .menu-item--theme[aria-pressed="true"] .theme-switch { background: var(--teal); }
 .menu-item--theme[aria-pressed="true"] .theme-switch span { transform: translateX(18px); }
 .menu-backup-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; overflow: visible; background: transparent; box-shadow: none; }
