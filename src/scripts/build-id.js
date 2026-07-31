@@ -33,9 +33,11 @@ function formatBuildAtUtc8(iso) {
 
 function applyBuildId(data) {
   if (typeof document === 'undefined') return;
-  const foot = document.getElementById('menuDrawerBuild');
+  const foots = ['menuDrawerBuild', 'moreMenuBuild']
+    .map((id) => document.getElementById(id))
+    .filter(Boolean);
   if (!data?.id) {
-    if (foot) {
+    for (const foot of foots) {
       foot.hidden = true;
       foot.textContent = '—';
     }
@@ -43,7 +45,7 @@ function applyBuildId(data) {
   }
   document.documentElement.dataset.twbBuild = data.id;
   if (data.at) document.documentElement.dataset.twbBuildAt = data.at;
-  if (foot) {
+  for (const foot of foots) {
     const stamp = formatBuildAtUtc8(data.at);
     foot.textContent = stamp ? `${data.id} · ${stamp}` : data.id;
     foot.hidden = false;
