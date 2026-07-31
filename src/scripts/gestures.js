@@ -32,6 +32,7 @@ import {
 } from './gesture-policy.js';
 import { clearAllGhostClickGuards } from './pointer-guards.js';
 import { setLetterIndexPageDragging, syncLetterIndexPageVisibility } from './letter-index.js';
+import { closeDrawer } from './drawer.js';
 
 const EDGE_RESISTANCE = 0.28;
 const SWIPE_MIN_DISTANCE = 20;
@@ -40,6 +41,14 @@ const SWIPE_PROJECTION_MS = 120;
 /** Average pointer velocity over this window to avoid last-frame spikes. */
 const VELOCITY_WINDOW_MS = 100;
 const VELOCITY_STALE_MS = 80;
+/** Settings drawer drag-to-close: slow drag must clear this distance or share of width. */
+const DRAWER_CLOSE_DISTANCE = 180;
+const DRAWER_CLOSE_TRAVEL_RATIO = 0.4;
+/** Quick left flick may dismiss with a short travel at or beyond this speed (px/ms). */
+const DRAWER_FLICK_CLOSE_VELOCITY = 0.4;
+const DRAWER_FLICK_MIN_CLOSE_PX = 36;
+/** Fallback timer for the drawer settle animation (mirrors sheet settle). */
+const DRAWER_SETTLE_MS = 360;
 
 /** @type {((reason?: string) => void) | null} */
 let cancelActivePointerGestureImpl = null;
@@ -167,6 +176,9 @@ export function initHorizontalGestures() {
   let gestureTarget = '';
   let gesturePointerType = '';
   let gestureSessionId = '';
+  /** Settings drawer leftward drag session (full-screen drawer slides in from the left). */
+  let drawerDrag = false;
+  let drawerDragStarted = false;
 
   const clearClickSuppression = (clearReason = 'timeout') => {
     const reason = typeof clearReason === 'string' ? clearReason : 'timeout';
@@ -233,6 +245,45 @@ export function initHorizontalGestures() {
     finishClosingSheets();
     claim = sheets.claimPointerDown(event);
     sheetTapControl = claim === 'sheet' ? findGestureTapControl(event.target) : null;
+
+    // Settings drawer is a full-screen left drawer: a leftward drag (swipe from
+    // right to left) pulls it closed and follows the finger. Only while the drawer
+    // is the topmost surface — nested roster pages/sheets are claimed by the bridge.
+    const drawerEligible = claim === 'blocked'
+      && state.drawerOpen
+      && !state.rosterEditorOpen
+      && !state.fontSizePopoverOpen
+      && !state.activeOverlay
+      && !getTopSheet();
+    if (drawerEligible && event.button === 0) {
+      drawerDrag = true;
+      drawerDragStarted = false;
+      active = true;
+      pointerId = event.pointerId;
+      startX = event.clientX;
+      startY = event.clientY;
+      deltaX = 0;
+      deltaY = 0;
+      axis = null;
+      sampleX = event.clientX;
+      sampleY = event.clientY;
+      sampleTime = event.timeStamp;
+      velocityX = 0;
+      velocityY = 0;
+      velocityTrail = [{ t: event.timeStamp, x: event.clientX, y: event.clientY }];
+      gestureTarget = describeDebugTarget(event.target);
+      gesturePointerType = event.pointerType || 'unknown';
+      gestureSessionId = nextGestureSessionId();
+      if (isSheetDebugEnabled()) {
+        logGestureSession('drawer pointer start', {
+          sessionId: gestureSessionId,
+          owner: 'gestures',
+          pointerType: gesturePointerType,
+          target: gestureTarget
+        });
+      }
+      return;
+    }
     if (claim === 'blocked') return;
 
     // Horizontal page gestures only when no vertical sheet is presented.
@@ -306,6 +357,33 @@ export function initHorizontalGestures() {
     sampleTime = event.timeStamp;
     deltaX = event.clientX - startX;
     deltaY = event.clientY - startY;
+
+    if (drawerDrag) {
+      if (!axis) {
+        axis = resolveAxisLock({ deltaX, deltaY });
+        if (axis === 'x' && deltaX < 0) {
+          drawerDragStarted = true;
+          element.setPointerCapture?.(pointerId);
+          elements.menuDrawer.classList.add('is-dragging');
+          elements.app.classList.add('is-drawer-gesturing');
+          if (isSheetDebugEnabled()) {
+            logGestureSession('drawer axis locked', {
+              sessionId: gestureSessionId,
+              owner: 'gestures',
+              target: gestureTarget,
+              deltaX: Math.round(deltaX)
+            });
+          }
+        }
+      }
+      if (drawerDragStarted && elements.app.classList.contains('drawer-open')) {
+        const width = elements.viewport.clientWidth || elements.app.clientWidth || 0;
+        const offset = Math.max(-width, Math.min(0, deltaX));
+        elements.menuDrawer.style.transform = `translate3d(${offset}px, 0, 0)`;
+        event.preventDefault();
+      }
+      return;
+    }
 
     if (!axis) {
       axis = resolveAxisLock({ deltaX, deltaY });
@@ -421,11 +499,113 @@ export function initHorizontalGestures() {
     }
   }, { passive: false });
 
+  /** True when the user prefers reduced motion (settle lands instantly). */
+  const prefersReducedMotion = () =>
+    globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
+
+  /**
+   * Settle a settings-drawer drag: close when the leftward travel or flick is
+   * enough, otherwise bounce back open. The panel keeps its dragged inline
+   * transform until the next frames so the CSS transition starts from the
+   * position the finger left it at (strictly following the finger). The head
+   * blur stays off until the settle animation finishes.
+   */
+  function settleDrawerDrag({ cancelled, velocityX, wasGesture }) {
+    const drawer = elements.menuDrawer;
+    drawer.classList.remove('is-dragging');
+    const releaseSettleChrome = () => elements.app.classList.remove('is-drawer-gesturing');
+
+    if (!wasGesture) {
+      drawer.style.removeProperty('transform');
+      releaseSettleChrome();
+      return { close: false, reason: 'tap-tolerance' };
+    }
+
+    const width = elements.viewport.clientWidth || elements.app.clientWidth || 0;
+    const closeTravel = -deltaX;
+    const minClosePx = Math.max(DRAWER_CLOSE_DISTANCE, width * DRAWER_CLOSE_TRAVEL_RATIO);
+    let close = false;
+    let reason = 'bounce-back';
+    if (cancelled) {
+      reason = 'cancel-bounce';
+    } else if (closeTravel >= minClosePx) {
+      close = true;
+      reason = 'drag-close';
+    } else if (closeTravel >= DRAWER_FLICK_MIN_CLOSE_PX && -velocityX >= DRAWER_FLICK_CLOSE_VELOCITY) {
+      close = true;
+      reason = 'flick-close';
+    }
+
+    const finalize = () => {
+      drawer.style.removeProperty('transform');
+      if (close) closeDrawer();
+    };
+
+    if (prefersReducedMotion()) {
+      finalize();
+      releaseSettleChrome();
+      return { close, reason };
+    }
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        finalize();
+        // Keep the head blur off through the exit/return animation, then release.
+        const onSettleEnd = (event) => {
+          if (event.target !== drawer) return;
+          if (event.propertyName === 'transform' || event.propertyName === 'visibility') {
+            releaseSettleChrome();
+          }
+        };
+        drawer.addEventListener('transitionend', onSettleEnd);
+        window.setTimeout(() => {
+          drawer.removeEventListener('transitionend', onSettleEnd);
+          releaseSettleChrome();
+        }, DRAWER_SETTLE_MS);
+      });
+    });
+    return { close, reason };
+  }
+
   const endGesture = (event, cancelled = false) => {
     if (!active || (event.pointerId != null && event.pointerId !== pointerId)) return;
     active = false;
 
     const wasGesture = isDragBeyondTap({ deltaX, deltaY });
+
+    // Settings drawer: settle the leftward slide (close or bounce) first, then
+    // guard the trailing click exactly like other claimed gestures.
+    if (drawerDrag) {
+      drawerDrag = false;
+      const draggedDrawer = drawerDragStarted;
+      drawerDragStarted = false;
+      const releaseVelocityX = event.timeStamp - sampleTime > VELOCITY_STALE_MS
+        ? 0
+        : readTrailVelocity('x');
+      const decision = draggedDrawer
+        ? settleDrawerDrag({ cancelled, velocityX: releaseVelocityX, wasGesture })
+        : { close: false, reason: 'no-drag' };
+      if (isSheetDebugEnabled()) {
+        logGestureSession('drawer release', {
+          sessionId: gestureSessionId,
+          owner: 'gestures',
+          target: gestureTarget,
+          cancelled,
+          dragged: draggedDrawer,
+          close: decision.close,
+          reason: decision.reason,
+          deltaX: Math.round(deltaX),
+          velocityX: Number(releaseVelocityX.toFixed(3))
+        });
+      }
+      if (wasGesture) {
+        armClickSuppression();
+        event.preventDefault();
+      }
+      if (element.hasPointerCapture?.(pointerId)) element.releasePointerCapture(pointerId);
+      return;
+    }
+
     const endedClaim = claim;
     let handledSheet = false;
     let sheetMoved = false;

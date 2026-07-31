@@ -33,10 +33,17 @@
 .menu-drawer {
   position: absolute; z-index: var(--layer-modal); inset: 0; display: flex; flex-direction: column;
   overflow: hidden; touch-action: none; background: var(--paper);
-  visibility: hidden; transform: translateX(100%); transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet);
+  visibility: hidden; transform: translateX(-100%); transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet);
 }
 .app.drawer-open .menu-drawer { visibility: visible; transform: translateX(0); transition-delay: 0s; }
 .menu-drawer[aria-hidden="true"] { pointer-events: none; }
+.menu-drawer.is-dragging { transition: none; }
+/* Drawer drag follows the finger: drop the head blur while the panel slides. */
+.app.is-drawer-gesturing .menu-drawer-head {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: var(--paper);
+}
 /* Hallmark · component: full-screen settings · genre: utilitarian editorial · theme: project tokens
  * pre-emit critique: P5 H5 E4 S5 R5 V4 · contrast: pass · responsive: pass
  */
