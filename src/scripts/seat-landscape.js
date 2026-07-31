@@ -47,7 +47,7 @@ export function initSeatLandscape({ seatCanvas, showToast }) {
     elements.app.classList.toggle('seat-landscape', state.seatLandscape);
     button.disabled = transitioning || state.seatEditing;
     button.setAttribute('aria-pressed', String(state.seatLandscape));
-    const label = state.seatLandscape ? '退出旋转屏幕' : '旋转屏幕';
+    const label = state.seatLandscape ? '退出全屏' : '进入全屏';
     button.setAttribute('aria-label', label);
     button.title = label;
   }
