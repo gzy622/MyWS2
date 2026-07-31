@@ -27,6 +27,12 @@ export function initRosterEditor({ store, showToast, viewport, closeOthers, conf
     `<button type="button" class="roster-editor-add">${ADD_ICON}新增学生</button>`,
     '</section>'
   ].join('');
+  // Scrim sits above the still-open settings drawer (same --layer-modal level,
+  // earlier in DOM) but below this layer; visibility follows the same .show class.
+  const scrim = document.createElement('div');
+  scrim.className = 'roster-editor-scrim fullscreen-scrim';
+  scrim.setAttribute('aria-hidden', 'true');
+  elements.app.append(scrim);
   elements.app.append(layer);
 
   const list = layer.querySelector('.roster-editor-list');
@@ -85,6 +91,7 @@ export function initRosterEditor({ store, showToast, viewport, closeOthers, conf
   function syncChrome(open) {
     setRosterEditorOpen(open);
     layer.classList.toggle('show', open);
+    scrim.classList.toggle('show', open);
     layer.setAttribute('aria-hidden', open ? 'false' : 'true');
     layer.inert = !open;
     if (state.drawerOpen) elements.menuDrawer.inert = open;

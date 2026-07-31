@@ -141,7 +141,7 @@
 不得改变以下 class 的语义：
 
 - 导航：`.page`、`.nav-btn`、`.segment`、`.segment-glider`、`.subview`、`.subdots i`；
-- 外壳瞬时态：`.is-sheet-gesturing`、`.is-page-gesturing`（跟手/落位时关闭顶栏 backdrop-filter）；设置页横滑跟手：`.menu-drawer.is-dragging`（跟手期间取消 transition）、`.app.is-drawer-gesturing`（跟手时关闭设置页头部 backdrop-filter）；
+- 外壳瞬时态：`.is-sheet-gesturing`、`.is-page-gesturing`（跟手/落位时关闭顶栏 backdrop-filter）；设置页横滑跟手：`.menu-drawer.is-dragging`（跟手期间取消 transition）、`.app.is-drawer-gesturing`（跟手时关闭设置页头部 backdrop-filter）；全屏左滑面遮罩：`.fullscreen-scrim`、`.drawer-scrim`、`.roster-editor-scrim`（透明度与面板位移 1:1 跟手，`.is-dragging` 期间切换为 `--duration-scrim-track` 追赶过渡）；
 - 登记：`.student-grid`、`.student-card`、`.seat-cell`、`.seat-card`、`.letter-index`、`.letter-index-item`、`.letter-index-badge`；
 - 人员与课程：`.people-row`、`.week-slot-cell`、`.week-period-label`、`.grade-score-cell`、`.grade-subject-head`；
 - 浮层与全屏页：`.menu-drawer`、`.more-menu`、`.student-record-sheet`、`.assignment-sheet`、`.assignment-name-sheet`、`.exam-sheet`、`.exam-name-sheet`、`.people-pick-sheet`、`.people-edit-sheet`、`.course-slot-sheet`、`.course-period-sheet`、`.course-subject-sheet`、`.course-grade-sheet`、`.course-stats-sheet`、`.course-highlight-sheet`、`.confirm-sheet`；

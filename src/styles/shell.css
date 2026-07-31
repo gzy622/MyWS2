@@ -136,6 +136,28 @@ button.topbar-title { cursor: default; }
 .app.seat-landscape .page[data-page="1"] .seat-subview.active { inset: 0; }
 
 /* Full-screen roster editor (opened from settings; not a Sheet). */
+/* 左侧全屏面共用遮罩：透明度与面板位移 1:1 跟手，落位时与面板同时长同缓动收尾，
+   遮罩完全消失的时刻即面板完全移出、下层已可点击。 */
+.fullscreen-scrim {
+  position: absolute;
+  z-index: var(--layer-scrim);
+  inset: 0;
+  pointer-events: none;
+  background: var(--scrim);
+  opacity: 0;
+  transition: opacity var(--duration-sheet) var(--ease);
+}
+.fullscreen-scrim.is-dragging {
+  transition: opacity var(--duration-scrim-track) linear;
+  will-change: opacity;
+}
+.app.drawer-open .drawer-scrim { opacity: 1; }
+/* 名单页遮罩必须盖住其下仍打开的设置页：与名单层同层（modal）、DOM 顺序在名单层之前。 */
+.roster-editor-scrim {
+  z-index: var(--layer-modal);
+}
+.roster-editor-scrim.show { opacity: 1; }
+
 .roster-editor {
   position: absolute;
   z-index: var(--layer-modal);
@@ -147,6 +169,7 @@ button.topbar-title { cursor: default; }
   visibility: hidden;
   background: var(--paper);
   transform: translateX(-100%);
+  box-shadow: var(--shadow-sheet-right);
   transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet);
 }
 .roster-editor.is-dragging { transition: none; }

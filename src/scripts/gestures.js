@@ -163,7 +163,7 @@ export function initHorizontalGestures({ closeRosterEditor = () => {} } = {}) {
   let clickSuppressTimer = 0;
   let lastSegment = 0;
   let claim = null;
-  /** The first deliberate contact after a gesture-dismiss must not rely on a WebView click. */
+  /** The first deliberate contact after a gesture-dismiss (Sheet or full-screen surface) must not rely on a WebView click. */
   let postSheetCloseTapPending = false;
   let postSheetCloseTapControl = null;
   /** Android WebView may omit click for the first control tap after a captured page swipe. */
@@ -180,6 +180,13 @@ export function initHorizontalGestures({ closeRosterEditor = () => {} } = {}) {
   let fullscreenDrag = false;
   let fullscreenDragStarted = false;
   let fullscreenSurface = null;
+  /** Last scrim opacity token painted during a full-screen drag (skip redundant writes). */
+  let paintedScrimOpacity = null;
+  /** Cached scrim element for the active full-screen drag session. */
+  let fullscreenScrimEl = null;
+  const fullscreenScrimFor = (surface) => (surface === 'roster-editor'
+    ? element.querySelector('.roster-editor-scrim')
+    : element.querySelector('.drawer-scrim'));
 
   const clearClickSuppression = (clearReason = 'timeout') => {
     const reason = typeof clearReason === 'string' ? clearReason : 'timeout';
@@ -371,6 +378,9 @@ export function initHorizontalGestures({ closeRosterEditor = () => {} } = {}) {
           fullscreenDragStarted = true;
           element.setPointerCapture?.(pointerId);
           layer?.classList.add('is-dragging');
+          fullscreenScrimEl = fullscreenScrimFor(fullscreenSurface);
+          fullscreenScrimEl?.classList.add('is-dragging');
+          paintedScrimOpacity = null;
           elements.app.classList.add('is-drawer-gesturing');
           if (isSheetDebugEnabled()) {
             logGestureSession('fullscreen axis locked', {
@@ -387,6 +397,15 @@ export function initHorizontalGestures({ closeRosterEditor = () => {} } = {}) {
         const width = elements.viewport.clientWidth || elements.app.clientWidth || 0;
         const offset = Math.max(-width, Math.min(0, deltaX));
         layer.style.transform = `translate3d(${offset}px, 0, 0)`;
+        const scrim = fullscreenScrimEl;
+        if (scrim) {
+          // 遮罩透明度与面板 1:1 跟手：1 = 完全打开，0 = 完全移出。
+          const token = Math.max(0, Math.min(1, 1 + offset / width)).toFixed(3);
+          if (paintedScrimOpacity !== token) {
+            paintedScrimOpacity = token;
+            scrim.style.opacity = token;
+          }
+        }
         event.preventDefault();
       }
       return;
@@ -520,14 +539,23 @@ export function initHorizontalGestures({ closeRosterEditor = () => {} } = {}) {
       ? element.querySelector('.roster-editor')
       : elements.menuDrawer;
     layer?.classList.remove('is-dragging');
+    const scrim = fullscreenScrimEl;
+    fullscreenScrimEl = null;
+    scrim?.classList.remove('is-dragging');
     const releaseSettleChrome = () => elements.app.classList.remove('is-drawer-gesturing');
+    const resetScrimPaint = () => {
+      if (scrim) scrim.style.removeProperty('opacity');
+      paintedScrimOpacity = null;
+    };
 
     if (!layer) {
+      resetScrimPaint();
       releaseSettleChrome();
       return { close: false, reason: 'missing-layer' };
     }
     if (!wasGesture) {
       layer.style.removeProperty('transform');
+      resetScrimPaint();
       releaseSettleChrome();
       return { close: false, reason: 'tap-tolerance' };
     }
@@ -549,6 +577,9 @@ export function initHorizontalGestures({ closeRosterEditor = () => {} } = {}) {
 
     const finalize = () => {
       layer.style.removeProperty('transform');
+      // 与面板同帧移除行内遮罩值：CSS 从跟手位置过渡到目标值，与面板
+      // 同时长同缓动收尾；遮罩完全消失即面板完全移出、下层已可点击。
+      resetScrimPaint();
       if (close) {
         if (surface === 'roster-editor') closeRosterEditor();
         else closeDrawer();
@@ -615,7 +646,26 @@ export function initHorizontalGestures({ closeRosterEditor = () => {} } = {}) {
           velocityX: Number(releaseVelocityX.toFixed(3))
         });
       }
+      // 手势关闭全屏面与 Sheet 关闭同规则：随后第一次轻点由本路由直接
+      // 激活，不依赖 WebView 是否合成 click（捕获手势后它可能省略 click）。
+      if (decision.close) postSheetCloseTapPending = true;
+      const followUpTapControl = (!cancelled && !wasGesture) ? postSheetCloseTapControl : null;
+      postSheetCloseTapControl = null;
       if (wasGesture) {
+        armClickSuppression();
+        event.preventDefault();
+      } else if (followUpTapControl) {
+        // 先激活、后武装抑制：程序化 click 不能被自身捕获级处理器吞掉；
+        // 抑制只用于随后可能补发的浏览器 click。
+        if (isSheetDebugEnabled()) {
+          logGestureSession('fullscreen tap activate', {
+            sessionId: gestureSessionId,
+            owner: 'gestures',
+            activationSource: 'post-fullscreen-close-tap',
+            target: describeDebugTarget(followUpTapControl)
+          });
+        }
+        followUpTapControl.click();
         armClickSuppression();
         event.preventDefault();
       }

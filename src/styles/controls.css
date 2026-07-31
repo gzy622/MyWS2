@@ -33,9 +33,11 @@
 .menu-drawer {
   position: absolute; z-index: var(--layer-modal); inset: 0; display: flex; flex-direction: column;
   overflow: hidden; touch-action: none; background: var(--paper);
+  box-shadow: var(--shadow-sheet-right);
   visibility: hidden; transform: translateX(-100%); transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet);
 }
 .app.drawer-open .menu-drawer { visibility: visible; transform: translateX(0); transition-delay: 0s; }
+.app.drawer-open .drawer-scrim { opacity: 1; }
 .menu-drawer[aria-hidden="true"] { pointer-events: none; }
 .menu-drawer.is-dragging { transition: none; }
 /* Drawer drag follows the finger: drop the head blur while the panel slides. */
