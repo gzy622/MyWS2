@@ -86,13 +86,13 @@ function ensurePanel() {
   panel.innerHTML = [
     '<div data-chip>',
     '<button type="button" data-act="toggle" data-chip-btn title="展开/收起日志"></button>',
-    '<button type="button" data-act="off" title="关闭调试">×</button>',
     '</div>',
     '<div data-body hidden>',
     '<div data-meta></div>',
     '<div data-toolbar>',
     '<button type="button" data-act="copy">复制</button>',
     '<button type="button" data-act="clear">清空</button>',
+    '<button type="button" data-act="off">关闭</button>',
     '</div>',
     '<pre data-list></pre>',
     '</div>'
@@ -100,7 +100,8 @@ function ensurePanel() {
 
   Object.assign(panel.style, {
     position: 'fixed',
-    top: 'calc(8px + env(safe-area-inset-top, 0px))',
+    // 顶栏下方右侧：不遮挡顶栏「更多」按钮、标题与顶部 Sheet。
+    top: 'calc(var(--topbar-h) + env(safe-area-inset-top, 0px) + 4px)',
     right: '8px',
     left: 'auto',
     bottom: 'auto',
@@ -109,7 +110,7 @@ function ensurePanel() {
     flexDirection: 'column',
     alignItems: 'flex-end',
     gap: '6px',
-    maxWidth: 'min(320px, calc(100vw - 16px))',
+    maxWidth: 'min(300px, calc(100vw - 16px))',
     pointerEvents: 'none',
     font: '11px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
     color: '#e8eef8'
@@ -126,13 +127,13 @@ function ensurePanel() {
   chipEl = panel.querySelector('[data-chip-btn]');
   Object.assign(chipEl.style, {
     margin: '0',
-    padding: '6px 10px',
+    padding: '5px 9px',
     border: '0',
     borderRadius: '999px',
-    background: 'rgba(12, 16, 24, 0.88)',
+    background: 'rgba(12, 16, 24, 0.66)',
     color: '#e8eef8',
     font: '600 11px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-    boxShadow: '0 4px 16px rgba(0,0,0,.28)',
+    boxShadow: '0 1px 6px rgba(0,0,0,.18)',
     cursor: 'pointer',
     maxWidth: 'min(220px, 70vw)',
     overflow: 'hidden',
@@ -140,31 +141,16 @@ function ensurePanel() {
     whiteSpace: 'nowrap'
   });
 
-  const offBtn = panel.querySelector('[data-act="off"]');
-  Object.assign(offBtn.style, {
-    margin: '0',
-    width: '28px',
-    height: '28px',
-    padding: '0',
-    border: '0',
-    borderRadius: '999px',
-    background: 'rgba(12, 16, 24, 0.88)',
-    color: '#e8eef8',
-    font: '600 16px/28px system-ui, sans-serif',
-    boxShadow: '0 4px 16px rgba(0,0,0,.28)',
-    cursor: 'pointer'
-  });
-
   bodyEl = panel.querySelector('[data-body]');
   Object.assign(bodyEl.style, {
-    width: 'min(320px, calc(100vw - 16px))',
-    maxHeight: '36vh',
+    width: 'min(300px, calc(100vw - 16px))',
+    maxHeight: '32vh',
     display: 'none',
     flexDirection: 'column',
     gap: '6px',
     padding: '8px',
     borderRadius: '12px',
-    background: 'rgba(12, 16, 24, 0.94)',
+    background: 'rgba(12, 16, 24, 0.92)',
     boxShadow: '0 8px 24px rgba(0,0,0,.35)',
     pointerEvents: 'auto'
   });
@@ -191,7 +177,7 @@ function ensurePanel() {
     wordBreak: 'break-word',
     flex: '1',
     minHeight: '0',
-    maxHeight: '26vh',
+    maxHeight: '24vh',
     padding: '6px',
     borderRadius: '8px',
     background: 'rgba(0,0,0,.28)',
@@ -213,6 +199,13 @@ function ensurePanel() {
     }
   });
   panel.addEventListener('pointerdown', (event) => event.stopPropagation());
+  // 展开态下点击面板外任意处立即收起日志；只收起、不关闭调试，也不干预其它手势。
+  document.addEventListener('pointerdown', (event) => {
+    if (expanded && !panel.contains(event.target)) {
+      expanded = false;
+      render();
+    }
+  });
   document.body.appendChild(panel);
 }
 
