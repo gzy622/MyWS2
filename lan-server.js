@@ -10,6 +10,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
+import { LiveReloadConnections } from './tools/live-reload-connections.js';
 
 const require = createRequire(import.meta.url);
 const { computeContentId } = require('./tools/content-id.cjs');
@@ -62,7 +63,7 @@ const LIVE_RELOAD_CLIENT = `(() => {
   };
 })();`;
 
-const reloadClients = new Set();
+const reloadClients = new LiveReloadConnections();
 const watchIgnore = new Set(['android', 'node_modules', 'www', '.git', 'dist', '.cursor']);
 
 function sendHeaders(response, statusCode, headers = {}) {
@@ -201,6 +202,7 @@ const server = http.createServer((request, response) => {
       ok: true,
       liveReload,
       clients: reloadClients.size,
+      connectionSeq: reloadClients.connectionSeq,
       id: getContentId()
     }));
     return;

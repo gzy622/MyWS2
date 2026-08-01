@@ -277,8 +277,8 @@ npm run sync:phone
 主面板状态：
 
 - LAN 服务：启动中 / 正常 / 失败；
-- Live Reload：未启动 / 构建/推送中 / 已连接 / 异常退出；
-- 按 `1` 后主控制台实时显示后台构建与推送安装日志末尾（每约 1.5 秒刷新）；日志长时间无进展且 WebView 仍未连上时才判定超时；
+- Live Reload：未启动 / 构建/推送中 / 等待连接 / 已连接 / 异常退出；
+- 按 `1` 后主控制台实时显示后台构建与推送安装日志末尾（每约 1.5 秒刷新）；先等 Capacitor 明确报告 App 已运行，再等本次启动后的新 WebView 连接，两个条件都满足后才显示「已连接」；日志长时间无进展且 WebView 仍未连上时才判定超时；
 - `-Details` 时额外显示后台进程 PID 与日志位置；异常退出时主控制台显示日志末尾摘要与完整日志路径。
 
 主要操作：
@@ -298,7 +298,7 @@ npm run sync:phone
 
 1. 电脑执行 `npm run code:id`；
 2. 请求 `http://localhost:8080/__health`，确认 `id` 与电脑一致；
-3. 检查 `clients > 0`，否则 Live Reload 尚未接通；
+3. 检查 `clients > 0`；`connectionSeq` 是该 LAN 服务进程累计接受的 Live Reload 连接序号，可用于区分启动前已有连接与本次新连接；
 4. 在 App 调试条对比 `build` 与 `origin`；
 5. 检查同一 Wi‑Fi、防火墙、`-HostAddress` 或 `-Usb`；
 6. 仍不稳定时使用 `npm run deploy:apk` 将当前源码写入 APK。

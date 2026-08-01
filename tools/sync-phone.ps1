@@ -46,6 +46,7 @@ $script:appInstalled = $false
 $script:liveReloadLaunched = $false
 $script:liveReloadProcess = $null
 $script:liveReloadClients = 0
+$script:liveReloadConnectionSeq = 0
 $script:startedServerPid = 0
 $script:logLines = New-Object System.Collections.Generic.List[string]
 $script:logMax = 3
@@ -560,7 +561,7 @@ function Get-PreferredLanIp {
 function Test-LanServerHasContentId {
   try {
     $health = Invoke-WebRequest -UseBasicParsing -TimeoutSec 1 -Uri ("http://127.0.0.1:{0}/__health" -f $Port)
-    return ($health.StatusCode -eq 200 -and $health.Content -match '"id"\s*:')
+    return ($health.StatusCode -eq 200 -and $health.Content -match '"id"\s*:' -and $health.Content -match '"connectionSeq"\s*:')
   } catch {
     return $false
   }
@@ -644,7 +645,7 @@ function Start-LanServerIfNeeded {
       Write-Log ("LAN 服务已在端口 {0}（复用，本会话未托管）" -f $Port) 'DarkCyan'
       return
     }
-    Write-Log ("端口 {0} 上的旧服务无内容指纹，正在重启..." -f $Port) 'Yellow'
+    Write-Log ("端口 {0} 上的服务不支持当前健康信息，正在重启..." -f $Port) 'Yellow'
     Stop-ListenersOnPort
   }
 
@@ -715,6 +716,7 @@ function Stop-LiveReloadSession([string]$Reason = '') {
   $script:liveReloadPid = 0
   $script:liveReloadLaunched = $false
   $script:liveReloadClients = 0
+  $script:liveReloadConnectionSeq = 0
   if ($script:liveReloadState -ne 'stopped') { $script:liveReloadState = 'stopped' }
   if ($Reason) {
     Write-Log $Reason 'DarkYellow'
@@ -722,16 +724,20 @@ function Stop-LiveReloadSession([string]$Reason = '') {
   Update-PhoneRunId -RefreshPackaged
 }
 
-function Get-LocalLiveReloadClients {
+function Get-LocalLiveReloadHealth {
+  $result = @{ Clients = 0; ConnectionSeq = 0 }
   try {
     $health = Invoke-WebRequest -UseBasicParsing -TimeoutSec 1 -Uri ("http://127.0.0.1:{0}/__health" -f $Port)
     if ($health.Content -match '"clients"\s*:\s*(\d+)') {
-      return [int]$Matches[1]
+      $result.Clients = [int]$Matches[1]
+    }
+    if ($health.Content -match '"connectionSeq"\s*:\s*(\d+)') {
+      $result.ConnectionSeq = [int]$Matches[1]
     }
   } catch {
     # ignore
   }
-  return 0
+  return $result
 }
 
 function Get-LiveReloadBuildPhaseText {
@@ -741,10 +747,13 @@ function Get-LiveReloadBuildPhaseText {
   if ($text -match 'BUILD FAILED|FAILURE|error:|Error:') {
     return @{ Text = '后台构建/推送失败，日志见上'; Phase = 'fail' }
   }
+  if ($text -match 'App running with live reload listing for:') {
+    return @{ Text = '热更新版本已安装，等待手机页面连接…'; Phase = 'busy' }
+  }
   if ($text -match '==>|Task :|BUILD SUCCESSFUL|Installing|Installed|installDebug|Gradle|:app:|Syncing|Target device') {
     return @{ Text = '正在后台构建并推送安装到手机…'; Phase = 'busy' }
   }
-  return @{ Text = '等待手机连上热更新…'; Phase = 'busy' }
+  return @{ Text = '正在准备后台构建并推送安装…'; Phase = 'busy' }
 }
 
 function Update-LiveReloadBuildTail([string]$LogPath, [int]$Lines = 6) {
@@ -757,7 +766,12 @@ function Update-LiveReloadBuildTail([string]$LogPath, [int]$Lines = 6) {
   Set-FeedbackAction $phase.Text $phase.Phase
 }
 
-function Wait-LiveReloadClients([int]$TimeoutSec = 600, [int]$IdleTimeoutSec = 90, [string]$LogPath = '') {
+function Wait-LiveReloadClients(
+  [int]$BaselineConnectionSeq,
+  [int]$TimeoutSec = 600,
+  [int]$IdleTimeoutSec = 90,
+  [string]$LogPath = ''
+) {
   # 先等后台进程完成构建与推送安装（日志持续写入期间不超时），
   # 只有日志长时间无变化且 WebView 仍未连上时才判定超时。
   # 提前捕获进程对象：Show-Dashboard 的 Update-LiveReloadState 可能把
@@ -767,6 +781,7 @@ function Wait-LiveReloadClients([int]$TimeoutSec = 600, [int]$IdleTimeoutSec = 9
   $lastLogText = ''
   $lastLogChange = Get-Date
   $lastDraw = Get-Date
+  $buildComplete = $false
   while ((Get-Date) -lt $deadline) {
     if ($proc) {
       try {
@@ -775,17 +790,29 @@ function Wait-LiveReloadClients([int]$TimeoutSec = 600, [int]$IdleTimeoutSec = 9
         return @{ Ok = $false; Reason = 'exited'; Clients = 0 }
       }
     }
-    $clients = Get-LocalLiveReloadClients
-    $script:liveReloadClients = $clients
-    if ($clients -gt 0) {
-      return @{ Ok = $true; Reason = 'connected'; Clients = $clients }
-    }
+    $liveReloadHealth = Get-LocalLiveReloadHealth
+    $script:liveReloadClients = [int]$liveReloadHealth.Clients
+    $script:liveReloadConnectionSeq = [int]$liveReloadHealth.ConnectionSeq
     if ($LogPath) {
-      $tailLines = @(Get-LogTail -Path $LogPath -Lines 6)
-      $text = [string]::Join("`n", $tailLines)
+      $logLines = @(Get-LogTail -Path $LogPath -Lines 80)
+      $text = [string]::Join("`n", $logLines)
       if ($text -ne $lastLogText) {
         $lastLogText = $text
         $lastLogChange = Get-Date
+      }
+      if (-not $buildComplete -and $text -match 'App running with live reload listing for:') {
+        $buildComplete = $true
+        $script:liveReloadState = 'waiting'
+        Set-FeedbackAction '热更新版本已安装，等待手机页面连接…' 'busy'
+        Show-Dashboard
+      }
+      if ($buildComplete -and $script:liveReloadClients -gt 0 -and $script:liveReloadConnectionSeq -gt $BaselineConnectionSeq) {
+        return @{
+          Ok = $true
+          Reason = 'connected'
+          Clients = $script:liveReloadClients
+          ConnectionSeq = $script:liveReloadConnectionSeq
+        }
       }
       if ($lastLogText -ne '' -and (Get-Date) -gt $lastLogChange.AddSeconds($IdleTimeoutSec)) {
         return @{ Ok = $false; Reason = 'timeout'; Clients = 0 }
@@ -837,6 +864,7 @@ function Get-LiveReloadStatusText {
   switch ($script:liveReloadState) {
     'connected' { return @{ Text = ('已连接 · clients={0}' -f $script:liveReloadClients); Color = 'Green' } }
     'connecting' { return @{ Text = '构建/推送中'; Color = 'Yellow' } }
+    'waiting' { return @{ Text = '等待连接'; Color = 'Yellow' } }
     'exited' { return @{ Text = '异常退出'; Color = 'Red' } }
     default { return @{ Text = '未启动'; Color = 'DarkGray' } }
   }
@@ -849,7 +877,7 @@ function Get-PreviewMode {
   # apk: phone cannot reach LAN; must use packaged assets
   Update-LiveReloadState
   if (-not $script:serverReachable) { return 'apk' }
-  if ($script:liveReloadLaunched -and $script:liveReloadClients -gt 0) { return 'hot' }
+  if ($script:liveReloadState -eq 'connected' -and $script:liveReloadClients -gt 0) { return 'hot' }
   if ($script:liveReloadLaunched) { return 'hot-wait' }
   return 'ready'
 }
@@ -860,7 +888,10 @@ function Get-NextStep {
     return @{ Text = '可以了：保存文件后，手机一般会自动更新'; Color = 'Green' }
   }
   if ($mode -eq 'hot-wait') {
-    return @{ Text = '还没连上预览，请再按 1；不要只按 2'; Color = 'Yellow' }
+    if ($script:liveReloadState -eq 'connecting') {
+      return @{ Text = '正在构建并安装热更新版本…'; Color = 'Cyan' }
+    }
+    return @{ Text = '热更新版本已安装，等待手机页面连接…'; Color = 'Yellow' }
   }
   if ($mode -eq 'ready') {
     if (-not $script:appInstalled) {
@@ -997,7 +1028,7 @@ function Show-Dashboard {
     }
   }
 
-  if ($script:liveReloadState -eq 'connecting' -and $script:liveReloadTail.Count -gt 0) {
+  if (($script:liveReloadState -eq 'connecting' -or $script:liveReloadState -eq 'waiting') -and $script:liveReloadTail.Count -gt 0) {
     Write-Host ''
     Write-Host '  后台构建/推送实时日志：' -ForegroundColor DarkGray
     foreach ($line in @($script:liveReloadTail)) {
@@ -1188,8 +1219,9 @@ function Start-LiveReloadPreview {
     Write-Log '手机还访问不到 LAN，热更新可能失败；仍尝试启动...' 'Yellow'
   }
 
-  $existingClients = Get-LocalLiveReloadClients
-  if ($script:liveReloadProcess -and -not $script:liveReloadProcess.HasExited -and $existingClients -gt 0) {
+  $existingHealth = Get-LocalLiveReloadHealth
+  $existingClients = [int]$existingHealth.Clients
+  if ($script:liveReloadProcess -and -not $script:liveReloadProcess.HasExited -and $script:liveReloadState -eq 'connected' -and $existingClients -gt 0) {
     $script:liveReloadClients = $existingClients
     $script:liveReloadLaunched = $true
     $script:liveReloadState = 'connected'
@@ -1207,6 +1239,8 @@ function Start-LiveReloadPreview {
   $script:liveReloadLogPath = $logPath
   $pwsh = (Get-Command pwsh -ErrorAction Stop).Source
   $script:liveReloadState = 'connecting'
+  $baselineConnectionSeq = [int]$existingHealth.ConnectionSeq
+  $script:liveReloadConnectionSeq = $baselineConnectionSeq
   Set-FeedbackAction '正在后台启动热更新…' 'busy'
   Write-Log ("后台启动热更新 → {0}" -f $script:lanUrl) 'Cyan'
   Write-Log ("目标设备：{0}" -f $script:deviceSerial) 'DarkGray'
@@ -1245,7 +1279,7 @@ function Start-LiveReloadPreview {
   Set-FeedbackAction '正在后台构建并推送安装到手机…' 'busy'
   Show-Dashboard
 
-  $wait = Wait-LiveReloadClients -LogPath $logPath
+  $wait = Wait-LiveReloadClients -BaselineConnectionSeq $baselineConnectionSeq -LogPath $logPath
   if ($wait.Ok) {
     $script:liveReloadState = 'connected'
     Update-PhoneRunId
