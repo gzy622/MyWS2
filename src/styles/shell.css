@@ -6,7 +6,7 @@
 .topbar {
   position: absolute; z-index: var(--layer-chrome); inset: 0 0 auto; height: calc(var(--topbar-h) + env(safe-area-inset-top));
   padding: max(0px, env(safe-area-inset-top)) var(--page-inset) 0;
-  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+  display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center;
   background: color-mix(in srgb, var(--paper) 94%, transparent);
   backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
   /* Match #viewport: JS owns page swipe; default touch-action cancels mid-drag. */
@@ -21,17 +21,19 @@
   background: var(--paper);
 }
 .topbar-title {
+  width: 100%;
+  min-width: 0;
+  height: 44px;
   margin: 0;
   padding: 0;
   border: 0;
-  overflow: visible;
+  justify-self: stretch;
   background: transparent;
   color: var(--ink);
-  font-size: 21px;
+  font-size: clamp(18px, 5.4vw, 21px);
   font-weight: 700;
   letter-spacing: -.02em;
   line-height: 1;
-  height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -46,8 +48,11 @@ button.topbar-title { cursor: default; }
   color: var(--ink);
 }
 .topbar-title-core {
+  width: 100%;
+  min-width: 0;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   /* 中文粗体墨色中心偏下，上移与两侧 24px 图标光学对齐 */
   transform: translateY(-2px);
 }
@@ -58,7 +63,19 @@ button.topbar-title { cursor: default; }
   width: 16px;
   flex: none;
 }
-.topbar-title-label { display: block; line-height: 1; }
+.topbar-title-label {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  line-height: 1;
+}
+.topbar-title.is-assignment .topbar-title-label,
+.topbar-title.is-exam .topbar-title-label {
+  max-width: calc(100% - 32px);
+}
 .topbar-title-caret {
   display: none;
   width: 14px;
