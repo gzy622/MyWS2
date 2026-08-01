@@ -311,4 +311,23 @@ npm run sync:phone
 - 根目录 `.bat`：纯 ASCII、CRLF；
 - `tools/*.ps1`：UTF-8 BOM、CRLF；
 - 不在 `.bat` 中加入中文提示，避免 Windows 代码页误读；
-- 编辑器按根目录 `.editorconfig` 写入，Git 按 `.gitattributes` 规范化换行；新增文本类型时同步确认两处规则。
+- 编辑器按根目录 `.editorconfig` 写入，Git 按 `.gitattributes` 规范化换行；新增文本类型时同步确认两处规则；
+- 本页约定可用 `python tools/py/repo-format-check.py` 自动核对（见 §9）。
+
+## 9. Python 辅助脚本（可选）
+
+以下工具位于 `tools/py/`，需本机 `python` 可用；它们不参与 `npm` 与构建流程，按需手动运行：
+
+| 脚本 | 用途 | 常用参数 |
+| --- | --- | --- |
+| `env-check.py` | 验证 Python 解释器与已装第三方包均可导入 | `--check-lan`：额外探测本地 LAN 服务健康端点 |
+| `repo-format-check.py` | 按 §8 与根目录 `.gitattributes` 核对文本格式。默认检查仓库 blob（git 规范化后的入库形式：一律 LF，ps1 保留 BOM，bat 纯 ASCII）；`--working-tree` 改按磁盘内容检查，并把 `core.autocrlf` 检出转换与真实违规分开报告 | `--working-tree` |
+| `debug-rec-summary.py` | 汇总 `.debug-rec/` 录制日志：头部信息、事件类型统计与末尾事件 | 默认最新一份；`--all` 全部；`-n <条数>` 控制末尾条数 |
+
+示例：
+
+```powershell
+python tools\py\env-check.py
+python tools\py\repo-format-check.py
+python tools\py\debug-rec-summary.py --all
+```

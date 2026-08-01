@@ -51,7 +51,7 @@ Android 命令需要先执行 `npm install`，并准备 JDK 21+、Android SDK �
 ├─ index.html           静态托管兼容入口，转至 src/ 应用
 ├─ src/                 Web 源码：HTML、浏览器脚本与样式
 ├─ tests/               零依赖 Node 单元测试
-├─ tools/               构建、同步、内容指纹与 Android 辅助工具
+├─ tools/               构建、同步、内容指纹、Android 与 Python 辅助工具
 ├─ docs/                现行文档、开发指南与历史档案
 ├─ android/             可选 Capacitor Android 工程
 ├─ dist/                单文件导出（生成目录，不提交）
