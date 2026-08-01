@@ -5,7 +5,10 @@ param(
   [int]$Port = 8080,
   [switch]$Lan,
   [switch]$Usb,
-  [switch]$NoServer
+  [switch]$NoServer,
+  # Controlled background run: hosted by sync-phone.ps1 with redirected output,
+  # no interactive hints that assume a visible terminal.
+  [switch]$Controlled
 )
 
 Set-StrictMode -Version Latest
@@ -373,9 +376,11 @@ if ($reach.Ok) {
   Write-Host 'Reliable fallback: npm run deploy:apk' -ForegroundColor Yellow
 }
 
-Write-Host 'Save files under src/ → WebView reloads automatically.'
-Write-Host 'Keep this terminal open. Stop with Ctrl+C when finished.'
-Write-Host 'Version check: npm run code:id  →  long-press menu → compare build.'
+if (-not $Controlled) {
+  Write-Host 'Save files under src/ → WebView reloads automatically.'
+  Write-Host 'Keep this terminal open. Stop with Ctrl+C when finished.'
+  Write-Host 'Version check: npm run code:id  →  long-press menu → compare build.'
+}
 
 Push-Location $root
 try {

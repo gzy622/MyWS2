@@ -58,6 +58,136 @@ $script:watchState = [hashtable]::Synchronized(@{
   Dirty = $false
   LastChange = $null
 })
+$script:lanServerState = 'starting'
+$script:liveReloadState = 'stopped'
+$script:liveReloadPid = 0
+$script:liveReloadLogPath = ''
+$script:lanServerLogPath = ''
+$script:lastErrorTail = New-Object System.Collections.Generic.List[string]
+$script:sessionLogFiles = New-Object System.Collections.Generic.List[string]
+$script:cleanupLogs = $false
+$script:jobAvailable = $false
+
+$script:jobSource = @'
+using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using System.Text;
+
+public static class ProcessTreeJob {
+  [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+  private static extern IntPtr CreateJobObject(IntPtr lpJobAttributes, string lpName);
+
+  [DllImport("kernel32.dll")]
+  private static extern bool SetInformationJobObject(IntPtr hJob, int JobObjectInfoClass, IntPtr lpJobObjectInfo, uint cbJobObjectInfoLength);
+
+  [DllImport("kernel32.dll")]
+  private static extern bool AssignProcessToJobObject(IntPtr hJob, IntPtr hProcess);
+
+  [DllImport("kernel32.dll")]
+  private static extern bool CloseHandle(IntPtr hObject);
+
+  [StructLayout(LayoutKind.Sequential)]
+  private struct JOBOBJECT_BASIC_LIMIT_INFORMATION {
+    public long PerProcessUserTimeLimit;
+    public long PerJobUserTimeLimit;
+    public uint LimitFlags;
+    public UIntPtr MinimumWorkingSetSize;
+    public UIntPtr MaximumWorkingSetSize;
+    public uint ActiveProcessLimit;
+    public UIntPtr Affinity;
+    public uint PriorityClass;
+    public uint SchedulingClass;
+  }
+
+  [StructLayout(LayoutKind.Sequential)]
+  private struct IO_COUNTERS {
+    public ulong ReadOperationCount;
+    public ulong WriteOperationCount;
+    public ulong OtherOperationCount;
+    public ulong ReadTransferCount;
+    public ulong WriteTransferCount;
+    public ulong OtherTransferCount;
+  }
+
+  [StructLayout(LayoutKind.Sequential)]
+  private struct JOBOBJECT_EXTENDED_LIMIT_INFORMATION {
+    public JOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimitInformation;
+    public IO_COUNTERS IoInfo;
+    public UIntPtr ProcessMemoryLimit;
+    public UIntPtr JobMemoryLimit;
+    public UIntPtr PeakProcessMemoryUsed;
+    public UIntPtr PeakJobMemoryUsed;
+  }
+
+  private const int JobObjectExtendedLimitInformation = 9;
+  private const uint JobObjectLimitKillOnJobClose = 0x2000;
+  private static IntPtr jobHandle = IntPtr.Zero;
+  private static readonly List<System.IO.StreamWriter> writers = new List<System.IO.StreamWriter>();
+
+  public static bool Create() {
+    jobHandle = CreateJobObject(IntPtr.Zero, null);
+    if (jobHandle == IntPtr.Zero) { return false; }
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION info = new JOBOBJECT_EXTENDED_LIMIT_INFORMATION();
+    info.BasicLimitInformation.LimitFlags = JobObjectLimitKillOnJobClose;
+    int size = Marshal.SizeOf(typeof(JOBOBJECT_EXTENDED_LIMIT_INFORMATION));
+    IntPtr ptr = Marshal.AllocHGlobal(size);
+    try {
+      Marshal.StructureToPtr(info, ptr, false);
+      return SetInformationJobObject(jobHandle, JobObjectExtendedLimitInformation, ptr, (uint)size);
+    } finally {
+      Marshal.FreeHGlobal(ptr);
+    }
+  }
+
+  // Start a console process with no window; stdout/stderr are read on .NET
+  // background threads and appended to logFile. The process is added to the
+  // session job so closing the job kills the whole tree.
+  public static System.Diagnostics.Process Start(System.Diagnostics.ProcessStartInfo psi, string logFile) {
+    psi.UseShellExecute = false;
+    psi.CreateNoWindow = true;
+    psi.RedirectStandardOutput = true;
+    psi.RedirectStandardError = true;
+    var fs = new System.IO.FileStream(logFile, System.IO.FileMode.Append, System.IO.FileAccess.Write, System.IO.FileShare.ReadWrite);
+    var writer = new System.IO.StreamWriter(fs, new UTF8Encoding(false)) { AutoFlush = true };
+    lock (writers) { writers.Add(writer); }
+    var proc = new System.Diagnostics.Process();
+    proc.StartInfo = psi;
+    System.Diagnostics.DataReceivedEventHandler handler = (s, e) => {
+      if (e.Data != null) {
+        lock (writer) { writer.WriteLine(e.Data); }
+      }
+    };
+    proc.OutputDataReceived += handler;
+    proc.ErrorDataReceived += handler;
+    if (!proc.Start()) { throw new InvalidOperationException("Process start failed: " + psi.FileName); }
+    if (jobHandle != IntPtr.Zero) { AssignProcessToJobObject(jobHandle, proc.Handle); }
+    proc.BeginOutputReadLine();
+    proc.BeginErrorReadLine();
+    return proc;
+  }
+
+  public static void Close() {
+    lock (writers) {
+      foreach (System.IO.StreamWriter w in writers) {
+        try { w.Flush(); w.Dispose(); } catch { }
+      }
+      writers.Clear();
+    }
+    if (jobHandle != IntPtr.Zero) {
+      CloseHandle(jobHandle);
+      jobHandle = IntPtr.Zero;
+    }
+  }
+}
+'@
+
+try {
+  Add-Type -TypeDefinition $script:jobSource -ErrorAction Stop
+  $script:jobAvailable = [ProcessTreeJob]::Create()
+} catch {
+  $script:jobAvailable = $false
+}
 
 function Write-Log([string]$Message, [string]$Color = 'Gray') {
   $stamp = Get-Date -Format 'HH:mm:ss'
@@ -445,10 +575,72 @@ function Stop-ListenersOnPort {
   Start-Sleep -Milliseconds 400
 }
 
+function New-SessionTempLog([string]$Label) {
+  $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+  $fileName = 'sync-phone-{0}-{1}-{2}.log' -f $Label, $stamp, [System.Diagnostics.Process]::GetCurrentProcess().Id
+  $path = Join-Path ([System.IO.Path]::GetTempPath()) $fileName
+  [void]$script:sessionLogFiles.Add($path)
+  return $path
+}
+
+function Get-LogTail([string]$Path, [int]$Lines = 10) {
+  $result = New-Object System.Collections.Generic.List[string]
+  if (-not $Path -or -not (Test-Path -LiteralPath $Path)) {
+    return [string[]]$result.ToArray()
+  }
+  $reader = $null
+  try {
+    $fs = [System.IO.File]::Open($Path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+    $reader = [System.IO.StreamReader]::new($fs)
+    $linesAll = @([string]$reader.ReadToEnd() -split "`n")
+  } finally {
+    if ($reader) { $reader.Dispose() }
+  }
+  $linesAll = @($linesAll | ForEach-Object { ([string]$_).TrimEnd("`r") })
+  $skip = [Math]::Max(0, $linesAll.Length - $Lines)
+  for ($i = $skip; $i -lt $linesAll.Length; $i++) {
+    [void]$result.Add([string]$linesAll[$i])
+  }
+  return [string[]]$result.ToArray()
+}
+
+function Start-WindowlessProcess {
+  # Start a process with no console window and redirect its stdout/stderr to a
+  # session temp log, so background children never create visible windows.
+  param(
+    [string]$FilePath,
+    [string[]]$Arguments,
+    [string]$WorkingDirectory,
+    [string]$LogFile
+  )
+  $psi = [System.Diagnostics.ProcessStartInfo]::new()
+  $psi.FileName = $FilePath
+  foreach ($arg in $Arguments) { [void]$psi.ArgumentList.Add($arg) }
+  $psi.WorkingDirectory = $WorkingDirectory
+  return [ProcessTreeJob]::Start($psi, $LogFile)
+}
+
+function Stop-ProcessTree([int]$RootPid) {
+  if ($RootPid -le 0) { return }
+  $ids = New-Object System.Collections.Generic.List[int]
+  [void]$ids.Add($RootPid)
+  for ($i = 0; $i -lt $ids.Count; $i++) {
+    $parent = $ids[$i]
+    $children = @(Get-CimInstance Win32_Process -Filter ("ParentProcessId = {0}" -f $parent) -ErrorAction SilentlyContinue)
+    foreach ($child in $children) {
+      [void]$ids.Add([int]$child.ProcessId)
+    }
+  }
+  for ($j = $ids.Count - 1; $j -ge 0; $j--) {
+    Stop-Process -Id $ids[$j] -Force -ErrorAction SilentlyContinue
+  }
+}
+
 function Start-LanServerIfNeeded {
   if (Test-PortOpen $Port) {
     if (Test-LanServerHasContentId) {
-      Write-Log ("LAN 服务已在端口 {0}" -f $Port) 'DarkCyan'
+      $script:lanServerState = 'ok'
+      Write-Log ("LAN 服务已在端口 {0}（复用，本会话未托管）" -f $Port) 'DarkCyan'
       return
     }
     Write-Log ("端口 {0} 上的旧服务无内容指纹，正在重启..." -f $Port) 'Yellow'
@@ -456,21 +648,49 @@ function Start-LanServerIfNeeded {
   }
 
   $node = (Get-Command node -ErrorAction Stop).Source
-  $proc = Start-Process -FilePath $node `
-    -ArgumentList @('lan-server.js', "$Port") `
-    -WorkingDirectory $root `
-    -WindowStyle Minimized `
-    -PassThru
-  $script:startedServerPid = [int]$proc.Id
+  $logPath = New-SessionTempLog 'lan-server'
+  $script:lanServerLogPath = $logPath
+  $script:lanServerState = 'starting'
+  try {
+    $proc = Start-WindowlessProcess -FilePath $node `
+      -Arguments @('lan-server.js', "$Port") `
+      -WorkingDirectory $root `
+      -LogFile $logPath
+    $script:startedServerPid = [int]$proc.Id
+  } catch {
+    $script:lanServerState = 'failed'
+    throw ("无法启动 LAN 服务：{0}`n完整日志：{1}" -f $_.Exception.Message, $logPath)
+  }
   $deadline = (Get-Date).AddSeconds(10)
   while ((Get-Date) -lt $deadline) {
     if (Test-PortOpen $Port -and (Test-LanServerHasContentId)) {
+      $script:lanServerState = 'ok'
       Write-Log ("已启动 LAN 服务 pid={0} port={1}" -f $script:startedServerPid, $Port) 'Green'
       return
     }
     Start-Sleep -Milliseconds 200
   }
-  throw ("LAN 服务未能在端口 {0} 就绪" -f $Port)
+  $script:lanServerState = 'failed'
+  $tailLines = @(Get-LogTail -Path $logPath -Lines 12)
+  $tailBlock = ($tailLines | ForEach-Object { "  $_" }) -join "`n"
+  throw ("LAN 服务未能在端口 {0} 就绪。`n日志末尾：`n{1}`n完整日志：{2}" -f $Port, $tailBlock, $logPath)
+}
+
+function Update-LanServerState {
+  if ($script:lanServerState -eq 'starting') { return }
+  if (-not (Test-PortOpen $Port) -or -not (Test-LanServerHasContentId)) {
+    if ($script:lanServerState -ne 'failed') {
+      $script:lanServerState = 'failed'
+      Write-Log ("LAN 服务不可达（端口 {0}）" -f $Port) 'Red'
+    }
+    return
+  }
+  if ($script:lanServerState -ne 'ok') {
+    $script:lanServerState = 'ok'
+    if ($script:startedServerPid -gt 0) {
+      Write-Log 'LAN 服务已恢复' 'Green'
+    }
+  }
 }
 
 function Update-ContentStatus {
@@ -480,27 +700,21 @@ function Update-ContentStatus {
   }
 }
 
-function Format-ProcessArgument([string]$Value) {
-  # Start-Process -ArgumentList joins with spaces and does not quote; wrap values that need it.
-  if ($null -eq $Value) { return '""' }
-  $text = [string]$Value
-  if ($text -notmatch '[ \t"]') { return $text }
-  return ('"{0}"' -f ($text.Replace('"', '\"')))
-}
-
 function Stop-LiveReloadSession([string]$Reason = '') {
   if ($script:liveReloadProcess) {
     try {
       if (-not $script:liveReloadProcess.HasExited) {
-        Stop-Process -Id $script:liveReloadProcess.Id -Force -ErrorAction SilentlyContinue
+        Stop-ProcessTree $script:liveReloadPid
       }
     } catch {
       # ignore
     }
   }
   $script:liveReloadProcess = $null
+  $script:liveReloadPid = 0
   $script:liveReloadLaunched = $false
   $script:liveReloadClients = 0
+  if ($script:liveReloadState -ne 'stopped') { $script:liveReloadState = 'stopped' }
   if ($Reason) {
     Write-Log $Reason 'DarkYellow'
   }
@@ -543,12 +757,35 @@ function Update-LiveReloadState {
     # Process object may be stale.
   }
   $script:liveReloadProcess = $null
+  $script:liveReloadPid = 0
   if ($script:liveReloadLaunched) {
     $script:liveReloadLaunched = $false
     $script:liveReloadClients = 0
-    Write-Log '热更新窗口已关闭，模式回到 LAN 已通' 'DarkYellow'
-    Set-FeedbackAction '热更新窗口已关闭' 'warn'
+    $script:liveReloadState = 'exited'
+    $script:lastErrorTail.Clear()
+    foreach ($line in @(Get-LogTail -Path $script:liveReloadLogPath -Lines $(if ($script:showDetails) { 40 } else { 10 }))) {
+      [void]$script:lastErrorTail.Add($line)
+    }
+    Write-Log '热更新进程已退出，模式回到 LAN 已通' 'DarkYellow'
+    Set-FeedbackAction '热更新进程已退出' 'warn'
     Update-PhoneRunId -RefreshPackaged
+  }
+}
+
+function Get-LanServerStatusText {
+  switch ($script:lanServerState) {
+    'ok' { return @{ Text = '正常'; Color = 'Green' } }
+    'failed' { return @{ Text = '失败'; Color = 'Red' } }
+    default { return @{ Text = '启动中'; Color = 'Yellow' } }
+  }
+}
+
+function Get-LiveReloadStatusText {
+  switch ($script:liveReloadState) {
+    'connected' { return @{ Text = ('已连接 · clients={0}' -f $script:liveReloadClients); Color = 'Green' } }
+    'connecting' { return @{ Text = '连接中'; Color = 'Yellow' } }
+    'exited' { return @{ Text = '异常退出'; Color = 'Red' } }
+    default { return @{ Text = '未启动'; Color = 'DarkGray' } }
   }
 }
 
@@ -643,6 +880,23 @@ function Show-Dashboard {
   Write-Host ('  {0}' -f $simpleStatus.Text) -ForegroundColor $simpleStatus.Color
   Write-FingerprintPair
 
+  $lanStatus = Get-LanServerStatusText
+  $lrStatus = Get-LiveReloadStatusText
+  Write-Host '  LAN 服务    ' -NoNewline -ForegroundColor DarkGray
+  Write-Host $lanStatus.Text -ForegroundColor $lanStatus.Color
+  Write-Host '  Live Reload ' -NoNewline -ForegroundColor DarkGray
+  Write-Host $lrStatus.Text -ForegroundColor $lrStatus.Color
+  if ($script:showDetails) {
+    if ($script:startedServerPid -gt 0) {
+      Write-Host ("  LAN 服务 pid={0} · 日志 {1}" -f $script:startedServerPid, $(if ($script:lanServerLogPath) { $script:lanServerLogPath } else { '-' })) -ForegroundColor DarkGray
+    } elseif ($script:lanServerState -eq 'ok') {
+      Write-Host '  LAN 服务复用外部进程（本会话未托管）' -ForegroundColor DarkGray
+    }
+    if ($script:liveReloadPid -gt 0) {
+      Write-Host ("  Live Reload pid={0} · 日志 {1}" -f $script:liveReloadPid, $(if ($script:liveReloadLogPath) { $script:liveReloadLogPath } else { '-' })) -ForegroundColor DarkGray
+    }
+  }
+
   if ($script:showDetails) {
     Write-Host '  ' -NoNewline -ForegroundColor DarkGray
     if ($script:serverReachable) {
@@ -679,6 +933,17 @@ function Show-Dashboard {
   Write-Host $script:feedbackAction.Text -ForegroundColor $phaseMeta.Color
   Write-Host ''
 
+  if ($script:liveReloadState -eq 'exited' -and $script:lastErrorTail.Count -gt 0) {
+    Write-Host ''
+    Write-Host '  热更新进程异常退出，日志末尾：' -ForegroundColor Red
+    foreach ($line in @($script:lastErrorTail)) {
+      Write-Host ('  {0}' -f $line) -ForegroundColor DarkGray
+    }
+    if ($script:liveReloadLogPath) {
+      Write-Host ('  完整日志：{0}' -f $script:liveReloadLogPath) -ForegroundColor DarkGray
+    }
+  }
+
   Write-Host '  1  开启保存即更新' -ForegroundColor Gray
   Write-Host '  2  安装/更新到手机' -ForegroundColor Gray
   Write-Host '  3  刷新连接与版本' -ForegroundColor Gray
@@ -708,7 +973,7 @@ function Invoke-Deploy {
   Show-Dashboard
   # Packaged APK has no server.url; an old Live Reload window would lie about "hot".
   if ($script:liveReloadLaunched -or $script:liveReloadProcess) {
-    Stop-LiveReloadSession '打包推送会写入包内资源，已断开旧热更新会话（需要热更新请稍后按 1）'
+    Stop-LiveReloadSession '打包推送会写入包内资源，已停止后台热更新进程（需要热更新请稍后按 1）'
   }
   $deployArgs = @(
     '-NoProfile', '-ExecutionPolicy', 'Bypass',
@@ -841,7 +1106,7 @@ function Test-PhoneHealth {
   if ($script:liveReloadLaunched -and $clients -gt 0) {
     Write-Log '热更新已接通：保存代码后手机应自动刷新' 'Green'
   } elseif ($script:liveReloadLaunched -and $ok) {
-    Write-Log '热更新窗口已开，但还未连上，手机可能仍是安装包版本' 'Yellow'
+    Write-Log '热更新已在后台启动，但还未连上，手机可能仍是安装包版本' 'Yellow'
   } elseif ($ok -and $script:appInstalled) {
     Write-Log '可按 1 开启保存即更新' 'Cyan'
   } elseif (-not $script:appInstalled) {
@@ -863,53 +1128,82 @@ function Start-LiveReloadPreview {
   if ($script:liveReloadProcess -and -not $script:liveReloadProcess.HasExited -and $existingClients -gt 0) {
     $script:liveReloadClients = $existingClients
     $script:liveReloadLaunched = $true
+    $script:liveReloadState = 'connected'
     Update-PhoneRunId
     Write-Log ("热更新已接通 · clients={0}；保存即可刷新" -f $existingClients) 'Green'
     Set-FeedbackAction ("热更新已接通 · clients={0}" -f $existingClients) 'ok'
     return
   }
   if ($script:liveReloadProcess -and -not $script:liveReloadProcess.HasExited) {
-    Write-Log '旧热更新窗口未接通 WebView，正在关闭并重建…' 'Yellow'
+    Write-Log '旧热更新进程未接通 WebView，正在停止并重建…' 'Yellow'
     Stop-LiveReloadSession
   }
 
-  Set-FeedbackAction '正在启动热更新窗口…' 'busy'
-  Write-Log ("另开窗口启动热更新 → {0}" -f $script:lanUrl) 'Cyan'
+  $logPath = New-SessionTempLog 'livereload'
+  $script:liveReloadLogPath = $logPath
+  $pwsh = (Get-Command pwsh -ErrorAction Stop).Source
+  $script:liveReloadState = 'connecting'
+  Set-FeedbackAction '正在后台启动热更新…' 'busy'
+  Write-Log ("后台启动热更新 → {0}" -f $script:lanUrl) 'Cyan'
   Write-Log ("目标设备：{0}" -f $script:deviceSerial) 'DarkGray'
   Show-Dashboard
 
-  # Quote serials that contain spaces (wireless mdns ids), or Start-Process truncates them.
-  $argLine = @(
+  $arguments = @(
     '-NoProfile',
+    '-NonInteractive',
     '-ExecutionPolicy', 'Bypass',
-    '-File', (Format-ProcessArgument $previewScript),
-    '-Serial', (Format-ProcessArgument $script:deviceSerial),
+    '-File', $previewScript,
+    '-Controlled',
+    '-Serial', $script:deviceSerial,
     '-NoServer',
-    '-Port', "$Port",
-    '-HostAddress', (Format-ProcessArgument $script:lanIp)
-  ) -join ' '
-
-  $script:liveReloadProcess = Start-Process powershell -ArgumentList $argLine -PassThru
+    '-Port', "$Port"
+  )
+  if ($script:lanIp) {
+    $arguments += @('-HostAddress', $script:lanIp)
+  }
+  try {
+    $script:liveReloadProcess = Start-WindowlessProcess -FilePath $pwsh `
+      -Arguments $arguments `
+      -WorkingDirectory $root `
+      -LogFile $logPath
+    $script:liveReloadPid = [int]$script:liveReloadProcess.Id
+  } catch {
+    $script:liveReloadState = 'exited'
+    $script:lastErrorTail.Clear()
+    [void]$script:lastErrorTail.Add(('无法启动热更新进程：{0}' -f $_.Exception.Message))
+    Write-Log '热更新后台进程启动失败' 'Red'
+    Set-FeedbackAction '热更新启动失败 · 查看日志' 'fail'
+    Show-Dashboard
+    return
+  }
   $script:liveReloadLaunched = $true
-  Write-Log '已启动热更新窗口，等待 WebView 订阅（最长约 2 分钟，勿关弹窗）…' 'Cyan'
+  Write-Log ("已后台启动热更新 pid={0}，等待 WebView 订阅（最长约 2 分钟）…" -f $script:liveReloadPid) 'Cyan'
   Set-FeedbackAction '等待 WebView 连上热更新…' 'busy'
   Show-Dashboard
 
   $wait = Wait-LiveReloadClients -TimeoutSec 120
   if ($wait.Ok) {
+    $script:liveReloadState = 'connected'
     Update-PhoneRunId
-    Write-Log ("热更新已接通 · clients={0}；保持窗口打开，保存即可刷新" -f $wait.Clients) 'Green'
+    Write-Log ("热更新已接通 · clients={0}；保持脚本运行，保存即可刷新" -f $wait.Clients) 'Green'
     Set-FeedbackAction ("热更新已接通 · clients={0}" -f $wait.Clients) 'ok'
     return
   }
   if ($wait.Reason -eq 'exited') {
-    Write-Log '热更新窗口已退出。请看弹窗：若曾出现 Invalid target / No devices found，已修无线序列号映射，请再按 1' 'Red'
+    $tailLines = @(Get-LogTail -Path $logPath -Lines $(if ($script:showDetails) { 40 } else { 10 }))
     Stop-LiveReloadSession
-    Set-FeedbackAction '热更新窗口异常退出 · 查看弹窗后请再按 1' 'fail'
+    $script:liveReloadState = 'exited'
+    $script:lastErrorTail.Clear()
+    foreach ($line in $tailLines) {
+      [void]$script:lastErrorTail.Add($line)
+    }
+    Write-Log '热更新进程异常退出，日志末尾见上；请再按 1 重试' 'Red'
+    Set-FeedbackAction '热更新后台进程异常退出 · 请再按 1' 'fail'
+    Show-Dashboard
     return
   }
-  Write-Log '超时仍 clients=0：App 可能仍在吃包内资源。请确认热更新窗口无报错，且手机与电脑同一 Wi-Fi' 'Yellow'
-  Set-FeedbackAction '热更新未接通（clients=0）· 查看弹窗或再按 1' 'warn'
+  Write-Log '超时仍 clients=0：App 可能仍在吃包内资源。请确认手机与电脑同一 Wi-Fi（-Details 可看后台日志）' 'Yellow'
+  Set-FeedbackAction '热更新未接通（clients=0）· 可再按 1' 'warn'
 }
 
 function Start-Watchers {
@@ -938,18 +1232,28 @@ function Start-Watchers {
 }
 
 function Stop-OwnedServer {
+  if ($script:liveReloadProcess) {
+    Stop-LiveReloadSession
+  }
   if ($script:startedServerPid -gt 0) {
-    try {
-      Stop-Process -Id $script:startedServerPid -Force -ErrorAction SilentlyContinue
-      Write-Host ("已停止本脚本启动的 LAN 服务 pid={0}" -f $script:startedServerPid) -ForegroundColor DarkGray
-    } catch {
-      # ignore
-    }
+    Stop-ProcessTree $script:startedServerPid
+    Write-Host ("已停止本脚本启动的 LAN 服务 pid={0}" -f $script:startedServerPid) -ForegroundColor DarkGray
+    $script:startedServerPid = 0
   }
   foreach ($w in $script:watchers) {
     try { $w.EnableRaisingEvents = $false; $w.Dispose() } catch { }
   }
   Get-EventSubscriber -ErrorAction SilentlyContinue | Where-Object { $_.SourceObject -is [IO.FileSystemWatcher] } | Unregister-Event -ErrorAction SilentlyContinue
+  if ($script:jobAvailable) {
+    try { [void][ProcessTreeJob]::Close() } catch { }
+    $script:jobAvailable = $false
+  }
+  if ($script:cleanupLogs) {
+    foreach ($file in $script:sessionLogFiles) {
+      try { Remove-Item -LiteralPath $file -Force -ErrorAction SilentlyContinue } catch { }
+    }
+    $script:sessionLogFiles.Clear()
+  }
 }
 
 # ---- main ----
@@ -992,6 +1296,7 @@ try {
   }
 
   $debounceUntil = Get-Date
+  $lastLanHealthAt = Get-Date
   Set-FeedbackAction '已就绪，请按下方按键' 'idle'
   Show-Dashboard
 
@@ -1005,6 +1310,7 @@ try {
         '0' {
           Set-FeedbackInput '0' '退出'
           Set-FeedbackAction '正在退出…' 'busy'
+          $script:cleanupLogs = $true
           Show-Dashboard
           break
         }
@@ -1105,6 +1411,11 @@ try {
         [void](Invoke-Deploy)
       }
       Show-Dashboard
+    }
+
+    if ((Get-Date) -ge $lastLanHealthAt.AddSeconds(5)) {
+      $lastLanHealthAt = Get-Date
+      Update-LanServerState
     }
 
     Start-Sleep -Milliseconds 150

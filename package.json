@@ -10,9 +10,9 @@
     "sync:android": "npm run sync:www && npx cap sync android",
     "build:apk": "npm run sync:android && cd android && .\\gradlew.bat assembleDebug",
     "deploy:apk": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tools/deploy-apk.ps1",
-    "preview:native": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tools/preview-native.ps1",
+    "preview:native": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./tools/preview-native.ps1",
     "code:id": "node ./tools/content-id.cjs .",
-    "sync:phone": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tools/sync-phone.ps1",
+    "sync:phone": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./tools/sync-phone.ps1",
     "open:android": "npx cap open android"
   },
   "dependencies": {
