@@ -16,11 +16,11 @@ function syncDrawerChrome(open) {
   syncChromeInert();
 }
 
-export function openDrawer() {
+export function openDrawer({ returnFocus } = {}) {
   if (elements.app.classList.contains('drawer-open')) return;
-  drawerTrigger = document.activeElement instanceof HTMLElement
+  drawerTrigger = returnFocus ?? (document.activeElement instanceof HTMLElement
     ? document.activeElement
-    : elements.settingsButton;
+    : elements.settingsButton);
   closeBusinessOverlays('drawer');
   refreshBuildId();
   renderDrawerContent?.();
@@ -55,7 +55,7 @@ export function initDrawer({
   }
   renderDrawerContent = renderContent;
 
-  elements.settingsButton.addEventListener('click', openDrawer);
+  elements.settingsButton.addEventListener('click', () => openDrawer());
   elements.closeMenuDrawerButton.addEventListener('click', () => closeDrawer());
   elements.menuItems.forEach((button) => button.addEventListener('click', () => {
     const action = button.dataset.action;

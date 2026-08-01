@@ -1,5 +1,5 @@
 import { elements } from './dom.js';
-import { closeDrawer } from './drawer.js';
+import { closeDrawer, openDrawer } from './drawer.js';
 import { setSub } from './navigation.js';
 import { state, setActiveOverlay } from './state.js';
 import { haptic, Haptic } from './haptics.js';
@@ -23,6 +23,7 @@ const PEOPLE_ACTIONS = new Set([...PEOPLE_ROLE_ACTIONS, ...PEOPLE_DUTY_ACTIONS])
 const COURSES_SCHEDULE_ACTIONS = new Set(['clear-schedule', 'highlight-subjects']);
 const COURSES_GRADES_ACTIONS = new Set(['add-subject', 'add-exam', 'grade-stats', 'clear-grades']);
 const COURSES_ACTIONS = new Set([...COURSES_SCHEDULE_ACTIONS, ...COURSES_GRADES_ACTIONS]);
+const GLOBAL_ACTIONS = new Set(['open-settings']);
 
 export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOthers, highlightSubjects, openCreateAssignment, openCreateExam, openGradeStats }) {
   let trigger = null;
@@ -110,7 +111,9 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
     for (const button of elements.moreActions) {
       const action = button.dataset.moreAction;
       let hidden = false;
-      if (REGISTER_ACTIONS.has(action)) {
+      if (GLOBAL_ACTIONS.has(action)) {
+        hidden = false;
+      } else if (REGISTER_ACTIONS.has(action)) {
         hidden = !onRegister
           || ((action === 'seat-edit' || action === 'seat-reset') && !isSeats);
       } else if (PEOPLE_ACTIONS.has(action)) {
@@ -199,6 +202,11 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
   elements.moreActions.forEach((button) => button.addEventListener('click', (event) => {
     event.stopPropagation();
     const action = button.dataset.moreAction;
+    if (action === 'open-settings') {
+      close({ restoreFocus: false });
+      openDrawer({ returnFocus: elements.moreButton });
+      return;
+    }
     if (action === 'register-view') {
       const targetSubview = state.subviews[REGISTER_PAGE_INDEX] === GRID_SUBVIEW_INDEX
         ? SEAT_SUBVIEW_INDEX
