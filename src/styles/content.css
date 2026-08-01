@@ -693,12 +693,13 @@
 }
 
 .seat-mode-bar {
-  min-height: 44px;
+  min-height: 52px;
   border: .5px solid var(--line);
   background: color-mix(in srgb, var(--card) 92%, transparent);
   box-shadow: var(--shadow-soft);
   color: var(--ink);
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .seat-fit-button,
@@ -781,15 +782,17 @@
 .seat-mode-bar {
   position: absolute;
   top: 10px;
-  left: 12px;
-  right: 38px;
+  left: 50%;
+  right: auto;
+  width: min(calc(100% - 24px), 360px);
   min-width: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 4px 4px 4px 12px;
-  border-radius: 16px;
+  gap: 10px;
+  padding: 4px 4px 4px 14px;
+  border-radius: 18px;
+  transform: translateX(-50%);
   pointer-events: auto;
 }
 
@@ -798,25 +801,60 @@
 }
 
 .seat-mode-bar span {
+  position: relative;
   min-width: 0;
+  display: block;
+  padding-left: 14px;
   overflow: hidden;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
+  line-height: 1.2;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
+.seat-mode-bar span::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 1px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--teal);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 10%, transparent);
+  transform: translateY(-50%);
+}
+
 .seat-mode-bar button {
-  min-width: 52px;
-  min-height: 36px;
-  padding: 0 12px;
+  min-width: 56px;
+  min-height: 44px;
+  padding: 0 14px;
   border: 0;
-  border-radius: 12px;
-  color: var(--on-accent);
-  background: var(--accent);
-  font-size: 12px;
+  border-radius: 14px;
+  color: var(--action-primary-text);
+  background: var(--action-primary);
+  font-size: 13px;
   font-weight: 700;
+  cursor: pointer;
+  transition: background-color 120ms var(--ease), color 120ms var(--ease), transform 120ms var(--ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .seat-mode-bar button:hover {
+    background: color-mix(in srgb, var(--action-primary) 82%, var(--control));
+  }
+}
+
+.seat-mode-bar button:active {
+  transform: translateY(1px);
+  background: color-mix(in srgb, var(--action-primary) 72%, var(--control));
+}
+
+.seat-mode-bar button:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: -2px;
 }
 
 .app.seat-landscape .seat-stage.is-view-mode {
@@ -855,8 +893,8 @@
 
 .app.seat-landscape .seat-mode-bar {
   top: max(10px, env(safe-area-inset-top));
-  left: max(12px, env(safe-area-inset-left));
-  right: max(38px, calc(env(safe-area-inset-right) + 38px));
+  left: 50%;
+  right: auto;
 }
 
 .section-title {
