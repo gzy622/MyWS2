@@ -245,29 +245,51 @@ npm run preview:native
 
 无线调试默认优先常见局域网地址并跳过常见 VPN 网段。手机和电脑必须处于同一网络，且防火墙允许 Node.js。
 
+独立运行 `npm run preview:native` 是前台诊断入口，日志直接输出到当前终端。由手机同步控制台选择「1」调用时，则以 `-Controlled` 参数后台托管：无窗口运行、标准输出与错误重定向到会话临时日志，所有状态在主控制台查看。
+
 ## 6. 手机同步控制台
+
+### 前置条件
+
+- PowerShell 7（`pwsh`）与 Windows Terminal（`wt.exe`）：
+  - `winget install Microsoft.PowerShell`
+  - `winget install Microsoft.WindowsTerminal`
+- 其余依赖见「Capacitor Android」一节。
+
+### 启动
 
 ```powershell
 npm run sync:phone
 ```
 
-或双击 `sync-phone.bat`。默认流程：
+或双击 `sync-phone.bat`：先检查 `pwsh`、`wt`、`node`、`adb` 与依赖，再在 Windows Terminal 中打开 PowerShell 7 控制台运行本脚本，临时批处理窗口立即退出；若当前已在 Windows Terminal 中运行，则直接复用当前窗口，不会递归打开新窗口。
+
+稳定状态下只保留一个长期可见窗口（Windows Terminal 中的 `sync-phone` 控制台）。`node.exe` LAN 服务与原生 Live Reload（`tools/preview-native.ps1` 后台运行）均由主脚本无窗口托管，选择「1」不会出现新的 Windows Terminal、`conhost.exe` 或 `node.exe` 窗口；两者的标准输出与错误重定向到会话临时日志，不依赖任何服务器窗口。
+
+默认流程：
 
 1. 连接 adb 设备；
-2. 启动或复用 LAN 服务；
+2. 启动或复用 LAN 服务（按端口、`/__health` 与 PID 判定就绪；已存在且健康的服务直接复用，退出时不会被误杀）；
 3. 监视 `src/`；
 4. 已安装且 LAN 可达时跳过首次 APK 构建；
 5. 在控制台按数字选择热更新、安装、检测等操作。
 
+主面板状态：
+
+- LAN 服务：启动中 / 正常 / 失败；
+- Live Reload：未启动 / 连接中 / 已连接 / 异常退出；
+- `-Details` 时额外显示后台进程 PID 与日志位置；异常退出时主控制台显示日志末尾摘要与完整日志路径。
+
 主要操作：
 
-- `1`：开启保存即更新；
+- `1`：后台开启保存即更新（不再打开额外窗口，所有后台状态和错误都在主控制台中查看）；
 - `2`：构建并安装 APK；
 - `3`：刷新连接与版本；
-- `0`：退出；
-- `-Details`：显示诊断信息和高级操作。
+- `0`：退出（同时终止本次会话启动的 LAN 服务与 Live Reload 进程树；关闭主控制台或脚本异常退出时同样清理，不影响用户手动启动或占用端口的外部服务）。
 
 按 `9` 只重建电脑上的 `www/`，不会直接改变手机画面。
+
+后台临时日志位于系统临时目录（`$env:TEMP`），文件名形如 `sync-phone-lan-*.log`、`sync-phone-livereload-*.log`：正常退出时自动清理；启动失败或异常退出时保留用于排查。
 
 ## 7. 排查顺序
 
