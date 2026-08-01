@@ -62,6 +62,7 @@ $script:lanServerState = 'starting'
 $script:liveReloadState = 'stopped'
 $script:liveReloadPid = 0
 $script:liveReloadLogPath = ''
+$script:liveReloadTail = New-Object System.Collections.Generic.List[string]
 $script:lanServerLogPath = ''
 $script:lastErrorTail = New-Object System.Collections.Generic.List[string]
 $script:sessionLogFiles = New-Object System.Collections.Generic.List[string]
@@ -733,18 +734,70 @@ function Get-LocalLiveReloadClients {
   return 0
 }
 
-function Wait-LiveReloadClients([int]$TimeoutSec = 75) {
+function Get-LiveReloadBuildPhaseText {
+  # 后台 preview-native.ps1 会先构建并推送安装 APK，再等 WebView 订阅。
+  # 依据实时日志判断当前阶段，避免把「构建/推送中」误报为「等待连接」。
+  $text = [string]::Join("`n", @($script:liveReloadTail))
+  if ($text -match 'BUILD FAILED|FAILURE|error:|Error:') {
+    return @{ Text = '后台构建/推送失败，日志见上'; Phase = 'fail' }
+  }
+  if ($text -match '==>|Task :|BUILD SUCCESSFUL|Installing|Installed|installDebug|Gradle|:app:|Syncing|Target device') {
+    return @{ Text = '正在后台构建并推送安装到手机…'; Phase = 'busy' }
+  }
+  return @{ Text = '等待手机连上热更新…'; Phase = 'busy' }
+}
+
+function Update-LiveReloadBuildTail([string]$LogPath, [int]$Lines = 6) {
+  $script:liveReloadTail.Clear()
+  if (-not $LogPath) { return }
+  foreach ($line in @(Get-LogTail -Path $LogPath -Lines $Lines)) {
+    [void]$script:liveReloadTail.Add([string]$line)
+  }
+  $phase = Get-LiveReloadBuildPhaseText
+  Set-FeedbackAction $phase.Text $phase.Phase
+}
+
+function Wait-LiveReloadClients([int]$TimeoutSec = 600, [int]$IdleTimeoutSec = 90, [string]$LogPath = '') {
+  # 先等后台进程完成构建与推送安装（日志持续写入期间不超时），
+  # 只有日志长时间无变化且 WebView 仍未连上时才判定超时。
+  # 提前捕获进程对象：Show-Dashboard 的 Update-LiveReloadState 可能把
+  # $script:liveReloadProcess 置空，不能依赖脚本变量判断退出。
+  $proc = $script:liveReloadProcess
   $deadline = (Get-Date).AddSeconds($TimeoutSec)
+  $lastLogText = ''
+  $lastLogChange = Get-Date
+  $lastDraw = Get-Date
   while ((Get-Date) -lt $deadline) {
-    if ($script:liveReloadProcess -and $script:liveReloadProcess.HasExited) {
-      return @{ Ok = $false; Reason = 'exited'; Clients = 0 }
+    if ($proc) {
+      try {
+        if ($proc.HasExited) { return @{ Ok = $false; Reason = 'exited'; Clients = 0 } }
+      } catch {
+        return @{ Ok = $false; Reason = 'exited'; Clients = 0 }
+      }
     }
     $clients = Get-LocalLiveReloadClients
     $script:liveReloadClients = $clients
     if ($clients -gt 0) {
       return @{ Ok = $true; Reason = 'connected'; Clients = $clients }
     }
-    Start-Sleep -Milliseconds 900
+    if ($LogPath) {
+      $tailLines = @(Get-LogTail -Path $LogPath -Lines 6)
+      $text = [string]::Join("`n", $tailLines)
+      if ($text -ne $lastLogText) {
+        $lastLogText = $text
+        $lastLogChange = Get-Date
+      }
+      if ($lastLogText -ne '' -and (Get-Date) -gt $lastLogChange.AddSeconds($IdleTimeoutSec)) {
+        return @{ Ok = $false; Reason = 'timeout'; Clients = 0 }
+      }
+      # 定期刷新主面板，让用户看到构建/推送的实时进度。
+      if ((Get-Date) -gt $lastDraw.AddSeconds(1.5)) {
+        $lastDraw = Get-Date
+        Update-LiveReloadBuildTail -LogPath $LogPath
+        Show-Dashboard
+      }
+    }
+    Start-Sleep -Milliseconds 700
   }
   return @{ Ok = $false; Reason = 'timeout'; Clients = 0 }
 }
@@ -783,7 +836,7 @@ function Get-LanServerStatusText {
 function Get-LiveReloadStatusText {
   switch ($script:liveReloadState) {
     'connected' { return @{ Text = ('已连接 · clients={0}' -f $script:liveReloadClients); Color = 'Green' } }
-    'connecting' { return @{ Text = '连接中'; Color = 'Yellow' } }
+    'connecting' { return @{ Text = '构建/推送中'; Color = 'Yellow' } }
     'exited' { return @{ Text = '异常退出'; Color = 'Red' } }
     default { return @{ Text = '未启动'; Color = 'DarkGray' } }
   }
@@ -940,6 +993,17 @@ function Show-Dashboard {
       Write-Host ('  {0}' -f $line) -ForegroundColor DarkGray
     }
     if ($script:liveReloadLogPath) {
+      Write-Host ('  完整日志：{0}' -f $script:liveReloadLogPath) -ForegroundColor DarkGray
+    }
+  }
+
+  if ($script:liveReloadState -eq 'connecting' -and $script:liveReloadTail.Count -gt 0) {
+    Write-Host ''
+    Write-Host '  后台构建/推送实时日志：' -ForegroundColor DarkGray
+    foreach ($line in @($script:liveReloadTail)) {
+      Write-Host ('  {0}' -f $line) -ForegroundColor DarkGray
+    }
+    if ($script:showDetails -and $script:liveReloadLogPath) {
       Write-Host ('  完整日志：{0}' -f $script:liveReloadLogPath) -ForegroundColor DarkGray
     }
   }
@@ -1177,11 +1241,11 @@ function Start-LiveReloadPreview {
     return
   }
   $script:liveReloadLaunched = $true
-  Write-Log ("已后台启动热更新 pid={0}，等待 WebView 订阅（最长约 2 分钟）…" -f $script:liveReloadPid) 'Cyan'
-  Set-FeedbackAction '等待 WebView 连上热更新…' 'busy'
+  Write-Log ("已后台启动热更新 pid={0}，正在构建并推送安装到手机（首次可能较慢）…" -f $script:liveReloadPid) 'Cyan'
+  Set-FeedbackAction '正在后台构建并推送安装到手机…' 'busy'
   Show-Dashboard
 
-  $wait = Wait-LiveReloadClients -TimeoutSec 120
+  $wait = Wait-LiveReloadClients -LogPath $logPath
   if ($wait.Ok) {
     $script:liveReloadState = 'connected'
     Update-PhoneRunId
@@ -1202,8 +1266,8 @@ function Start-LiveReloadPreview {
     Show-Dashboard
     return
   }
-  Write-Log '超时仍 clients=0：App 可能仍在吃包内资源。请确认手机与电脑同一 Wi-Fi（-Details 可看后台日志）' 'Yellow'
-  Set-FeedbackAction '热更新未接通（clients=0）· 可再按 1' 'warn'
+  Write-Log '等待超时仍未接通：后台日志长时间无进展且 WebView 未连上。请确认手机与电脑同一 Wi-Fi、App 已安装打开（-Details 可看后台日志）' 'Yellow'
+  Set-FeedbackAction '热更新未接通（后台无进展）· 可再按 1' 'warn'
 }
 
 function Start-Watchers {
