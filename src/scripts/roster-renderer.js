@@ -90,6 +90,9 @@ export function initRosterRenderer(store) {
   }
 
   function render(state = store.getSnapshot()) {
+    // 名单网格行数随人数自适应（竖屏 5 列 / 横屏 10 列），避免超过 50 人时卡片进入隐式轨道被裁剪
+    elements.studentGrid.style.setProperty('--student-grid-rows', String(Math.max(1, Math.ceil(state.students.length / 5))));
+    elements.studentGrid.style.setProperty('--student-grid-rows-wide', String(Math.max(1, Math.ceil(state.students.length / 10))));
     const completedStudentIds = store.getCompletedStudentIds();
     const nextStudentIds = new Set(state.students.map((student) => student.id));
     for (const studentId of studentCardsById.keys()) {
