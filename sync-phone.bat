@@ -4,7 +4,7 @@ cd /d "%~dp0"
 
 where pwsh >nul 2>&1
 if errorlevel 1 (
-  echo [Error] PowerShell 7 (pwsh) not found.
+  echo [Error] PowerShell 7 ^(pwsh^) not found.
   echo   Install it with: winget install Microsoft.PowerShell
   echo   or open https://aka.ms/powershell and run the MSI installer.
   goto :fail
@@ -31,7 +31,7 @@ if defined WT_SESSION goto :inwt
 
 where wt >nul 2>&1
 if errorlevel 1 (
-  echo [Error] Windows Terminal (wt.exe) not found.
+  echo [Error] Windows Terminal ^(wt.exe^) not found.
   echo   Install it with: winget install Microsoft.WindowsTerminal
   echo   or search "Windows Terminal" in the Microsoft Store.
   goto :fail
