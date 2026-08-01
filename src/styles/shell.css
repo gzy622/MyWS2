@@ -168,7 +168,7 @@ button.topbar-title { cursor: default; }
   touch-action: none;
   visibility: hidden;
   background: var(--paper);
-  transform: translateX(-100%);
+  transform: translateX(calc(-100% - var(--shadow-sheet-right-clearance)));
   box-shadow: var(--shadow-sheet-right);
   transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet);
 }

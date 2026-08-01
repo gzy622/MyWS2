@@ -36,6 +36,8 @@
   --shadow-sheet-down: 0 16px 40px rgba(0, 0, 0, .18);
   /* 左侧全屏面（设置页/学生名单）右缘投影：随面板 1:1 移动，仅在面板可见时绘制 */
   --shadow-sheet-right: 16px 0 32px -16px rgba(0, 0, 0, .3);
+  /* 退出落位时面板在 -100% 基础上额外左移的阴影清除距离（对应 --shadow-sheet-right 右侧名义外溢范围） */
+  --shadow-sheet-right-clearance: 32px;
   --shadow-phone: 0 24px 72px rgba(0, 0, 0, .16);
   /* Workbench Stack: one visual layer vocabulary for app chrome and overlays. */
   --layer-chrome: 10;
