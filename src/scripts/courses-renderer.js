@@ -1,6 +1,7 @@
 import { elements } from './dom.js';
 import { SCHEDULE_DAY_LABELS, formatPeriodColumnLabel } from './roster-model.js';
 import { state } from './state.js';
+import { bindGradeScrollChrome } from './scroll-thin.js';
 
 function slotMap(scheduleSlots) {
   const map = new Map();
@@ -215,14 +216,21 @@ function renderGradeTable({ students, subjects, courseGrades }, examId) {
 
   scroller.append(table);
   elements.gradeTable.replaceChildren(scroller);
+  return bindGradeScrollChrome(scroller);
 }
 
 export function initCoursesRenderer(store, highlightSubjects) {
+  let releaseGradeScrollChrome = () => {};
+
   function render(snapshot = store.getSnapshot()) {
     renderWeekStrip(snapshot, (subject) => highlightSubjects?.matches?.(subject));
+    releaseGradeScrollChrome();
     const examId = resolveGradeExamId(snapshot);
-    if (examId != null) renderGradeTable(snapshot, examId);
-    else elements.gradeTable.replaceChildren();
+    if (examId != null) releaseGradeScrollChrome = renderGradeTable(snapshot, examId);
+    else {
+      elements.gradeTable.replaceChildren();
+      releaseGradeScrollChrome = () => {};
+    }
   }
 
   store.subscribe(render);

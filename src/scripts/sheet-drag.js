@@ -875,16 +875,23 @@ export function stopScrollPortInertia(port = null) {
 }
 
 /**
- * Coast a JS scroll port after release. velocityY is finger velocity (px/ms);
- * positive = finger down. Hits edges hard (no sheet handoff from inertia).
+ * Coast a JS scroll port after release. Pointer velocity is in px/ms and uses
+ * screen-space direction. Hits edges hard (no page/Sheet handoff from inertia).
+ * @param {Element} port
+ * @param {number} pointerVelocity
+ * @param {'x' | 'y'} [axis]
  */
-export function startScrollPortInertia(port, velocityY) {
+export function startScrollPortInertia(port, pointerVelocity, axis = 'y') {
   if (!port || prefersReducedMotion()) return;
   stopScrollPortInertia(port);
-  // During scrub: scrollTop = start - deltaY ⇒ d(scrollTop)/dt = -velocityY.
+  const isHorizontal = axis === 'x';
+  const scrollPosition = isHorizontal ? 'scrollLeft' : 'scrollTop';
+  const scrollSize = isHorizontal ? 'scrollWidth' : 'scrollHeight';
+  const clientSize = isHorizontal ? 'clientWidth' : 'clientHeight';
+  // During scrub: scroll position = start - pointer delta.
   let velocity = Math.max(
     -MAX_SCROLL_INERTIA_SPEED,
-    Math.min(MAX_SCROLL_INERTIA_SPEED, -velocityY)
+    Math.min(MAX_SCROLL_INERTIA_SPEED, -pointerVelocity)
   );
   if (Math.abs(velocity) < MIN_SCROLL_INERTIA_SPEED) return;
 
@@ -899,10 +906,10 @@ export function startScrollPortInertia(port, velocityY) {
     const elapsedFrame = Math.min(time - previousTime, 32);
     previousTime = time;
     velocity *= Math.exp(-elapsedFrame / SCROLL_INERTIA_DECAY);
-    const max = Math.max(0, port.scrollHeight - port.clientHeight);
-    const intended = port.scrollTop + velocity * elapsedFrame;
+    const max = Math.max(0, port[scrollSize] - port[clientSize]);
+    const intended = port[scrollPosition] + velocity * elapsedFrame;
     const next = Math.min(max, Math.max(0, intended));
-    port.scrollTop = next;
+    port[scrollPosition] = next;
     if (Math.abs(next - intended) > 0.01) velocity = 0;
     if (Math.abs(velocity) < MIN_SCROLL_INERTIA_SPEED) {
       scrollInertiaFrames.delete(port);

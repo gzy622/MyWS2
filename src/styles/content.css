@@ -1244,11 +1244,13 @@
 }
 
 .grade-table {
+  position: relative;
   padding: 14px 0 10px;
   overflow: hidden;
 }
 
 .grade-scroll {
+  --grade-scroll-inset: 16px;
   flex: 1;
   min-height: 0;
   overflow: auto;
@@ -1257,7 +1259,7 @@
   /* Dual-axis sticky port; JS owns scroll (see interaction.md §7). Do NOT use
      pan-x/pan-y here — browser pan fights page/sheet gestures and pointercancel
      mid-drag (recurring grades-table interrupt). */
-  padding: 0 16px;
+  padding: 0 var(--grade-scroll-inset);
   touch-action: none;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -1267,6 +1269,27 @@
   display: none;
   width: 0;
   height: 0;
+}
+
+.grade-scrollbar-thumb {
+  position: absolute;
+  z-index: 5;
+  border-radius: 999px;
+  background: var(--scrollbar-thumb);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity var(--scrollbar-fade) var(--ease),
+    visibility 0s linear var(--scrollbar-fade);
+}
+
+.grade-scrollbar-thumb.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity var(--scrollbar-fade) var(--ease),
+    visibility 0s linear 0s;
 }
 
 .grade-matrix {
@@ -1301,10 +1324,12 @@
   position: sticky;
   left: 0;
   background: var(--card);
-  /* Span the grid gap so the hairline sits flush before the next column. */
+  /* Cover the scroll inset and grid gap so cells cannot show through either edge. */
   margin-right: calc(var(--grade-col-gap) * -1);
   padding-right: calc(var(--grade-col-gap) + 4px);
-  box-shadow: 1px 0 0 var(--line);
+  box-shadow:
+    calc(var(--grade-scroll-inset) * -1) 0 0 var(--card),
+    1px 0 0 var(--line);
   z-index: 1;
 }
 

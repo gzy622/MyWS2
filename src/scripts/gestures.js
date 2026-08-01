@@ -782,11 +782,12 @@ export function initHorizontalGestures({ closeRosterEditor = () => {} } = {}) {
     isNav = false;
     isSegments = false;
     const scrolledGradePort = gradePortScrolled && isGradeScroller(scrollPage) ? scrollPage : null;
+    const gradeInertiaAxis = scrolledGradePort && (axis === 'x' || axis === 'y') ? axis : null;
     const shouldCoastGrade = Boolean(
-      scrolledGradePort && axis === 'y' && !handledSheet && !cancelled
+      gradeInertiaAxis && !handledSheet && !cancelled
     );
-    const gradeVelocityY = shouldCoastGrade
-      ? (event.timeStamp - sampleTime > VELOCITY_STALE_MS ? 0 : readTrailVelocity('y'))
+    const gradePointerVelocity = shouldCoastGrade
+      ? (event.timeStamp - sampleTime > VELOCITY_STALE_MS ? 0 : readTrailVelocity(gradeInertiaAxis))
       : 0;
     horizontalScrollPort = null;
     startHorizontalScrollLeft = 0;
@@ -800,7 +801,7 @@ export function initHorizontalGestures({ closeRosterEditor = () => {} } = {}) {
     sheetTapControl = null;
 
     if (shouldCoastGrade) {
-      startScrollPortInertia(scrolledGradePort, gradeVelocityY);
+      startScrollPortInertia(scrolledGradePort, gradePointerVelocity, gradeInertiaAxis);
     }
 
     if (tapControl) {

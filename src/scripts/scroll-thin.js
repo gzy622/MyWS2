@@ -199,3 +199,128 @@ export function bindScrollThin(element) {
 export function initScrollThinChrome(root = document) {
   root.querySelectorAll('.scroll-thin').forEach((el) => bindScrollThin(el));
 }
+
+/**
+ * Bind soft horizontal and vertical overflow indicators to the dual-axis grade
+ * table. Thumbs live on the card rather than inside the scrolling matrix, so
+ * sticky cells and content width remain unaffected.
+ * @param {HTMLElement} element
+ * @returns {() => void} cleanup
+ */
+export function bindGradeScrollChrome(element) {
+  if (!(element instanceof HTMLElement)) return () => {};
+  const host = element.parentElement;
+  if (!(host instanceof HTMLElement)) return () => {};
+
+  const horizontalThumb = document.createElement('div');
+  horizontalThumb.className = 'grade-scrollbar-thumb grade-scrollbar-thumb--x';
+  horizontalThumb.setAttribute('aria-hidden', 'true');
+  const verticalThumb = document.createElement('div');
+  verticalThumb.className = 'grade-scrollbar-thumb grade-scrollbar-thumb--y';
+  verticalThumb.setAttribute('aria-hidden', 'true');
+  host.append(horizontalThumb, verticalThumb);
+
+  let hideTimer = 0;
+  let showFrame = 0;
+  let hover = false;
+
+  const clearHideTimer = () => {
+    if (!hideTimer) return;
+    window.clearTimeout(hideTimer);
+    hideTimer = 0;
+  };
+
+  const syncThumb = (thumb, axis) => {
+    const horizontal = axis === 'x';
+    const clientSize = horizontal ? element.clientWidth : element.clientHeight;
+    const scrollSize = horizontal ? element.scrollWidth : element.scrollHeight;
+    const scrollPosition = horizontal ? element.scrollLeft : element.scrollTop;
+    const overflow = scrollSize - clientSize;
+    if (overflow <= 1 || clientSize <= 0) {
+      thumb.classList.remove('is-ready', 'is-visible');
+      return false;
+    }
+
+    const inset = 8;
+    const track = Math.max(0, clientSize - inset * 2);
+    const thumbSize = Math.max(28, (clientSize / scrollSize) * track);
+    const travel = Math.max(0, track - thumbSize);
+    const offset = inset + (scrollPosition / overflow) * travel;
+    const hostRect = host.getBoundingClientRect();
+    const portRect = element.getBoundingClientRect();
+
+    if (horizontal) {
+      thumb.style.left = `${portRect.left - hostRect.left + offset}px`;
+      thumb.style.bottom = '3px';
+      thumb.style.width = `${thumbSize}px`;
+      thumb.style.height = '3px';
+    } else {
+      thumb.style.top = `${portRect.top - hostRect.top + offset}px`;
+      thumb.style.right = `${hostRect.right - portRect.right + 2}px`;
+      thumb.style.width = '3px';
+      thumb.style.height = `${thumbSize}px`;
+    }
+    thumb.classList.add('is-ready');
+    return true;
+  };
+
+  const syncGeometry = () => {
+    const horizontalReady = syncThumb(horizontalThumb, 'x');
+    const verticalReady = syncThumb(verticalThumb, 'y');
+    return horizontalReady || verticalReady;
+  };
+
+  const show = () => {
+    if (!syncGeometry()) return;
+    if (showFrame) cancelAnimationFrame(showFrame);
+    showFrame = requestAnimationFrame(() => {
+      showFrame = 0;
+      horizontalThumb.classList.toggle('is-visible', horizontalThumb.classList.contains('is-ready'));
+      verticalThumb.classList.toggle('is-visible', verticalThumb.classList.contains('is-ready'));
+    });
+    clearHideTimer();
+    if (hover) return;
+    hideTimer = window.setTimeout(() => {
+      hideTimer = 0;
+      horizontalThumb.classList.remove('is-visible');
+      verticalThumb.classList.remove('is-visible');
+    }, readMs('--scrollbar-hold', 1100));
+  };
+
+  const supportsHover = globalThis.matchMedia?.('(hover: hover) and (pointer: fine)')?.matches;
+  const onPointerEnter = () => {
+    hover = true;
+    clearHideTimer();
+    show();
+  };
+  const onPointerLeave = () => {
+    hover = false;
+    horizontalThumb.classList.remove('is-visible');
+    verticalThumb.classList.remove('is-visible');
+  };
+
+  element.addEventListener('scroll', show, { passive: true });
+  if (supportsHover) {
+    element.addEventListener('pointerenter', onPointerEnter);
+    element.addEventListener('pointerleave', onPointerLeave);
+  }
+
+  const resizeObserver = typeof ResizeObserver === 'function'
+    ? new ResizeObserver(show)
+    : null;
+  resizeObserver?.observe(element);
+  showFrame = requestAnimationFrame(show);
+
+  return () => {
+    clearHideTimer();
+    if (showFrame) cancelAnimationFrame(showFrame);
+    resizeObserver?.disconnect();
+    element.removeEventListener('scroll', show);
+    if (supportsHover) {
+      element.removeEventListener('pointerenter', onPointerEnter);
+      element.removeEventListener('pointerleave', onPointerLeave);
+    }
+    horizontalThumb.remove();
+    verticalThumb.remove();
+  };
+}
