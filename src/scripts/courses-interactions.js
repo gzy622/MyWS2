@@ -70,8 +70,7 @@ function createTextSheet(className, titleId, eyebrowDefault) {
   layer.className = className;
   layer.inert = true;
   layer.innerHTML = [
-    `<section class="${className}-panel sheet-panel sheet-panel--bottom" role="dialog" aria-modal="true" aria-labelledby="${titleId}">`,
-    '<div class="sheet-handle-zone sheet-handle-zone--top" aria-hidden="true"><div class="sheet-handle"></div></div>',
+    `<section class="${className}-panel sheet-panel sheet-panel--top" role="dialog" aria-modal="true" aria-labelledby="${titleId}">`,
     `<div class="sheet-title"><span data-field="eyebrow">${eyebrowDefault}</span><h2 id="${titleId}">编辑</h2></div>`,
     '<p class="course-edit-hint" data-field="hint"></p>',
     '<label class="course-edit-field"><span data-field="label">名称</span>',
@@ -83,6 +82,7 @@ function createTextSheet(className, titleId, eyebrowDefault) {
     '</div>',
     '<button type="button" class="course-edit-clear" data-action="clear" hidden>清除</button>',
     '<button type="button" class="course-edit-delete" data-action="delete" hidden>删除此项</button>',
+    '<div class="sheet-handle-zone sheet-handle-zone--bottom" aria-hidden="true"><div class="sheet-handle"></div></div>',
     '</section>'
   ].join('');
   return layer;
@@ -566,7 +566,7 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     id: 'course-slot',
     layer: slotLayer,
     panel: slotPanel,
-    direction: 'from-bottom',
+    direction: 'from-top',
     scrollPorts: [slotPanel],
     isOpen: () => slotLayer.classList.contains('show') && !slotSheet?.isActive(),
     onPrepare() {
@@ -598,7 +598,7 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     id: 'course-period',
     layer: periodLayer,
     panel: periodPanel,
-    direction: 'from-bottom',
+    direction: 'from-top',
     scrollPorts: [periodPanel],
     isOpen: () => periodLayer.classList.contains('show') && !periodSheet?.isActive(),
     onPrepare() {
@@ -630,7 +630,7 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     id: 'course-subject',
     layer: subjectLayer,
     panel: subjectPanel,
-    direction: 'from-bottom',
+    direction: 'from-top',
     scrollPorts: [subjectPanel],
     isOpen: () => subjectLayer.classList.contains('show') && !subjectSheet?.isActive(),
     onPrepare() {

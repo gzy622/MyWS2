@@ -33,8 +33,7 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
   editLayer.className = 'people-edit-sheet';
   editLayer.inert = true;
   editLayer.innerHTML = [
-    '<section class="people-edit-panel sheet-panel sheet-panel--bottom scroll-thin" role="dialog" aria-modal="true" aria-labelledby="peopleEditTitle">',
-    '<div class="sheet-handle-zone sheet-handle-zone--top" aria-hidden="true"><div class="sheet-handle"></div></div>',
+    '<section class="people-edit-panel sheet-panel sheet-panel--top scroll-thin" role="dialog" aria-modal="true" aria-labelledby="peopleEditTitle">',
     '<div class="sheet-title"><span data-field="eyebrow">班干</span><h2 id="peopleEditTitle">编辑</h2></div>',
     '<p class="people-edit-hint"></p>',
     '<label class="people-edit-field"><span data-field="title-label">名称</span>',
@@ -46,6 +45,7 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
     '<button type="button" class="primary" data-action="save">保存</button>',
     '</div>',
     '<button type="button" class="people-edit-delete" data-action="delete">删除此项</button>',
+    '<div class="sheet-handle-zone sheet-handle-zone--bottom" aria-hidden="true"><div class="sheet-handle"></div></div>',
     '</section>'
   ].join('');
   elements.app.append(editLayer);
@@ -313,7 +313,7 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
     id: 'people-edit',
     layer: editLayer,
     panel: editPanel,
-    direction: 'from-bottom',
+    direction: 'from-top',
     scrollPorts: [editPanel],
     isOpen: () => editLayer.classList.contains('show') && !editSheet?.isActive(),
     onPrepare() {

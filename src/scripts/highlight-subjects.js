@@ -80,8 +80,7 @@ export function initHighlightSubjects({ showToast, viewport, closeOthers }) {
   layer.inert = true;
   layer.setAttribute('aria-hidden', 'true');
   layer.innerHTML = [
-    '<section class="course-highlight-panel sheet-panel sheet-panel--bottom" role="dialog" aria-modal="true" aria-labelledby="courseHighlightTitle">',
-    '<div class="sheet-handle-zone sheet-handle-zone--top" aria-hidden="true"><div class="sheet-handle"></div></div>',
+    '<section class="course-highlight-panel sheet-panel sheet-panel--top" role="dialog" aria-modal="true" aria-labelledby="courseHighlightTitle">',
     '<div class="sheet-title"><span>课表</span><h2 id="courseHighlightTitle">高亮科目</h2></div>',
     '<p class="course-edit-hint">输入要弱强调的科目关键词，用顿号、逗号或换行分隔。课表格文案包含任一关键词时显示淡蓝样式。</p>',
     '<label class="course-edit-field course-highlight-field"><span>关键词</span>',
@@ -91,6 +90,7 @@ export function initHighlightSubjects({ showToast, viewport, closeOthers }) {
     '<button type="button" class="primary" data-action="save">保存</button>',
     '</div>',
     '<button type="button" class="course-edit-clear" data-action="clear">清除全部</button>',
+    '<div class="sheet-handle-zone sheet-handle-zone--bottom" aria-hidden="true"><div class="sheet-handle"></div></div>',
     '</section>'
   ].join('');
   elements.app.append(layer);
@@ -137,7 +137,7 @@ export function initHighlightSubjects({ showToast, viewport, closeOthers }) {
     id: 'course-highlight',
     layer,
     panel,
-    direction: 'from-bottom',
+    direction: 'from-top',
     scrollPorts: [panel],
     isOpen: () => layer.classList.contains('show') && !sheet?.isActive(),
     onPrepare() {

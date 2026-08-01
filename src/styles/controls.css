@@ -406,6 +406,11 @@
   pointer-events: none;
 }
 .people-edit-sheet { z-index: var(--layer-nested); }
+/* People edit is a top input sheet; the picker stays bottom-anchored. */
+.people-edit-sheet {
+  place-items: start center;
+  padding: max(16px, env(safe-area-inset-top)) 12px 16px;
+}
 .people-pick-sheet::before,
 .people-edit-sheet::before {
   content: "";
@@ -470,6 +475,14 @@
   will-change: transform;
   backface-visibility: hidden;
 }
+/* People edit top sheet: hide upward and match the exam-name vertical rhythm. */
+.people-edit-panel {
+  transform: translateY(calc(-100% - 72px));
+  padding: 20px 20px 0;
+}
+.people-edit-panel .people-edit-field { margin-bottom: 0; }
+.people-edit-panel .people-edit-field + .people-edit-field { margin-top: 12px; }
+.people-edit-panel .people-edit-actions { margin-top: 16px; }
 .people-pick-panel .sheet-head { flex: none; }
 .people-pick-panel .sheet-title { min-width: 0; }
 .people-pick-count {
@@ -543,6 +556,14 @@
 .course-grade-sheet { z-index: var(--layer-nested); }
 .course-stats-sheet,
 .course-highlight-sheet { z-index: var(--layer-nested); }
+/* Top input sheets: mirror the exam-name sheet placement (top-anchored). */
+.course-slot-sheet,
+.course-period-sheet,
+.course-subject-sheet,
+.course-highlight-sheet {
+  place-items: start center;
+  padding: max(16px, env(safe-area-inset-top)) 12px 16px;
+}
 .course-slot-sheet::before,
 .course-period-sheet::before,
 .course-subject-sheet::before,
@@ -636,6 +657,38 @@
   transition: transform var(--duration-sheet) var(--ease), visibility 0s linear var(--duration-sheet);
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+/* Top input sheets hide upward; .show still returns to translateY(0). */
+.course-slot-sheet-panel,
+.course-period-sheet-panel,
+.course-subject-sheet-panel,
+.course-highlight-panel {
+  transform: translateY(calc(-100% - 72px));
+}
+/* Top input sheets: match the exam-name panel vertical rhythm. */
+.course-slot-sheet-panel,
+.course-period-sheet-panel,
+.course-subject-sheet-panel,
+.course-highlight-panel {
+  padding: 20px 20px 0;
+}
+.course-slot-sheet-panel .sheet-title,
+.course-period-sheet-panel .sheet-title,
+.course-subject-sheet-panel .sheet-title,
+.course-highlight-panel .sheet-title {
+  margin-bottom: 2px;
+}
+.course-slot-sheet-panel .course-edit-field,
+.course-period-sheet-panel .course-edit-field,
+.course-subject-sheet-panel .course-edit-field,
+.course-highlight-panel .course-edit-field {
+  margin-bottom: 0;
+}
+.course-slot-sheet-panel .course-edit-actions,
+.course-period-sheet-panel .course-edit-actions,
+.course-subject-sheet-panel .course-edit-actions,
+.course-highlight-panel .course-edit-actions {
+  margin-top: 16px;
 }
 .course-slot-sheet-panel::-webkit-scrollbar,
 .course-period-sheet-panel::-webkit-scrollbar,
