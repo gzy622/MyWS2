@@ -569,6 +569,7 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     direction: 'from-top',
     scrollPorts: [slotPanel],
     isOpen: () => slotLayer.classList.contains('show') && !slotSheet?.isActive(),
+    onRequestClose: closeSlot,
     onPrepare() {
       setActiveOverlay('course-slot');
       slotLayer.setAttribute('aria-hidden', 'false');
@@ -601,6 +602,7 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     direction: 'from-top',
     scrollPorts: [periodPanel],
     isOpen: () => periodLayer.classList.contains('show') && !periodSheet?.isActive(),
+    onRequestClose: closePeriod,
     onPrepare() {
       setActiveOverlay('course-period');
       periodLayer.setAttribute('aria-hidden', 'false');
@@ -633,6 +635,7 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     direction: 'from-top',
     scrollPorts: [subjectPanel],
     isOpen: () => subjectLayer.classList.contains('show') && !subjectSheet?.isActive(),
+    onRequestClose: closeSubject,
     onPrepare() {
       setActiveOverlay('course-subject');
       subjectLayer.setAttribute('aria-hidden', 'false');
@@ -666,6 +669,7 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     direction: 'from-bottom',
     scrollPorts: [gradePanel],
     isOpen: () => gradeLayer.classList.contains('show') && !gradeSheet?.isActive(),
+    onRequestClose: closeGrade,
     onPrepare() {
       setActiveOverlay('course-grade');
       gradeLayer.setAttribute('aria-hidden', 'false');
@@ -695,6 +699,7 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     direction: 'from-bottom',
     scrollPorts: [statsPanel, statsList],
     isOpen: () => statsLayer.classList.contains('show') && !statsSheet?.isActive(),
+    onRequestClose: closeStats,
     onPrepare() {
       setActiveOverlay('course-stats');
       statsLayer.setAttribute('aria-hidden', 'false');
@@ -811,9 +816,6 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     showToast(ok ? '已清除该格' : '该格本来就是空的');
     closeSlot();
   }, 'slot clear');
-  slotLayer.addEventListener('click', (event) => {
-    if (event.target === slotLayer && !slotSheet.isActive()) closeSlot();
-  });
   slotInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -823,9 +825,6 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
 
   bindCourseAction(periodLayer.querySelector('[data-action="cancel"]'), () => closePeriod(), 'period cancel');
   bindCourseAction(periodLayer.querySelector('[data-action="save"]'), () => savePeriod(), 'period save');
-  periodLayer.addEventListener('click', (event) => {
-    if (event.target === periodLayer && !periodSheet.isActive()) closePeriod();
-  });
   periodInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -836,9 +835,6 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
   bindCourseAction(subjectLayer.querySelector('[data-action="cancel"]'), () => closeSubject(), 'subject cancel');
   bindCourseAction(subjectLayer.querySelector('[data-action="save"]'), () => saveSubject(), 'subject save');
   bindCourseAction(subjectDelete, () => deleteSubjectCurrent(), 'subject delete');
-  subjectLayer.addEventListener('click', (event) => {
-    if (event.target === subjectLayer && !subjectSheet.isActive()) closeSubject();
-  });
   subjectInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -859,14 +855,8 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     const key = event.target.closest('[data-score-key]')?.dataset.scoreKey;
     if (key) updateGradeDraft(key);
   });
-  gradeLayer.addEventListener('click', (event) => {
-    if (event.target === gradeLayer && !gradeSheet.isActive()) closeGrade();
-  });
 
   bindCourseAction(statsLayer.querySelector('[data-action="close"]'), () => closeStats(), 'stats close');
-  statsLayer.addEventListener('click', (event) => {
-    if (event.target === statsLayer && !statsSheet.isActive()) closeStats();
-  });
 
   function dismissBack() {
     if (statsSheet.isPresented()) {

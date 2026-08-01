@@ -55,6 +55,7 @@ export function initStudentRecord({ store, showToast, viewport, closeOthers }) {
     direction: 'from-bottom',
     scrollPorts: [elements.studentRecordPanel],
     isOpen: () => elements.studentRecordSheet.classList.contains('show') && !sheet?.isActive(),
+    onRequestClose: close,
     onPrepare() {
       setActiveOverlay('student-record');
       elements.studentRecordSheet.setAttribute('aria-hidden', 'false');
@@ -100,9 +101,6 @@ export function initStudentRecord({ store, showToast, viewport, closeOthers }) {
     elements.studentScoreInput.focus({ preventScroll: true });
   }
 
-  elements.studentRecordSheet.addEventListener('click', (event) => {
-    if (event.target === elements.studentRecordSheet && !sheet.isActive()) close();
-  });
   elements.studentScoreControls.addEventListener('click', (event) => {
     const key = event.target.closest('[data-score-key]')?.dataset.scoreKey;
     if (key) updateScoreDraft(key);

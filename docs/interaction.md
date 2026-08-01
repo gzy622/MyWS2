@@ -139,9 +139,9 @@ gradeSort: null | { subjectId: number, direction: 'asc' | 'desc' }
 ### 纵向 Sheet 全屏跟手
 
 - 适用范围（均为 `translateY` Sheet，与 `src/scripts/overlay-stack.js` 派生的 `SHEET_STACK_ORDER` 一致）：确认面板、高亮科目、成绩统计、考试名称、考试列表、课程科目/节次/课表格/成绩、人员编辑、人员选择、作业名称、作业列表、学生姓名、学生记录、更多菜单。姓名字号 Popover 不在此列；全屏设置页使用独立的横向跟手（见「水平拖动」）。
-- 任一上述 Sheet 呈现时：除自滚动容器（且该方向尚未到边）与文本输入控件外，全屏任意位置均可纵向拖动，实时驱动该 Sheet 的 progress（0～1）与遮罩透明度；把手不再是唯一关闭入口。
+- 任一上述 Sheet 呈现时：除自滚动容器（且该方向尚未到边）与文本输入控件外，全屏任意位置均可纵向拖动，实时驱动该 Sheet 的 progress（0～1）与遮罩透明度；把手不再是唯一关闭入口。每个 Sheet 必须使用控制器注入的真实 `.sheet-scrim` 作为遮罩命中层，遮罩轻点关闭也只通过控制器的 `onRequestClose` 契约进入业务关闭函数，禁止业务模块再以外层 `event.target` 自行判断。
 - 嵌套滚动（业界 Sheet 惯例）：列表可滚时优先滚列表；仅当该方向已到边，且手指继续沿关闭向移动时，才把跟手交给 Sheet。凡脚本接管的列表滚动口（含作业/考试列表及其他 Sheet 内 JS 滚动面）：在同一手势内滚至边缘后，须松手再下一次滑动才关闭 Sheet；列表已在关闭向顶缘时直接滑动仍可跟手关闭。顶部 Sheet（作业列表/作业名称、考试列表/考试名称、课表格/节次改名/科目编辑/高亮科目/人员编辑）关闭向为上滑，底部 Sheet 关闭向为下滑。已完全打开时，打开向的过量拖动不得再驱动 Sheet（避免误抢点击与空跟手）。
-- 所有参与 Sheet 跟手的滚动面须 `touch-action: none`（含高亮科目面板和人员选择名单，见 §4.1），避免浏览器接管纵向手势后触发 `pointercancel`。文本输入控件由手势路由直接排除，轻点聚焦和 IME 输入不认领为 Sheet 拖动。
+- 所有参与 Sheet 跟手的滚动面与真实遮罩须 `touch-action: none`（含高亮科目面板和人员选择名单，见 §4.1），避免浏览器接管纵向手势后触发 `pointercancel`。文本 Sheet 外壳可保留 IME 所需的点击策略，但不得承担遮罩命中；文本输入控件由手势路由直接排除，轻点聚焦和 IME 输入不认领为 Sheet 拖动。
 - 多层同时存在时只驱动最上层（顺序与返回键关闭栈一致，见 §10）；同一次手势不转移到下层。
 - 松手：已打开 Sheet 慢拖关闭须位移约 `max(180px, 行程 40%)`；快速向外甩动时结合速度与惯性，短距离（约 36px+、关闭向速度约 `0.4px/ms`）亦可关闭。打开态按约 34% / 58px / 甩开阈值。`pointercancel` 等中断时已打开 Sheet 回弹。面板/列表/遮罩用 `touch-action: none`，列表滚动由脚本接管。落位用 CSS transition；`prefers-reduced-motion: reduce` 时直接到位。跟手位移与遮罩透明度、列表 `scrollTop` 均按动画帧合并绘制（面板用 `translate3d`），避免每 pointermove 重复触发布局或整树样式失效。
 - 页面与普通 Sheet 隐藏系统滚动条；作业、考试与人员相关列表溢出时使用统一细滚动条，且仅在滑动（或桌面悬停）时短暂出现（见 [`visual-design.md`](visual-design.md)）。`overscroll-behavior: contain` 与 JS 惯性（成绩表纵滚、Sheet 列表）保持一致。

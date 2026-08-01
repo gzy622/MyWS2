@@ -144,7 +144,7 @@
 - 外壳瞬时态：`.is-sheet-gesturing`、`.is-page-gesturing`（跟手/落位时关闭顶栏 backdrop-filter）；设置页横滑跟手：`.menu-drawer.is-dragging`（跟手期间取消 transition）、`.app.is-drawer-gesturing`（跟手时关闭设置页头部 backdrop-filter）；全屏左滑面遮罩：`.fullscreen-scrim`、`.drawer-scrim`、`.roster-editor-scrim`（透明度与面板位移 1:1 跟手，`.is-dragging` 期间切换为 `--duration-scrim-track` 追赶过渡）；
 - 登记：`.student-grid`、`.student-card`、`.seat-cell`、`.seat-card`、`.letter-index`、`.letter-index-item`、`.letter-index-badge`；
 - 人员与课程：`.people-row`、`.week-slot-cell`、`.week-period-label`、`.grade-score-cell`、`.grade-subject-head`；
-- 浮层与全屏页：`.menu-drawer`、`.more-menu`、`.student-record-sheet`、`.assignment-sheet`、`.assignment-name-sheet`、`.exam-sheet`、`.exam-name-sheet`、`.people-pick-sheet`、`.people-edit-sheet`、`.course-slot-sheet`、`.course-period-sheet`、`.course-subject-sheet`、`.course-grade-sheet`、`.course-stats-sheet`、`.course-highlight-sheet`、`.confirm-sheet`；
+- 浮层与全屏页：`.menu-drawer`、`.more-menu`、`.student-record-sheet`、`.assignment-sheet`、`.assignment-name-sheet`、`.exam-sheet`、`.exam-name-sheet`、`.people-pick-sheet`、`.people-edit-sheet`、`.course-slot-sheet`、`.course-period-sheet`、`.course-subject-sheet`、`.course-grade-sheet`、`.course-stats-sheet`、`.course-highlight-sheet`、`.confirm-sheet`；受控 Sheet 的直接子级 `.sheet-scrim` 是唯一遮罩命中层，由 `sheet-drag.js` 注入和管理；
 - 字母索引拖动态：`.is-scrubbing`、`.is-scrubbing-shown`、`.is-letter-hit`。
 
 学生格可选 `data-score` 驱动分数角标；座位卡必须维护 `data-student-id` 与 `data-seat-index`。
@@ -231,7 +231,7 @@
 - 常量使用语义化名称；手势阈值不散落为魔法数字。
 - 事件监听只在初始化函数中注册一次。
 - 所有手势结束路径（up、cancel、lost capture、卸载）恢复临时视觉状态。
-- 与切页 / Sheet 跟手共享指针的滚动面须 `touch-action: none` 并由脚本滚，禁止 `pan-x`/`pan-y`（否则浏览器中途 `pointercancel`；详见 `interaction.md` §7「防复发」）。
+- 与切页 / Sheet 跟手共享指针的滚动面和 `.sheet-scrim` 须 `touch-action: none` 并由脚本接管，禁止 `pan-x`/`pan-y`（否则浏览器中途 `pointercancel`；详见 `interaction.md` §7「防复发」）。所有带 layer 的 `createSheetController()` 注册必须提供 `onRequestClose`；遮罩轻点监听由控制器统一绑定，业务模块禁止使用 `event.target === layer` 另建关闭路径。
 - Store 和 UI 状态必须经过各自边界函数修改。
 - CSS 优先使用 token；同一新值重复出现 3 次以上时评估提取变量。
 - 不留下无条件 `console.log`、调试边框、注释掉的大段代码或无用 selector。

@@ -132,7 +132,7 @@ CSS class、ARIA 属性和 CSS 自定义属性都是状态的渲染结果，不�
 
 页面、导航和状态数组通过从 0 开始的 `data-page`、`data-index`、`data-sub`、`data-view` 一一对应。业务命令使用 `data-action`。完整必需 ID、class 和 data 契约见 [`engineering.md`](engineering.md)。
 
-所有移动端手势继续使用 Pointer Events；纵向 Sheet（含更多）的关闭顺序由 `sheet-drag.js` 与 `system-back.js` 共同维护；全屏设置页只进入返回关闭栈，不注册为 Sheet。改变任何一方时必须同步另一方和 [`interaction.md`](interaction.md)。
+所有移动端手势继续使用 Pointer Events；纵向 Sheet（含更多）的关闭顺序由 `sheet-drag.js` 与 `system-back.js` 共同维护；全屏设置页只进入返回关闭栈，不注册为 Sheet。受控 Sheet 由 `sheet-drag.js` 注入真实 `.sheet-scrim`，统一承担遮罩命中、纵向手势和轻点关闭；业务模块只通过注册时的 `onRequestClose` 提供关闭动作，不自行监听外层遮罩点击。改变任何一方时必须同步另一方和 [`interaction.md`](interaction.md)。
 
 ## 8. 样式架构
 

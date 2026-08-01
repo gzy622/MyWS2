@@ -285,6 +285,7 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
     direction: 'from-bottom',
     scrollPorts: [pickList],
     isOpen: () => pickLayer.classList.contains('show') && !pickSheet?.isActive(),
+    onRequestClose: closePick,
     onPrepare() {
       setActiveOverlay('people-pick');
       pickLayer.setAttribute('aria-hidden', 'false');
@@ -316,6 +317,7 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
     direction: 'from-top',
     scrollPorts: [editPanel],
     isOpen: () => editLayer.classList.contains('show') && !editSheet?.isActive(),
+    onRequestClose: closeEdit,
     onPrepare() {
       setActiveOverlay('people-edit');
       editLayer.setAttribute('aria-hidden', 'false');
@@ -400,9 +402,6 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
     renderPickList();
   });
   pickConfirm.addEventListener('click', confirmPick);
-  pickLayer.addEventListener('click', (event) => {
-    if (event.target === pickLayer && !pickSheet.isActive()) closePick();
-  });
 
   const armPeopleGhost = (ms) => editGhostGuard.arm(ms);
   bindImmediateAction(editLayer.querySelector('[data-action="cancel"]'), () => {
@@ -414,9 +413,6 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
   bindImmediateAction(deleteButton, () => {
     deleteCurrent();
   }, { armGhost: armPeopleGhost, owner: 'people' });
-  editLayer.addEventListener('click', (event) => {
-    if (event.target === editLayer && !editSheet.isActive()) closeEdit();
-  });
   titleInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
       event.preventDefault();

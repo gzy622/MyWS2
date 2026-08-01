@@ -168,9 +168,6 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
     capturePointer: true,
     owner: 'assignments'
   });
-  nameLayer.addEventListener('click', (event) => {
-    if (event.target === nameLayer && !nameSheet?.isActive()) closeNameEditor();
-  });
   nameInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -179,9 +176,6 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
   });
 
   layer.querySelector('[data-action="close"]').addEventListener('click', close);
-  layer.addEventListener('click', (event) => {
-    if (event.target === layer && !listSheet?.isActive()) close();
-  });
   addButton.addEventListener('click', () => {
     openNameEditor({ mode: 'add', trigger: addButton });
   });
@@ -193,6 +187,7 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
     direction: 'from-top',
     scrollPorts: [list],
     isOpen: () => layer.classList.contains('show') && !listSheet?.isActive(),
+    onRequestClose: close,
     onPrepare({ source } = {}) {
       closeOthers?.('assignments');
       // Gesture opens must not adopt the topbar title as return focus (avoids focus ring).
@@ -223,6 +218,7 @@ export function initAssignments({ store, showToast, viewport, closeOthers, confi
     direction: 'from-top',
     scrollPorts: [namePanel],
     isOpen: () => nameLayer.classList.contains('show') && !nameSheet?.isActive(),
+    onRequestClose: closeNameEditor,
     onPrepare() {
       nameLayer.inert = false;
       nameLayer.classList.add('show');

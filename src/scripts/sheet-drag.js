@@ -114,6 +114,17 @@ function ensureManagedScrim(layer, panel) {
   return scrim;
 }
 
+/** Bind one close path to the real scrim while ignoring drag-generated clicks. */
+export function bindSheetScrimClose(scrim, { sheetId, isActive, onRequestClose }) {
+  if (!scrim) return;
+  if (typeof isActive !== 'function' || typeof onRequestClose !== 'function') {
+    throw new TypeError(`Sheet "${sheetId}" requires a managed scrim close contract`);
+  }
+  scrim.addEventListener('click', () => {
+    if (!isActive()) onRequestClose();
+  });
+}
+
 /**
  * Unified progress 0–1 sheet controller.
  * from-top: drag down opens; from-bottom: drag up opens.
@@ -130,6 +141,8 @@ export function createSheetController({
   /** Optional real scrim element for controllers that do not use a layer pseudo-element. */
   scrimElement = null,
   isOpen: isOpenFn = null,
+  /** Required for managed Sheets: the controller owns the real scrim interaction. */
+  onRequestClose,
   onPrepare,
   onOpened,
   onClosed,
@@ -154,6 +167,12 @@ export function createSheetController({
   /** @type {'gesture' | 'control' | null} */
   let openSource = null;
   let hasAnnouncedOpen = false;
+
+  bindSheetScrimClose(managedScrim, {
+    sheetId: id,
+    isActive: () => dragging || settling,
+    onRequestClose
+  });
 
   function isOpen() {
     if (dragging || settling) return false;

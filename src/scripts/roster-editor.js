@@ -234,9 +234,6 @@ export function initRosterEditor({ store, showToast, viewport, closeOthers, conf
     capturePointer: true,
     owner: 'roster-editor'
   });
-  nameLayer.addEventListener('click', (event) => {
-    if (event.target === nameLayer && !nameSheet?.isActive()) closeNameEditor();
-  });
   nameInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -260,6 +257,7 @@ export function initRosterEditor({ store, showToast, viewport, closeOthers, conf
     direction: 'from-top',
     scrollPorts: [namePanel],
     isOpen: () => nameLayer.classList.contains('show') && !nameSheet?.isActive(),
+    onRequestClose: closeNameEditor,
     onPrepare() {
       nameLayer.inert = false;
       nameLayer.classList.add('show');

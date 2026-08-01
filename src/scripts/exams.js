@@ -194,9 +194,6 @@ export function initExams({ store, showToast, viewport, closeOthers, confirm, on
     capturePointer: true,
     owner: 'exams'
   });
-  nameLayer.addEventListener('click', (event) => {
-    if (event.target === nameLayer && !nameSheet?.isActive()) closeNameEditor();
-  });
   nameInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -205,9 +202,6 @@ export function initExams({ store, showToast, viewport, closeOthers, confirm, on
   });
 
   layer.querySelector('[data-action="close"]').addEventListener('click', close);
-  layer.addEventListener('click', (event) => {
-    if (event.target === layer && !listSheet?.isActive()) close();
-  });
   addButton.addEventListener('click', () => {
     openNameEditor({ mode: 'add', trigger: addButton });
   });
@@ -219,6 +213,7 @@ export function initExams({ store, showToast, viewport, closeOthers, confirm, on
     direction: 'from-top',
     scrollPorts: [list],
     isOpen: () => layer.classList.contains('show') && !listSheet?.isActive(),
+    onRequestClose: close,
     onPrepare({ source } = {}) {
       closeOthers?.('exams');
       if (source === 'gesture') returnFocus = null;
@@ -248,6 +243,7 @@ export function initExams({ store, showToast, viewport, closeOthers, confirm, on
     direction: 'from-top',
     scrollPorts: [namePanel],
     isOpen: () => nameLayer.classList.contains('show') && !nameSheet?.isActive(),
+    onRequestClose: closeNameEditor,
     onPrepare() {
       nameLayer.inert = false;
       nameLayer.classList.add('show');

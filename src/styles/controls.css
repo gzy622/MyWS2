@@ -577,7 +577,7 @@
   opacity: 0;
   transition: opacity var(--duration-fade) linear;
 }
-/* Text sheets: avoid ancestor touch-action:none (blocks Android IME focus on inputs). */
+/* Text-sheet shell keeps IME-safe taps; the real .sheet-scrim owns drag input with touch-action:none. */
 .course-slot-sheet.show,
 .course-period-sheet.show,
 .course-subject-sheet.show,

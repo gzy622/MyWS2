@@ -66,6 +66,7 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
     direction: 'from-bottom',
     scrollPorts: [confirmPanel],
     isOpen: () => elements.confirmSheet.classList.contains('show') && !confirmSheet?.isActive(),
+    onRequestClose: closeConfirm,
     onPrepare() {
       setActiveOverlay('confirm');
       elements.confirmSheet.setAttribute('aria-hidden', 'false');
@@ -148,6 +149,7 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
     direction: 'from-bottom',
     scrollPorts: [elements.moreMenuPanel],
     isOpen: () => elements.moreMenu.classList.contains('show') && !moreSheet?.isActive(),
+    onRequestClose: close,
     onPrepare({ source } = {}) {
       if (source === 'gesture') {
         closeOthers?.('more');
@@ -195,9 +197,6 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
   }
 
   elements.moreButton.addEventListener('click', open);
-  elements.moreMenu.addEventListener('click', (event) => {
-    if (event.target === elements.moreMenu && !moreSheet.isActive()) close();
-  });
   elements.closeMoreMenuButton.addEventListener('click', () => close());
   elements.moreActions.forEach((button) => button.addEventListener('click', (event) => {
     event.stopPropagation();
@@ -337,9 +336,6 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
     haptic(Haptic.medium);
     action?.();
     if (returnFocus) focusSilently(returnFocus);
-  });
-  elements.confirmSheet.addEventListener('click', (event) => {
-    if (event.target === elements.confirmSheet && !confirmSheet.isActive()) closeConfirm();
   });
 
   return { open, close, closeConfirm, confirm, render, confirmSheet, moreSheet };

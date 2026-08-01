@@ -140,6 +140,7 @@ export function initHighlightSubjects({ showToast, viewport, closeOthers }) {
     direction: 'from-top',
     scrollPorts: [panel],
     isOpen: () => layer.classList.contains('show') && !sheet?.isActive(),
+    onRequestClose: close,
     onPrepare() {
       setActiveOverlay('course-highlight');
       layer.setAttribute('aria-hidden', 'false');
@@ -187,9 +188,6 @@ export function initHighlightSubjects({ showToast, viewport, closeOthers }) {
   }, {
     armGhost: (ms) => underlyingGhostGuard.arm(ms),
     owner: 'highlight-subjects'
-  });
-  layer.addEventListener('click', (event) => {
-    if (event.target === layer && !sheet.isActive()) close();
   });
   input.addEventListener('input', () => {
     clearBtn.hidden = !input.value.trim() && patterns.length === 0;
