@@ -30,6 +30,14 @@
 .font-size-popover output { color: var(--teal); font-size: 13px; font-weight: 600; }
 .font-size-popover input { display: block; width: 100%; margin: 0; accent-color: var(--teal); cursor: pointer; touch-action: none; }
 .font-size-popover-scale { display: flex; justify-content: space-between; margin-top: 2px; color: var(--muted); font-size: 10px; }
+/* Popover open: the first outside press only dismisses — keep chrome un-hittable so
+ * the underlay shows no :active / is-pressing feedback on it (more button stays tappable). */
+#app.is-font-popover-open .topbar :not(#moreButton),
+#app.is-font-popover-open #viewport,
+#app.is-font-popover-open .bottom-shell,
+#app.is-font-popover-open .letter-index {
+  pointer-events: none !important;
+}
 .menu-drawer {
   position: absolute; z-index: var(--layer-modal); inset: 0; display: flex; flex-direction: column;
   overflow: hidden; touch-action: none; background: var(--paper);

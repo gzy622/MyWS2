@@ -24,6 +24,7 @@ function renderPopover() {
   const isRegisterActive = isRegisterNameViewActive();
   const isOpen = isRegisterActive && state.fontSizePopoverOpen;
   elements.fontSizePopover.classList.toggle('show', isOpen);
+  elements.app.classList.toggle('is-font-popover-open', isOpen);
   elements.fontSizePopover.setAttribute('aria-hidden', String(!isOpen));
   elements.moreButton.setAttribute('aria-label', '更多功能');
   if (!elements.moreMenu.classList.contains('show')) {
@@ -62,10 +63,28 @@ function openPopover() {
   return true;
 }
 
-function closePopoverFromOutside(event) {
-  if (!state.fontSizePopoverOpen) return;
-  if (elements.fontSizePopover.contains(event.target) || elements.moreButton.contains(event.target)) return;
+/**
+ * 浮窗打开时点外部的首次点击只关闭浮窗：
+ * 浮窗打开期间 chrome 不可命中（is-font-popover-open），外部按压只落在 #app，
+ * 该手势的 click 同样只落在 #app——在此关闭浮窗并吞掉 click，底层控件既收
+ * 不到 pointerdown 也收不到 click，不呈现任何按压视觉。
+ * 捕获层 pointerdown 只刷新“本次按压从外部开始”的标记，子节点的
+ * stopPropagation 无法阻止刷新，避免滑杆等内部按压后残留误吞。
+ */
+let dismissArmed = false;
+
+function onDocumentPointerDown(event) {
+  dismissArmed = state.fontSizePopoverOpen
+    && !elements.fontSizePopover.contains(event.target)
+    && !elements.moreButton.contains(event.target);
+}
+
+function onDocumentClickCapture(event) {
+  if (!dismissArmed) return;
+  dismissArmed = false;
   closePopover();
+  event.preventDefault();
+  event.stopPropagation();
 }
 
 export function initStudentFontSize() {
@@ -80,8 +99,8 @@ export function initStudentFontSize() {
     renderStudentFontSize();
   });
 
-  document.addEventListener('pointerdown', closePopoverFromOutside);
-  document.addEventListener('click', closePopoverFromOutside);
+  document.addEventListener('pointerdown', onDocumentPointerDown, true);
+  document.addEventListener('click', onDocumentClickCapture, true);
 
   return { open: openPopover, close: closePopover };
 }
