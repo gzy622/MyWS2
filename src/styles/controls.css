@@ -8,7 +8,10 @@
   background: var(--control);
   display: grid; grid-template-columns: repeat(3, 1fr); touch-action: none; user-select: none;
 }
-.nav-glider { position: absolute; z-index: 0; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3); border-radius: var(--radius-card); background: var(--card); box-shadow: var(--shadow-soft); opacity: 1; transition: transform .42s var(--ease); will-change: transform; }
+.nav-glider { position: absolute; z-index: 0; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3); border-radius: var(--radius-card); background: var(--card); box-shadow: var(--shadow-soft); opacity: 1; transition: transform .42s var(--ease), box-shadow .25s var(--ease); will-change: transform; }
+.nav-glider--quick-score {
+  box-shadow: var(--shadow-soft), 0 0 0 1.5px color-mix(in srgb, var(--teal) 38%, transparent);
+}
 .nav-btn { position: relative; z-index: 1; border: 0; background: transparent; color: var(--muted); border-radius: var(--radius-control); cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; }
 .nav-btn.active { color: var(--teal); }
 .nav-btn::after { content: attr(aria-label); font-size: 12px; font-weight: 520; line-height: 1.2; }
