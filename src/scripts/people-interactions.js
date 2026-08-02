@@ -8,7 +8,7 @@ import { bindImmediateAction, createGhostClickGuard } from './pointer-guards.js'
 
 const MOVE_CANCEL_DISTANCE = 9;
 const LONG_PRESS_MS = 480;
-const CLICK_SUPPRESSION_MS = 250;
+const CLICK_SUPPRESSION_MS = 450;
 
 export function initPeopleInteractions({ store, showToast, viewport, closeOthers, confirm }) {
   const pickLayer = document.createElement('div');
@@ -76,6 +76,10 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
   let editTarget = null;
   let editReturnFocus = null;
   const presses = new Map();
+  /** Rows whose long-press already opened the edit sheet; owned by pointerId until release. */
+  const longPressedRows = new Map();
+  let suppressedClickRow = null;
+  let suppressLongPressUntil = 0;
   let suppressClickUntil = 0;
   const editGhostGuard = createGhostClickGuard({
     owner: 'people',
@@ -347,10 +351,26 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
     presses.delete(pointerId);
   }
 
+  function suppressLongPressClick(row) {
+    suppressedClickRow = row;
+    suppressLongPressUntil = performance.now() + CLICK_SUPPRESSION_MS;
+  }
+
+  function shouldSuppressClick(row) {
+    if (row !== suppressedClickRow) return false;
+    const suppress = performance.now() < suppressLongPressUntil;
+    suppressedClickRow = null;
+    suppressLongPressUntil = 0;
+    return suppress;
+  }
+
   function bindList(list) {
     list.addEventListener('pointerdown', (event) => {
       const row = event.target.closest('.people-row');
       if (!row || !list.contains(row)) return;
+      // A new contact cannot belong to the long-press sequence whose click is pending.
+      suppressedClickRow = null;
+      suppressLongPressUntil = 0;
       const press = {
         x: event.clientX,
         y: event.clientY,
@@ -360,7 +380,10 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
       press.timer = setTimeout(() => {
         if (!presses.has(event.pointerId)) return;
         clearPress(event.pointerId);
-        suppressClickUntil = performance.now() + CLICK_SUPPRESSION_MS;
+        // Opening the Sheet can retarget the eventual pointerup away from the list.
+        // Keep ownership globally until that physical pointer sequence actually ends,
+        // then arm the click guard at release — not from this earlier timeout.
+        longPressedRows.set(event.pointerId, row);
         haptic(Haptic.medium);
         openEdit(row.dataset.peopleKind, Number(row.dataset.peopleId), row);
       }, LONG_PRESS_MS);
@@ -382,13 +405,25 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
     });
     list.addEventListener('click', (event) => {
       const row = event.target.closest('.people-row');
-      if (!row || !list.contains(row) || performance.now() < suppressClickUntil) return;
+      if (!row || !list.contains(row) || performance.now() < suppressClickUntil || shouldSuppressClick(row)) return;
       openPick(row.dataset.peopleKind, Number(row.dataset.peopleId), row);
     });
   }
 
   bindList(elements.roleList);
   bindList(elements.dutyList);
+
+  window.addEventListener('pointerup', (event) => {
+    const row = longPressedRows.get(event.pointerId);
+    if (!row) return;
+    longPressedRows.delete(event.pointerId);
+    // Start the bounded guard from release, immediately before the browser may
+    // synthesize click, rather than from the earlier long-press timeout.
+    suppressLongPressClick(row);
+  }, true);
+  window.addEventListener('pointercancel', (event) => {
+    longPressedRows.delete(event.pointerId);
+  }, true);
 
   pickLayer.querySelector('[data-action="close"]').addEventListener('click', () => closePick());
   pickClear.addEventListener('click', () => {

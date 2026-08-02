@@ -11,7 +11,7 @@ import { GHOST_GUARD_MS } from './gesture-policy.js';
 
 const MOVE_CANCEL_DISTANCE = 9;
 const LONG_PRESS_MS = 480;
-const CLICK_SUPPRESSION_MS = 250;
+const CLICK_SUPPRESSION_MS = 450;
 
 function isCoarsePointer() {
   return Boolean(globalThis.matchMedia?.('(pointer: coarse)')?.matches)
@@ -195,6 +195,10 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
   let gradeReturnFocus = null;
   let statsReturnFocus = null;
   const presses = new Map();
+  /** Long-press targets that already opened their sheet; owned by pointerId until release. */
+  const longPressedTargets = new Map();
+  let suppressedClickTarget = null;
+  let suppressLongPressUntil = 0;
   let suppressClickUntil = 0;
   /**
    * After save/clear/close on pointerdown, the trailing click can land on the
@@ -727,10 +731,26 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     presses.delete(pointerId);
   }
 
+  function suppressLongPressClick(target) {
+    suppressedClickTarget = target;
+    suppressLongPressUntil = performance.now() + CLICK_SUPPRESSION_MS;
+  }
+
+  function shouldSuppressClick(target) {
+    if (target !== suppressedClickTarget) return false;
+    const suppress = performance.now() < suppressLongPressUntil;
+    suppressedClickTarget = null;
+    suppressLongPressUntil = 0;
+    return suppress;
+  }
+
   function bindLongPress(root, selector, onLongPress) {
     root.addEventListener('pointerdown', (event) => {
       const target = event.target.closest(selector);
       if (!target || !root.contains(target)) return;
+      // A new contact cannot belong to the long-press sequence whose click is pending.
+      suppressedClickTarget = null;
+      suppressLongPressUntil = 0;
       const press = {
         x: event.clientX,
         y: event.clientY,
@@ -740,7 +760,10 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
       press.timer = setTimeout(() => {
         if (!presses.has(event.pointerId)) return;
         clearPress(event.pointerId);
-        suppressClickUntil = performance.now() + CLICK_SUPPRESSION_MS;
+        // Opening the Sheet can retarget the eventual pointerup away from the root.
+        // Keep ownership globally until that physical pointer sequence actually ends,
+        // then arm the click guard at release — not from this earlier timeout.
+        longPressedTargets.set(event.pointerId, target);
         haptic(Haptic.medium);
         onLongPress(target);
       }, LONG_PRESS_MS);
@@ -767,6 +790,11 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
       logCourseDebug('slot click suppressed', `untilΔ=${Math.round(suppressClickUntil - performance.now())} hit=${describeDebugTarget(event.target)}`);
       return;
     }
+    const periodLabel = event.target.closest('.week-period-label');
+    if (shouldSuppressClick(periodLabel)) {
+      logCourseDebug('slot long-press click suppressed', describeDebugTarget(event.target));
+      return;
+    }
     const cell = event.target.closest('.week-slot-cell');
     if (cell && elements.weekStrip.contains(cell)) {
       logCourseDebug('slot click', `day=${cell.dataset.day} period=${cell.dataset.periodId} hit=${describeDebugTarget(event.target)}`);
@@ -782,6 +810,10 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
   elements.gradeTable.addEventListener('click', (event) => {
     if (performance.now() < suppressClickUntil) return;
     const subjectHead = event.target.closest('.grade-subject-head');
+    if (shouldSuppressClick(subjectHead)) {
+      logCourseDebug('grade long-press click suppressed', describeDebugTarget(event.target));
+      return;
+    }
     if (subjectHead && elements.gradeTable.contains(subjectHead)) {
       cycleSubjectSort(Number(subjectHead.dataset.subjectId));
       return;
@@ -795,6 +827,18 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
   bindLongPress(elements.gradeTable, '.grade-subject-head', (target) => {
     openSubject(Number(target.dataset.subjectId), target);
   });
+
+  window.addEventListener('pointerup', (event) => {
+    const target = longPressedTargets.get(event.pointerId);
+    if (!target) return;
+    longPressedTargets.delete(event.pointerId);
+    // Start the bounded guard from release, immediately before the browser may
+    // synthesize click, rather than from the earlier long-press timeout.
+    suppressLongPressClick(target);
+  }, true);
+  window.addEventListener('pointercancel', (event) => {
+    longPressedTargets.delete(event.pointerId);
+  }, true);
 
 
 
