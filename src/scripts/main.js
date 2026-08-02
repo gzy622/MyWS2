@@ -45,7 +45,7 @@ initNavigation({
   },
 });
 const fontSize = initStudentFontSize();
-initRosterRenderer(rosterStore);
+const rosterRenderer = initRosterRenderer(rosterStore);
 initLetterIndex(rosterStore);
 initPeopleRenderer(rosterStore);
 let studentRecord;
@@ -128,6 +128,7 @@ moreSheet = initMoreSheet({
   openCreateAssignment: (options) => assignments.openCreate(options),
   openCreateExam: (options) => exams.openCreate(options),
   openGradeStats: (...args) => courses?.openStats(...args),
+  onQuickScoreChange: () => rosterRenderer.render(),
 });
 people = initPeopleInteractions({
   store: rosterStore,

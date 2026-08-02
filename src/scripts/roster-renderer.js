@@ -18,7 +18,10 @@ import {
 
 function describeStudent(student, completed, score) {
   const status = score === undefined ? (completed ? '已完成' : '未记录') : `已完成，${score} 分`;
-  return `${student.name}，${status}。轻点切换完成状态。`;
+  const action = uiState.quickScoreMode
+    ? '轻点打分，长按切换完成状态。'
+    : '轻点切换完成状态。';
+  return `${student.name}，${status}。${action}`;
 }
 
 function describeSeatStudent(student, completed, score, seatIndex) {
@@ -27,7 +30,9 @@ function describeSeatStudent(student, completed, score, seatIndex) {
   const status = score === undefined ? (completed ? '已完成' : '未记录') : `已完成，${score} 分`;
   const action = uiState.seatEditing
     ? '编辑模式。拖动调整座位；键盘可用方向键选择目标，回车确认。'
-    : '轻点登记，长按打分。';
+    : uiState.quickScoreMode
+      ? '轻点打分，长按登记。'
+      : '轻点登记，长按打分。';
   return `${student.name}，第 ${row} 排第 ${column} 列，${status}。${action}`;
 }
 

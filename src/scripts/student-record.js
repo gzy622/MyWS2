@@ -108,12 +108,25 @@ export function initStudentRecord({ store, showToast, viewport, closeOthers }) {
   elements.closeStudentRecordButton.addEventListener('click', close);
   elements.cancelStudentRecordButton.addEventListener('click', close);
   elements.saveStudentRecordButton.addEventListener('click', () => {
-    const result = store.setScore(studentId, elements.studentScoreInput.value);
+    const draft = elements.studentScoreInput.value.trim();
+    if (draft === '') {
+      const cleared = store.clearStudentRecord(studentId);
+      logLogicDebug('student score cleared', {
+        assignmentId: store.getCurrentAssignment().id,
+        studentId,
+        cleared
+      });
+      haptic(Haptic.medium);
+      showToast(cleared ? '已清空分数' : '没有可清空的记录');
+      close();
+      return;
+    }
+    const result = store.setScore(studentId, draft);
     if (result === 'invalid') {
       logLogicDebug('student score rejected', {
         assignmentId: store.getCurrentAssignment().id,
         studentId,
-        draftLength: elements.studentScoreInput.value.length
+        draftLength: draft.length
       });
       elements.studentScoreError.textContent = '请输入 0–100 的分数，最多一位小数';
       elements.studentScoreInput.focus();

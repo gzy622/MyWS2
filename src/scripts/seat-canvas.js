@@ -1,5 +1,5 @@
 import { elements } from './dom.js';
-import { state, setSeatEditing } from './state.js';
+import { state, setSeatEditing, isQuickScoreActive } from './state.js';
 import { SEAT_COLUMNS, SEAT_ROWS } from './roster-model.js';
 import {
   getAdjacentSeatIndex,
@@ -9,6 +9,7 @@ import {
 } from './seat-geometry.js';
 import { haptic, Haptic } from './haptics.js';
 import { logLogicDebug } from './sheet-debug.js';
+import { syncQuickScoreModeHint } from './navigation.js';
 
 const MIN_SCALE = 0.18;
 const MAX_SCALE = 2.5;
@@ -140,7 +141,9 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
       const status = score === undefined ? (completed ? '已完成' : '未记录') : `已完成，${score} 分`;
       const action = state.seatEditing
         ? '编辑模式。拖动调整座位；键盘可用方向键选择目标，回车确认。'
-        : '轻点登记，长按打分。';
+        : isQuickScoreActive()
+          ? '轻点打分，长按登记。'
+          : '轻点登记，长按打分。';
       card.setAttribute('aria-label', `${student.name}，第 ${row} 排第 ${column} 列，${status}。${action}`);
       if (state.seatEditing) card.setAttribute('aria-keyshortcuts', 'ArrowUp ArrowDown ArrowLeft ArrowRight Enter Escape');
       else card.removeAttribute('aria-keyshortcuts');
@@ -359,8 +362,23 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
           if (gesture !== cardGesture || cardGesture.moved) return;
           cardGesture.longPressed = true;
           card.classList.remove('is-pressing');
-          haptic(Haptic.medium);
-          openStudentRecord(cardGesture.studentId, card);
+          if (isQuickScoreActive()) {
+            const wasCompleted = card.getAttribute('aria-pressed') === 'true';
+            if (store.toggleCompletion(cardGesture.studentId)) {
+              logLogicDebug('completion toggled', {
+                source: 'seat-long-press',
+                assignmentId: store.getCurrentAssignment().id,
+                studentId: cardGesture.studentId,
+                fromCompleted: wasCompleted,
+                toCompleted: !wasCompleted
+              });
+              haptic(Haptic.light);
+              showToast(wasCompleted ? '已取消完成' : '已标记完成');
+            }
+          } else {
+            haptic(Haptic.medium);
+            openStudentRecord(cardGesture.studentId, card);
+          }
         }, LONG_PRESS_MS);
       }
       gesture = cardGesture;
@@ -460,6 +478,9 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
         }
       } else if (state.seatEditing) {
         selectCardForKeyboard(cardGesture.card);
+      } else if (isQuickScoreActive()) {
+        haptic(Haptic.medium);
+        openStudentRecord(cardGesture.studentId, cardGesture.card);
       } else {
         const wasCompleted = cardGesture.card.getAttribute('aria-pressed') === 'true';
         if (store.toggleCompletion(cardGesture.studentId)) {
@@ -504,7 +525,24 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
     const card = event.target instanceof Element ? event.target.closest('.seat-card') : null;
     if (!card) return;
     event.preventDefault();
-    if (!state.seatEditing) openStudentRecord(Number(card.dataset.studentId), card);
+    if (state.seatEditing) return;
+    if (isQuickScoreActive()) {
+      const studentId = Number(card.dataset.studentId);
+      const wasCompleted = card.getAttribute('aria-pressed') === 'true';
+      if (store.toggleCompletion(studentId)) {
+        logLogicDebug('completion toggled', {
+          source: 'seat-context-menu',
+          assignmentId: store.getCurrentAssignment().id,
+          studentId,
+          fromCompleted: wasCompleted,
+          toCompleted: !wasCompleted
+        });
+        haptic(Haptic.light);
+        showToast(wasCompleted ? '已取消完成' : '已标记完成');
+      }
+      return;
+    }
+    openStudentRecord(Number(card.dataset.studentId), card);
   }
 
   function keyboardClick(event) {
@@ -516,6 +554,11 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
       return;
     }
     const studentId = Number(card.dataset.studentId);
+    if (isQuickScoreActive()) {
+      haptic(Haptic.medium);
+      openStudentRecord(studentId, card);
+      return;
+    }
     const wasCompleted = card.getAttribute('aria-pressed') === 'true';
     if (store.toggleCompletion(studentId)) {
       logLogicDebug('completion toggled', {
@@ -576,6 +619,7 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
     landscapeButton.disabled = state.seatEditing;
     setEditStatus();
     syncCardAccessibility();
+    syncQuickScoreModeHint();
     reset();
   }
 

@@ -1,4 +1,5 @@
 import { elements } from './dom.js';
+import { isQuickScoreActive } from './state.js';
 import { haptic, Haptic } from './haptics.js';
 import { logGestureDebug, logLogicDebug } from './sheet-debug.js';
 
@@ -33,6 +34,30 @@ export function initStudentInteractions({ store, showToast, openStudentRecord })
     return suppress;
   }
 
+  function toggleCompletion(studentId, card, source) {
+    const wasCompleted = card.getAttribute('aria-pressed') === 'true';
+    if (!store.toggleCompletion(studentId)) return;
+    logLogicDebug('completion toggled', {
+      source,
+      assignmentId: store.getCurrentAssignment().id,
+      studentId,
+      fromCompleted: wasCompleted,
+      toCompleted: !wasCompleted
+    });
+    haptic(Haptic.light);
+    showToast(wasCompleted ? '已取消完成' : '已标记完成');
+  }
+
+  function openRecord(studentId, card, source, { feedback = false } = {}) {
+    logLogicDebug('student record opened', {
+      source,
+      assignmentId: store.getCurrentAssignment().id,
+      studentId
+    });
+    if (feedback) haptic(Haptic.medium);
+    openStudentRecord(studentId, card);
+  }
+
   elements.studentGrid.addEventListener('pointerdown', (event) => {
     // A new contact cannot belong to the long-press sequence whose click is pending.
     suppressedClickCard = null;
@@ -46,13 +71,11 @@ export function initStudentInteractions({ store, showToast, openStudentRecord })
       // Opening the Sheet can retarget the eventual pointerup away from the grid.
       // Keep ownership globally until that physical pointer sequence actually ends.
       longPressedPointers.set(event.pointerId, card);
-      logLogicDebug('student record opened', {
-        source: 'grid-long-press',
-        assignmentId: store.getCurrentAssignment().id,
-        studentId
-      });
-      haptic(Haptic.medium);
-      openStudentRecord(studentId, card);
+      if (isQuickScoreActive()) {
+        toggleCompletion(studentId, card, 'grid-long-press');
+      } else {
+        openRecord(studentId, card, 'grid-long-press', { feedback: true });
+      }
     }, LONG_PRESS_MS);
     presses.set(event.pointerId, press);
   });
@@ -85,27 +108,17 @@ export function initStudentInteractions({ store, showToast, openStudentRecord })
     if (!card || !elements.studentGrid.contains(card)) return;
     const studentId = Number(card.dataset.studentId);
     event.preventDefault();
-    logLogicDebug('student record opened', {
-      source: 'grid-context-menu',
-      assignmentId: store.getCurrentAssignment().id,
-      studentId
-    });
-    openStudentRecord(studentId, card);
+    if (isQuickScoreActive()) toggleCompletion(studentId, card, 'grid-context-menu');
+    else openRecord(studentId, card, 'grid-context-menu');
   });
   elements.studentGrid.addEventListener('click', (event) => {
     const card = event.target.closest('.student-card');
     if (!card || !elements.studentGrid.contains(card) || shouldSuppressClick(card)) return;
     const studentId = Number(card.dataset.studentId);
-    const wasCompleted = card.getAttribute('aria-pressed') === 'true';
-    if (!store.toggleCompletion(studentId)) return;
-    logLogicDebug('completion toggled', {
-      source: 'grid-tap',
-      assignmentId: store.getCurrentAssignment().id,
-      studentId,
-      fromCompleted: wasCompleted,
-      toCompleted: !wasCompleted
-    });
-    haptic(Haptic.light);
-    showToast(wasCompleted ? '已取消完成' : '已标记完成');
+    if (isQuickScoreActive()) {
+      openRecord(studentId, card, 'grid-tap', { feedback: true });
+      return;
+    }
+    toggleCompletion(studentId, card, 'grid-tap');
   });
 }

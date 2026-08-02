@@ -1,7 +1,7 @@
 import { elements } from './dom.js';
 import { closeDrawer, openDrawer } from './drawer.js';
-import { setSub } from './navigation.js';
-import { state, setActiveOverlay } from './state.js';
+import { setSub, syncQuickScoreModeHint } from './navigation.js';
+import { state, setActiveOverlay, setQuickScoreMode } from './state.js';
 import { haptic, Haptic } from './haptics.js';
 import { createSheetController } from './sheet-drag.js';
 import { blurIfSheetChrome, focusSilently, syncChromeInert } from './focus.js';
@@ -16,7 +16,7 @@ const DUTY_SUBVIEW_INDEX = 1;
 const SCHEDULE_SUBVIEW_INDEX = 0;
 const GRADES_SUBVIEW_INDEX = 1;
 
-const REGISTER_ACTIONS = new Set(['register-view', 'create-assignment', 'clear-assignment', 'font-size', 'seat-edit', 'seat-reset']);
+const REGISTER_ACTIONS = new Set(['register-view', 'create-assignment', 'clear-assignment', 'quick-score', 'font-size', 'seat-edit', 'seat-reset']);
 const PEOPLE_ROLE_ACTIONS = new Set(['add-role', 'clear-roles']);
 const PEOPLE_DUTY_ACTIONS = new Set(['add-duty', 'clear-duties']);
 const PEOPLE_ACTIONS = new Set([...PEOPLE_ROLE_ACTIONS, ...PEOPLE_DUTY_ACTIONS]);
@@ -25,7 +25,7 @@ const COURSES_GRADES_ACTIONS = new Set(['add-subject', 'add-exam', 'grade-stats'
 const COURSES_ACTIONS = new Set([...COURSES_SCHEDULE_ACTIONS, ...COURSES_GRADES_ACTIONS]);
 const GLOBAL_ACTIONS = new Set(['open-settings']);
 
-export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOthers, highlightSubjects, openCreateAssignment, openCreateExam, openGradeStats }) {
+export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOthers, highlightSubjects, openCreateAssignment, openCreateExam, openGradeStats, onQuickScoreChange }) {
   let trigger = null;
   let confirmAction = null;
   let confirmReturnFocus = null;
@@ -132,6 +132,10 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
       if (action === 'register-view') {
         button.textContent = isGrid ? '切换至座位视图' : '切换回网格视图';
       }
+      if (action === 'quick-score') {
+        button.setAttribute('aria-pressed', String(state.quickScoreMode));
+        button.textContent = state.quickScoreMode ? '退出快速打分' : '快速打分';
+      }
       if (action === 'seat-edit') {
         button.setAttribute('aria-pressed', String(state.seatEditing));
         button.textContent = state.seatEditing ? '退出编辑模式' : '编辑座位表';
@@ -233,6 +237,14 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
     if (action === 'font-size') {
       close({ restoreFocus: false });
       fontSize.open();
+      return;
+    }
+    if (action === 'quick-score') {
+      setQuickScoreMode(!state.quickScoreMode);
+      onQuickScoreChange?.();
+      syncQuickScoreModeHint();
+      close();
+      showToast(state.quickScoreMode ? '已进入快速打分' : '已退出快速打分');
       return;
     }
     if (action === 'seat-edit') {

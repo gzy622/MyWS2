@@ -11,6 +11,8 @@ export const state = {
   studentFontSize: STUDENT_FONT_SIZE_DEFAULT,
   fontSizePopoverOpen: false,
   seatEditing: false,
+  /** Session-only; swipe/back does not clear. Active gestures require !seatEditing. */
+  quickScoreMode: false,
   seatLandscape: false,
   rosterEditorOpen: false,
   /** @type {null | 'assignments' | 'exams' | 'student-record' | 'people-pick' | 'people-edit' | 'course-slot' | 'course-period' | 'course-subject' | 'course-grade' | 'course-stats' | 'course-highlight' | 'more' | 'confirm' | 'roster-editor'} */
@@ -54,6 +56,15 @@ export function setFontSizePopoverOpen(value) {
 
 export function setSeatEditing(value) {
   state.seatEditing = Boolean(value);
+}
+
+export function setQuickScoreMode(value) {
+  state.quickScoreMode = Boolean(value);
+}
+
+/** True when card gestures should use quick-score semantics (tap opens sheet). */
+export function isQuickScoreActive() {
+  return state.quickScoreMode && !state.seatEditing;
 }
 
 export function setSeatLandscape(value) {

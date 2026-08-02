@@ -5,6 +5,7 @@ import { setLetterIndexPageDragging, syncLetterIndexPageVisibility } from './let
 
 const COURSE_PAGE_INDEX = 2;
 const GRADES_SUBVIEW_INDEX = 1;
+const REGISTER_PAGE_INDEX = 1;
 
 let getRegistrationTitle = () => '登记';
 let getActiveExamTitle = () => '课程';
@@ -47,6 +48,13 @@ export function renderTopbarTitle() {
   }
 }
 
+export function syncQuickScoreModeHint() {
+  const active = state.quickScoreMode
+    && state.currentPage === REGISTER_PAGE_INDEX
+    && !state.seatEditing;
+  elements.glider.classList.toggle('nav-glider--quick-score', active);
+}
+
 export function renderNavigation({ animate = true } = {}) {
   elements.pages.classList.toggle('dragging', !animate);
   elements.glider.classList.toggle('dragging', !animate);
@@ -83,6 +91,7 @@ export function renderNavigation({ animate = true } = {}) {
     });
   });
   syncLetterIndexPageVisibility({ animate });
+  syncQuickScoreModeHint();
 }
 
 export function renderDrag(offsetPx) {
