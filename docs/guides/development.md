@@ -39,8 +39,8 @@ node lan-server.js
 # 所有单元测试
 node --test tests/*.test.mjs
 
-# CSV / JSON 备份相关
-node --test tests/csv-transfer.test.mjs tests/backup.test.mjs tests/roster-store.test.mjs
+# 表格 / JSON 备份相关
+node --test tests/workbook-transfer.test.mjs tests/csv-transfer.test.mjs tests/backup.test.mjs tests/roster-store.test.mjs
 
 # 浏览器自动验收（PowerShell 7 + Microsoft Edge）
 # 仅在用户于当前任务明确要求时执行。
@@ -55,7 +55,9 @@ node --check tools/content-id.cjs
 git diff --check
 ```
 
-CSV 导入导出由 `src/scripts/csv-transfer.js` 实现，文件读写与 JSON 备份共用 `src/scripts/text-file-transfer.js`。人工编辑 CSV 时：固定列必须保留且不可重名；「仅供查看」列可改但导入忽略；以编号关联数据；实体行顺序决定应用中的名单与列表顺序；座位行/列从 1 起；校验失败会拒绝整份文件并提示首个错误行号。
+XLSX 导入导出由 `src/scripts/workbook-transfer.js` 实现，底层 Office Open XML/ZIP 处理位于 `src/scripts/xlsx-workbook.js`，文件读写与 JSON 备份共用 `src/scripts/text-file-transfer.js`。新导出格式为版本 2，固定生成「学生名单」「作业登记」「人员安排」「课程表」「考试成绩」五个工作表；版本 1 的十二工作表 XLSX 和旧 CSV 仍从「导入表格」读取。人工编辑时保留固定工作表、标题行、隐藏编号、数量信息和矩阵数据行；灰色姓名列用于查看，编号用于关联；学生座位行/列从 1 起；检查失败会拒绝整份文件并提示 `工作表!单元格：说明`。
+
+表格快速检查应覆盖：五个固定工作表、隐藏行列、作业单列布局、`空白/✓/整数/一位小数`、人员下拉与重名文本、课程表十个节次、考试/科目两层表头、缺少行列、重复座位、多个当前作业、无效成绩，以及版本 1、版本 2、旧 CSV 和 JSON 备份互不影响。可以使用常用表格库打开生成文件并重新保存，再将保存后的文件交回 `parseRosterWorkbook` 检查隐藏编号仍可读取。
 
 完整验收清单见 [`../engineering.md`](../engineering.md)。
 

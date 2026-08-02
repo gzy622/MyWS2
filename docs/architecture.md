@@ -111,8 +111,10 @@ Capacitor 依赖只用于原生壳。浏览器代码通过 `globalThis.Capacitor
 | 人员 | `people-renderer.js`、`people-interactions.js` |
 | 课程 | `courses-renderer.js`、`courses-interactions.js`、`score-keypad.js`、`exams.js`、`highlight-subjects-model.js`、`highlight-subjects.js` |
 | 备份 | `backup.js` |
-| CSV 数据交换 | `csv-transfer.js` |
-| 文本文件读写 | `text-file-transfer.js` |
+| 表格数据交换 | `workbook-transfer.js`、`xlsx-workbook.js`；`csv-transfer.js` 保留旧文件导入 |
+| 文本与二进制文件读写 | `text-file-transfer.js` |
+
+表格交换模块将 Store 快照转换为五个固定工作表：`workbook-transfer.js` 负责版本识别、五表生成、隐藏编号读取、数据校验和整库替换前的数据准备；`xlsx-workbook.js` 负责 Office Open XML、ZIP、隐藏行列、冻结窗格、筛选、合并表头、批注、样式和输入限制。版本 1 的十二工作表读取函数与旧 CSV 读取路径独立保留，导出只走版本 2。
 
 ## 6. 数据流
 

@@ -76,8 +76,9 @@
 | 课程渲染与交互 | `src/scripts/courses-renderer.js`、`src/scripts/courses-interactions.js` |
 | 高亮科目校验、存储与 Sheet | `src/scripts/highlight-subjects-model.js`、`src/scripts/highlight-subjects.js` |
 | 备份导入导出 | `src/scripts/backup.js` |
-| CSV 导入导出 | `src/scripts/csv-transfer.js` |
-| 文本文件读写（JSON/CSV 共用） | `src/scripts/text-file-transfer.js` |
+| 表格导入导出 | `src/scripts/workbook-transfer.js`；旧 CSV 导入兼容保留在 `csv-transfer.js` |
+| XLSX 文件生成与读取 | `src/scripts/xlsx-workbook.js` |
+| 文本/二进制文件读写 | `src/scripts/text-file-transfer.js` |
 | 主/子导航 | `src/scripts/navigation.js` |
 | 页面、底栏、分段与 Sheet 手势路由 | `src/scripts/gestures.js`、`src/scripts/sheet-gestures.js` |
 | 手势阈值与点击保护纯判定 | `src/scripts/gesture-policy.js` |
@@ -133,7 +134,7 @@
 - 登记与座位：`#studentGrid`、`#gridLetterIndex`、`#studentFontSize`、`#studentFontSizeValue`、`#seatViewport`、`#seatStage`、`#seatGrid`、`#seatHint`、`#seatFitButton`、`#seatLandscapeButton`、`#seatModeBar`、`#seatEditStatus`、`#exitSeatEdit`、`#seatLetterIndex`；
 - 人员与课程：`#roleList`、`#dutyList`、`#weekStrip`、`#gradeTable`；
 - 设置、更多与反馈：`#fontSizePopover`、`#menuDrawer`、`#menuDrawerBuild`、`#closeMenuDrawer`、`#moreMenu`、`#moreMenuPanel`、`#moreMenuHandle`、`#closeMoreMenu`、`#moreMenuBuild`、`#toast`；
-- 备份/CSV 文件选择：`#backupFileInput`（JSON 与 CSV 共用）；
+- 备份/表格文件选择：`#backupFileInput`（JSON、XLSX 与旧 CSV 共用）；
 - 学生记录：`#studentRecordSheet`、`#studentRecordPanel`、`#studentRecordHandle`、`#studentRecordTitle`、`#closeStudentRecord`、`#studentRecordStatus`、`#studentScoreTensToggle`、`#studentScoreControls`、`#studentScoreInput`、`#studentScoreError`、`#cancelStudentRecord`、`#saveStudentRecord`；
 - 上下文动作与确认：`#moreMenu [data-more-action]`、`#confirmSheet`、`#confirmTitle`、`#confirmMessage`、`#cancelConfirm`、`#acceptConfirm`。
 
@@ -209,15 +210,19 @@
 - Version 1/2/3/4/5 可显式迁移到 Version 6（各版本缺少的 `initial` 按姓名推导补齐）；未知版本、损坏 JSON、重复值、引用失效或无法完整校验时整体回退默认值。
 - 写入失败不破坏当前内存会话。
 
-### 6.2 CSV 数据交换
+### 6.2 表格数据交换
 
-- CSV 只包含业务 Store 数据；主题、姓名字号、高亮关键词、当前页面和临时界面状态不进入文件。
-- 文件名形如 `teacher-workbench-data-YYYYMMDD-HHmmss.csv`；内容为 UTF-8 BOM、逗号分隔、CRLF；`CSV_FORMAT_VERSION = 1`。
-- 首行固定列必须全部存在且不可重名；允许调整列顺序并增加自定义列。名称后标有「仅供查看」的列仅供人工阅读，导入时以编号关联。
-- 记录类型：`文件信息`、`学生`、`作业`、`作业记录`、`班干`、`班干成员`、`值日`、`值日成员`、`节次`、`课表`、`科目`、`考试`、`课程成绩`。
-- 学生座位行/列从 1 起；作业记录用「是/否」表示提交，分数留空表示已交未计分；星期为「星期一」至「星期五」；实体行顺序决定名单、作业、班干、值日、节次、科目与考试顺序；下一个可用编号取各类现有编号最大值。
-- 解析支持 BOM、LF/CRLF、引号、逗号、双引号及单元格内换行；忽略空白行；对可能被表格软件识别为公式的文本加入不可见安全字符，重新导入时自动移除。
-- 导入前检查文件版本、必需记录、编号、重复、座位、引用、成绩范围、十个节次及唯一当前作业；发现问题拒绝整份文件，并显示带行号的首个错误（如「第 18 行：学生编号 7 不存在」）。成功前不修改现有数据。
+- 表格文件只包含业务 Store 数据；主题、姓名字号、高亮关键词、当前页面和临时界面状态不进入文件。
+- 新导出文件名形如 `teacher-workbench-data-YYYYMMDD-HHmmss.xlsx`，格式版本为 `WORKBOOK_FORMAT_VERSION = 2`。表格导入继续接受格式版本 1 的十二工作表 XLSX 和旧 CSV；JSON 备份继续由独立入口保留。
+- 新 XLSX 恰好生成「学生名单」「作业登记」「人员安排」「课程表」「考试成绩」五个固定工作表。用户增加的个人工作表可保留并在导入时忽略；五个固定工作表不可删除或改名。
+- 「学生名单」可见列为姓名、座位行、座位列；学生编号和首字母在隐藏列中。学生行顺序决定应用中的名单顺序；座位行限定 1～8，座位列限定 1～13。
+- 「作业登记」隐藏第一行保存作业编号，第二行 B2 显示「当前作业」并保存唯一标记，第三行 B3 显示「学生姓名」、C3 起保存作业名称，第四行开始为学生行；每项作业只有一列，空白表示未交，`✓` 表示已交未计分，0～100 表示已交且有分数，最多一位小数。
+- 「人员安排」在同一工作表放置班干和值日两个表格，至少四个成员列；成员编号和实体编号在隐藏区域，成员格提供学生姓名下拉列表，重名时显示「姓名（编号 n）」；超过四人的既有安排自动增加成员列。
+- 「课程表」可见区域为节次名称和星期一至星期五，隐藏列保存节次编号，固定十个节次；「考试成绩」隐藏第一行保存考试/科目编号，第二行显示考试名称并合并同一考试的表头，第三行显示科目名称，隐藏第一列保存学生编号；后续考试中的同科目标题跟随第一场考试。
+- 标题行、学生姓名列和可修改区域使用分组样式；学生姓名列使用浅灰底，当前作业表头使用淡蓝底，已交标记居中，分数右对齐，考试分组使用细分隔线。标题行或学生姓名列按工作表设置冻结，矩阵表格带筛选；成员选择和成绩单元格带输入限制与说明批注。
+- 隐藏行列同时保存格式版本、数据版本、各类数量和内部编号。导入要求学生行、作业列、人员行、十个节次、考试列和科目列保持完整，以避免误删导致数据减少。
+- 导入先识别版本，再检查固定工作表、标题、隐藏编号、数量、重复、座位、人员引用、作业标记、成绩范围和完整矩阵。错误使用「工作表!单元格：说明」格式，例如 `作业登记!D8：请输入 ✓ 或 0～100 的分数`；检查全部通过并经确认后才替换业务数据和重置座位画布。
+- XLSX 使用浏览器原生 ZIP/Deflate 与 Office Open XML 读写，不增加 Web 运行时依赖；支持隐藏行列、合并表头、批注、筛选、冻结窗格和输入限制。输入文件上限 5 MB，解压后的 XML 总量上限 24 MB；JSON 与旧 CSV 输入仍使用 1 MB 上限。
 
 ## 7. 工具与生成文件
 
