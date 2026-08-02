@@ -1,4 +1,7 @@
-export const ROSTER_SCHEMA_VERSION = 5;
+import { getNameInitial } from './name-initial.js';
+
+export const ROSTER_SCHEMA_VERSION = 6;
+export const ROSTER_SCHEMA_VERSION_V5 = 5;
 export const ROSTER_SCHEMA_VERSION_V4 = 4;
 export const ROSTER_SCHEMA_VERSION_V3 = 3;
 export const ROSTER_SCHEMA_VERSION_V2 = 2;
@@ -88,6 +91,11 @@ const DEFAULT_EXAMS = [
 
 function hasPositiveId(id) {
   return Number.isSafeInteger(id) && id > 0;
+}
+
+/** Single A–Z or '#' (unmapped name) — the persisted surname initial. */
+function isValidInitial(value) {
+  return typeof value === 'string' && /^[A-Z#]$/.test(value);
 }
 
 function isValidPeopleTitle(title) {
@@ -191,7 +199,11 @@ export function cloneRosterState(state) {
 }
 
 export function createDefaultRosterState() {
-  const students = DEFAULT_STUDENT_NAMES.map((name, index) => ({ id: index + 1, name }));
+  const students = DEFAULT_STUDENT_NAMES.map((name, index) => ({
+    id: index + 1,
+    name,
+    initial: getNameInitial(name)
+  }));
   return {
     schemaVersion: ROSTER_SCHEMA_VERSION,
     students,
@@ -236,7 +248,7 @@ export function parseScore(value) {
   return isScoreValue(numericValue) ? numericValue : null;
 }
 
-function isValidCoreRosterFields(value) {
+function isValidCoreRosterFields(value, { requireInitial = false } = {}) {
   const {
     students, seats, assignments, activeAssignmentId,
     submissions, scores, nextAssignmentId
@@ -249,7 +261,14 @@ function isValidCoreRosterFields(value) {
     || !Number.isSafeInteger(activeAssignmentId) || !Number.isSafeInteger(nextAssignmentId)
   ) return false;
 
-  if (!students.every((student) => student && hasPositiveId(student.id) && typeof student.name === 'string' && student.name.trim() === student.name && student.name)) return false;
+  if (!students.every((student) => (
+    student
+    && hasPositiveId(student.id)
+    && typeof student.name === 'string'
+    && student.name.trim() === student.name
+    && student.name
+    && (!requireInitial || isValidInitial(student.initial))
+  ))) return false;
   if (!assignments.every((assignment) => assignment && hasPositiveId(assignment.id) && typeof assignment.name === 'string' && assignment.name.trim() === assignment.name && assignment.name)) return false;
   if (!seats.every((seat) => seat && hasPositiveId(seat.studentId) && Number.isInteger(seat.seatIndex) && seat.seatIndex >= 0 && seat.seatIndex < SEAT_COUNT)) return false;
 
@@ -505,10 +524,18 @@ export function isValidRosterStateV4(value) {
     && isValidCoursesFieldsLegacy(value);
 }
 
+export function isValidRosterStateV5(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  if (value.schemaVersion !== ROSTER_SCHEMA_VERSION_V5) return false;
+  return isValidCoreRosterFields(value)
+    && isValidPeopleFields(value)
+    && isValidCoursesFields(value);
+}
+
 export function isValidRosterState(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   if (value.schemaVersion !== ROSTER_SCHEMA_VERSION) return false;
-  return isValidCoreRosterFields(value)
+  return isValidCoreRosterFields(value, { requireInitial: true })
     && isValidPeopleFields(value)
     && isValidCoursesFields(value);
 }
@@ -537,6 +564,17 @@ function withPeopleIds(base) {
   };
 }
 
+function withInitials(base) {
+  return {
+    ...base,
+    schemaVersion: ROSTER_SCHEMA_VERSION,
+    students: base.students.map((student) => ({
+      ...student,
+      initial: isValidInitial(student.initial) ? student.initial : getNameInitial(student.name)
+    }))
+  };
+}
+
 function withExams(base) {
   const defaults = createDefaultRosterState();
   return {
@@ -560,9 +598,35 @@ export function migrateRosterStateToCurrent(value) {
     return isValidRosterState(value) ? cloneRosterState(value) : null;
   }
 
+  if (value.schemaVersion === ROSTER_SCHEMA_VERSION_V5) {
+    if (!isValidRosterStateV5(value)) return null;
+    const migrated = withInitials({
+      students: value.students.map((student) => ({ ...student })),
+      seats: value.seats.map((seat) => ({ ...seat })),
+      assignments: value.assignments.map((assignment) => ({ ...assignment })),
+      activeAssignmentId: value.activeAssignmentId,
+      submissions: value.submissions.map((submission) => ({ ...submission })),
+      scores: value.scores.map((score) => ({ ...score })),
+      nextAssignmentId: value.nextAssignmentId,
+      roles: value.roles.map((role) => cloneRole(role)),
+      duties: value.duties.map((duty) => cloneDuty(duty)),
+      nextRoleId: value.nextRoleId,
+      nextDutyId: value.nextDutyId,
+      periods: value.periods.map((period) => ({ ...period })),
+      scheduleSlots: value.scheduleSlots.map((slot) => ({ ...slot })),
+      subjects: value.subjects.map((subject) => ({ ...subject })),
+      exams: value.exams.map((exam) => ({ ...exam })),
+      courseGrades: value.courseGrades.map((grade) => ({ ...grade })),
+      nextPeriodId: value.nextPeriodId,
+      nextSubjectId: value.nextSubjectId,
+      nextExamId: value.nextExamId
+    });
+    return isValidRosterState(migrated) ? migrated : null;
+  }
+
   if (value.schemaVersion === ROSTER_SCHEMA_VERSION_V4) {
     if (!isValidRosterStateV4(value)) return null;
-    const migrated = withExams({
+    const migrated = withInitials(withExams({
       students: value.students.map((student) => ({ ...student })),
       seats: value.seats.map((seat) => ({ ...seat })),
       assignments: value.assignments.map((assignment) => ({ ...assignment })),
@@ -580,13 +644,13 @@ export function migrateRosterStateToCurrent(value) {
       courseGrades: value.courseGrades,
       nextPeriodId: value.nextPeriodId,
       nextSubjectId: value.nextSubjectId
-    });
+    }));
     return isValidRosterState(migrated) ? migrated : null;
   }
 
   if (value.schemaVersion === ROSTER_SCHEMA_VERSION_V3) {
     if (!isValidRosterStateV3(value)) return null;
-    const migrated = withExams(withPeopleIds({
+    const migrated = withInitials(withExams(withPeopleIds({
       students: value.students.map((student) => ({ ...student })),
       seats: value.seats.map((seat) => ({ ...seat })),
       assignments: value.assignments.map((assignment) => ({ ...assignment })),
@@ -604,13 +668,13 @@ export function migrateRosterStateToCurrent(value) {
       courseGrades: value.courseGrades,
       nextPeriodId: value.nextPeriodId,
       nextSubjectId: value.nextSubjectId
-    }));
+    })));
     return isValidRosterState(migrated) ? migrated : null;
   }
 
   if (value.schemaVersion === ROSTER_SCHEMA_VERSION_V2) {
     if (!isValidRosterStateV2(value)) return null;
-    const migrated = withPeopleIds(withCourseDefaults({
+    const migrated = withInitials(withPeopleIds(withCourseDefaults({
       students: value.students.map((student) => ({ ...student })),
       seats: value.seats.map((seat) => ({ ...seat })),
       assignments: value.assignments.map((assignment) => ({ ...assignment })),
@@ -622,13 +686,13 @@ export function migrateRosterStateToCurrent(value) {
       duties: value.duties,
       nextRoleId: value.nextRoleId,
       nextDutyId: value.nextDutyId
-    }));
+    })));
     return isValidRosterState(migrated) ? migrated : null;
   }
 
   if (!isValidLegacyRosterStateV1(value)) return null;
   const defaults = createDefaultRosterState();
-  const migrated = withCourseDefaults({
+  const migrated = withInitials(withCourseDefaults({
     students: value.students.map((student) => ({ ...student })),
     seats: value.seats.map((seat) => ({ ...seat })),
     assignments: value.assignments.map((assignment) => ({ ...assignment })),
@@ -640,6 +704,6 @@ export function migrateRosterStateToCurrent(value) {
     duties: defaults.duties.map((duty) => cloneDuty(duty)),
     nextRoleId: defaults.nextRoleId,
     nextDutyId: defaults.nextDutyId
-  });
+  }));
   return isValidRosterState(migrated) ? migrated : null;
 }

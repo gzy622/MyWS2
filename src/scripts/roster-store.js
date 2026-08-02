@@ -9,6 +9,7 @@ import {
   SEAT_COUNT,
   STUDENT_NAME_MAX_LENGTH
 } from './roster-model.js';
+import { getNameInitial } from './name-initial.js';
 
 function cleanName(value) {
   if (typeof value !== 'string') return null;
@@ -20,6 +21,13 @@ function cleanStudentName(value) {
   const name = cleanName(value);
   if (!name || name.length > STUDENT_NAME_MAX_LENGTH) return null;
   return name;
+}
+
+/** A–Z or '#', otherwise null so callers can fall back to name-derived initial. */
+function cleanStudentInitial(value) {
+  if (typeof value !== 'string') return null;
+  const initial = value.trim();
+  return /^[A-Z#]$/.test(initial) ? initial : null;
 }
 
 function cleanPeopleTitle(value) {
@@ -236,7 +244,11 @@ export class RosterStore {
     return true;
   }
 
-  addStudent(value) {
+  /**
+   * @param {string} value 姓名
+   * @param {string} [initial] 显式首字母（A–Z 或 #）；缺失或非法时按姓名推导
+   */
+  addStudent(value, initial) {
     const name = cleanStudentName(value);
     if (!name || this.#state.students.length >= SEAT_COUNT) return null;
     const usedSeats = new Set(this.#state.seats.map(({ seatIndex }) => seatIndex));
@@ -251,19 +263,25 @@ export class RosterStore {
     const maxId = this.#state.students.reduce((max, student) => Math.max(max, student.id), 0);
     if (maxId >= Number.MAX_SAFE_INTEGER) return null;
     const id = maxId + 1;
-    const student = { id, name };
+    const student = { id, name, initial: cleanStudentInitial(initial) ?? getNameInitial(name) };
     this.#state.students.push(student);
     this.#state.seats.push({ studentId: id, seatIndex });
     this.#notify();
     return { ...student };
   }
 
-  renameStudent(studentId, value) {
+  /**
+   * @param {string} value 姓名
+   * @param {string} [initial] 显式首字母；缺失或非法时按新姓名重新推导
+   */
+  renameStudent(studentId, value, initial) {
     const name = cleanStudentName(value);
     const student = this.#state.students.find((item) => item.id === studentId);
     if (!student || !name) return false;
-    if (student.name === name) return true;
+    const nextInitial = cleanStudentInitial(initial) ?? getNameInitial(name);
+    if (student.name === name && student.initial === nextInitial) return true;
     student.name = name;
+    student.initial = nextInitial;
     this.#notify();
     return true;
   }

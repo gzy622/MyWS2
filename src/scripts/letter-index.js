@@ -63,7 +63,7 @@ function refreshPresentLetters(students) {
   letterToStudentIds = new Map();
   presentLetters = new Set();
   for (const student of students) {
-    const initial = getNameInitial(student.name);
+    const initial = student.initial || getNameInitial(student.name);
     if (initial === '#') continue;
     presentLetters.add(initial);
     const list = letterToStudentIds.get(initial);

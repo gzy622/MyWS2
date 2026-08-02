@@ -3,6 +3,7 @@ import { state, setActiveOverlay, setRosterEditorOpen } from './state.js';
 import { createSheetController } from './sheet-drag.js';
 import { blurIfSheetChrome, focusSilently, syncChromeInert } from './focus.js';
 import { bindImmediateAction, createGhostClickGuard } from './pointer-guards.js';
+import { getNameInitial, listAlphabetLetters } from './name-initial.js';
 import { SEAT_COUNT, STUDENT_NAME_MAX_LENGTH } from './roster-model.js';
 
 const RENAME_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17v3zM13.5 6.5l3 3" /></svg>';
@@ -49,6 +50,8 @@ export function initRosterEditor({ store, showToast, viewport, closeOthers, conf
     '<p class="roster-student-name-hint">姓名会同步到登记、人员与课程。</p>',
     `<label class="assignment-name-field"><span>姓名</span>`,
     `<input type="text" maxlength="${STUDENT_NAME_MAX_LENGTH}" autocomplete="off"></label>`,
+    '<div class="roster-student-initial-field"><span>首字母</span>',
+    '<div class="roster-student-initial-chips" role="group" aria-label="首字母"></div></div>',
     '<div class="assignment-name-actions">',
     '<button type="button" data-action="cancel">取消</button>',
     '<button type="button" class="primary" data-action="save">保存</button>',
@@ -63,6 +66,7 @@ export function initRosterEditor({ store, showToast, viewport, closeOthers, conf
   const nameInput = nameLayer.querySelector('input');
   const nameSave = nameLayer.querySelector('[data-action="save"]');
   const namePanel = nameLayer.querySelector('.roster-student-name-panel');
+  const initialChips = nameLayer.querySelector('.roster-student-initial-chips');
 
   let nameMode = null;
   let renameTarget = null;
@@ -71,6 +75,9 @@ export function initRosterEditor({ store, showToast, viewport, closeOthers, conf
   let closing = false;
   let editorReturnFocus = null;
   let preserveDrawer = false;
+  /** '#' 表示不归属任何字母；手动点选后不再跟随姓名输入自动推导。 */
+  let initialTouched = false;
+  let selectedInitial = '#';
 
   const nameGhostGuard = createGhostClickGuard({
     owner: 'roster-editor',
@@ -86,6 +93,29 @@ export function initRosterEditor({ store, showToast, viewport, closeOthers, conf
 
   function isPresented() {
     return state.rosterEditorOpen || layer.classList.contains('show');
+  }
+
+  function buildInitialChips() {
+    for (const letter of [...listAlphabetLetters(), '#']) {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'roster-student-initial-chip';
+      chip.dataset.initial = letter;
+      chip.setAttribute('aria-pressed', 'false');
+      chip.textContent = letter;
+      chip.addEventListener('click', () => {
+        initialTouched = true;
+        selectedInitial = letter;
+        renderInitialChips();
+      });
+      initialChips.append(chip);
+    }
+  }
+
+  function renderInitialChips() {
+    for (const chip of initialChips.children) {
+      chip.setAttribute('aria-pressed', String(chip.dataset.initial === selectedInitial));
+    }
   }
 
   function syncChrome(open) {
@@ -145,6 +175,12 @@ export function initRosterEditor({ store, showToast, viewport, closeOthers, conf
       nameSave.textContent = '添加';
       nameInput.value = '';
     }
+    // 手动点选前，首字母跟随姓名输入自动推导。
+    initialTouched = false;
+    selectedInitial = mode === 'rename'
+      ? student.initial || getNameInitial(student.name)
+      : getNameInitial(nameInput.value);
+    renderInitialChips();
     viewport?.lockStudentGrid?.();
     nameSheet.openInstant();
     requestAnimationFrame(() => {
@@ -159,7 +195,7 @@ export function initRosterEditor({ store, showToast, viewport, closeOthers, conf
     const value = nameInput.value;
     if (nameMode === 'rename') {
       if (!renameTarget) return;
-      if (!store.renameStudent(renameTarget.id, value)) {
+      if (!store.renameStudent(renameTarget.id, value, selectedInitial)) {
         showToast?.('请输入有效姓名');
         return;
       }
@@ -170,7 +206,7 @@ export function initRosterEditor({ store, showToast, viewport, closeOthers, conf
       showToast?.('座位已满，无法继续新增');
       return;
     }
-    if (!store.addStudent(value)) {
+    if (!store.addStudent(value, selectedInitial)) {
       showToast?.('请输入有效姓名');
       return;
     }
@@ -234,6 +270,11 @@ export function initRosterEditor({ store, showToast, viewport, closeOthers, conf
     capturePointer: true,
     owner: 'roster-editor'
   });
+  nameInput.addEventListener('input', () => {
+    if (initialTouched) return;
+    selectedInitial = getNameInitial(nameInput.value);
+    renderInitialChips();
+  });
   nameInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -249,6 +290,7 @@ export function initRosterEditor({ store, showToast, viewport, closeOthers, conf
     }
     openNameEditor({ mode: 'add', trigger: addButton });
   });
+  buildInitialChips();
 
   nameSheet = createSheetController({
     id: 'roster-student-name',

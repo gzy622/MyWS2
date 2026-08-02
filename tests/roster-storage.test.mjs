@@ -6,7 +6,8 @@ import {
   ROSTER_SCHEMA_VERSION,
   ROSTER_SCHEMA_VERSION_V2,
   ROSTER_SCHEMA_VERSION_V3,
-  ROSTER_SCHEMA_VERSION_V4
+  ROSTER_SCHEMA_VERSION_V4,
+  ROSTER_SCHEMA_VERSION_V5
 } from '../src/scripts/roster-model.js';
 import {
   loadRosterState,
@@ -131,7 +132,16 @@ function createLegacyV4State() {
   };
 }
 
-test('合法 Schema 5 可完整保存并恢复', () => {
+function createLegacyV5State() {
+  const state = createDefaultRosterState();
+  return {
+    ...state,
+    schemaVersion: ROSTER_SCHEMA_VERSION_V5,
+    students: state.students.map(({ id, name }) => ({ id, name }))
+  };
+}
+
+test('合法 Schema 6 可完整保存并恢复', () => {
   const state = createDefaultRosterState();
   state.submissions.push({ assignmentId: 1, studentId: 1 });
   state.scores.push({ assignmentId: 1, studentId: 1, value: 95.5 });
@@ -145,7 +155,7 @@ test('合法 Schema 5 可完整保存并恢复', () => {
   assert.notEqual(loadRosterState(storage), state);
 });
 
-test('Schema 1 迁移为 Schema 5 并注入默认人员、课程与考试', () => {
+test('Schema 1 迁移为 Schema 6 并注入默认人员、课程与考试', () => {
   const legacy = createLegacyV1State();
   const migrated = parseStoredRoster(legacy);
   assert.equal(migrated.schemaVersion, ROSTER_SCHEMA_VERSION);
@@ -161,6 +171,8 @@ test('Schema 1 迁移为 Schema 5 并注入默认人员、课程与考试', () =
   assert.equal(migrated.exams[0].title, '考试 1');
   assert.equal(migrated.scheduleSlots.length, 0);
   assert.equal(migrated.courseGrades.length, 0);
+  assert.equal(migrated.students[0].initial, 'Z');
+  assert.ok(migrated.students.every((student) => /^[A-Z#]$/.test(student.initial)));
 
   const storage = memoryStorage(JSON.stringify(legacy));
   const loaded = loadRosterState(storage);
@@ -169,7 +181,7 @@ test('Schema 1 迁移为 Schema 5 并注入默认人员、课程与考试', () =
   assert.equal(loaded.periods[0].title, '早');
 });
 
-test('Schema 2 迁移为 Schema 5 并保留人员指派、注入空课表与考试', () => {
+test('Schema 2 迁移为 Schema 6 并保留人员指派、注入空课表与考试', () => {
   const legacy = createLegacyV2State();
   const migrated = parseStoredRoster(legacy);
   assert.equal(migrated.schemaVersion, ROSTER_SCHEMA_VERSION);
@@ -181,7 +193,7 @@ test('Schema 2 迁移为 Schema 5 并保留人员指派、注入空课表与考�
   assert.equal(migrated.courseGrades.length, 0);
 });
 
-test('Schema 3 迁移为 Schema 5 并将 studentId 转为 studentIds、成绩补 examId', () => {
+test('Schema 3 迁移为 Schema 6 并将 studentId 转为 studentIds、成绩补 examId', () => {
   const legacy = createLegacyV3State();
   const migrated = parseStoredRoster(legacy);
   assert.equal(migrated.schemaVersion, ROSTER_SCHEMA_VERSION);
@@ -195,7 +207,7 @@ test('Schema 3 迁移为 Schema 5 并将 studentId 转为 studentIds、成绩补
   assert.ok(!('studentId' in migrated.duties[0]));
 });
 
-test('Schema 4 迁移为 Schema 5 并为成绩补 examId', () => {
+test('Schema 4 迁移为 Schema 6 并为成绩补 examId', () => {
   const legacy = createLegacyV4State();
   const migrated = parseStoredRoster(legacy);
   assert.equal(migrated.schemaVersion, ROSTER_SCHEMA_VERSION);
@@ -209,6 +221,33 @@ test('Schema 4 迁移为 Schema 5 并为成绩补 examId', () => {
   });
   assert.equal(migrated.exams[0].title, '考试 1');
   assert.equal(migrated.nextExamId, 1);
+});
+
+test('Schema 5 迁移为 Schema 6 并为学生推导首字母', () => {
+  const legacy = createLegacyV5State();
+  legacy.students.push({ id: 47, name: '顾青柠' });
+  legacy.students.push({ id: 48, name: '欧青柠' });
+  legacy.seats.push({ studentId: 47, seatIndex: 90 }, { studentId: 48, seatIndex: 91 });
+  const migrated = parseStoredRoster(legacy);
+  assert.equal(migrated.schemaVersion, ROSTER_SCHEMA_VERSION);
+  assert.equal(migrated.students.length, 48);
+  assert.equal(migrated.students[0].initial, 'Z');
+  assert.equal(migrated.students[46].initial, 'G');
+  assert.equal(migrated.students[47].initial, '#');
+  assert.ok(migrated.students.every((student) => /^[A-Z#]$/.test(student.initial)));
+  assert.equal(migrated.seats.length, 48);
+});
+
+test('Schema 6 非法首字母整体回退默认值', () => {
+  const lowercase = createDefaultRosterState();
+  lowercase.students[0].initial = 'g';
+  assert.equal(parseStoredRoster(lowercase), null);
+  const multiChar = createDefaultRosterState();
+  multiChar.students[0].initial = 'AB';
+  assert.equal(parseStoredRoster(multiChar), null);
+  const numeric = createDefaultRosterState();
+  numeric.students[0].initial = '1';
+  assert.equal(parseStoredRoster(numeric), null);
 });
 
 test('损坏 JSON、未知版本和引用失效整体回退默认值', () => {

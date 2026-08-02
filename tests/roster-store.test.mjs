@@ -10,7 +10,9 @@ test('默认名单、座位、作业、人员与课程项满足领域不变量',
   assert.equal(new Set(state.seats.map(({ seatIndex }) => seatIndex)).size, 46);
   assert.ok(state.seats.every(({ seatIndex }) => seatIndex >= 0 && seatIndex < SEAT_COUNT));
   assert.deepEqual(state.assignments, [{ id: 1, name: '作业 1' }]);
-  assert.equal(state.schemaVersion, 5);
+  assert.equal(state.schemaVersion, 6);
+  assert.equal(state.students[0].initial, 'Z');
+  assert.ok(state.students.every((student) => /^[A-Z#]$/.test(student.initial)));
   assert.equal(state.roles.length, 4);
   assert.equal(state.duties.length, 3);
   assert.ok(state.roles.every((role) => Array.isArray(role.studentIds) && role.studentIds.length === 0));
@@ -363,7 +365,7 @@ test('replaceSnapshot: 导入对象不能反向修改 Store', () => {
 test('新增学生分配最小空闲座位，改名与边界校验生效', () => {
   const store = createRosterStore();
   const added = store.addStudent('  新同学  ');
-  assert.deepEqual(added, { id: 47, name: '新同学' });
+  assert.deepEqual(added, { id: 47, name: '新同学', initial: '#' });
   const snapshot = store.getSnapshot();
   assert.equal(snapshot.students.length, 47);
   assert.equal(snapshot.seats.length, 47);
@@ -378,6 +380,21 @@ test('新增学生分配最小空闲座位，改名与边界校验生效', () =>
   assert.equal(store.renameStudent(47, 'x'.repeat(41)), false);
   assert.equal(store.addStudent(''), null);
   assert.equal(store.addStudent('y'.repeat(41)), null);
+});
+
+test('首字母支持显式指定，非法值按姓名推导', () => {
+  const store = createRosterStore();
+  const added = store.addStudent('顾青柠', 'Q');
+  assert.deepEqual(added, { id: 47, name: '顾青柠', initial: 'Q' });
+  const derived = store.addStudent('王小明');
+  assert.deepEqual(derived, { id: 48, name: '王小明', initial: 'W' });
+
+  assert.equal(store.renameStudent(47, '顾青柠', 'g'), true);
+  assert.equal(store.getSnapshot().students.find((item) => item.id === 47).initial, 'G');
+  assert.equal(store.renameStudent(47, '顾青柠', 'A'), true);
+  assert.equal(store.getSnapshot().students.find((item) => item.id === 47).initial, 'A');
+  assert.equal(store.renameStudent(47, '顾青柠', 'A'), true);
+  assert.ok(isValidRosterState(store.getSnapshot()));
 });
 
 test('满员不可新增学生', () => {

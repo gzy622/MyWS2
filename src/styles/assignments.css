@@ -478,3 +478,49 @@
 .font-size-popover.is-ime-host {
   bottom: var(--ime-inset-bottom, 0px);
 }
+
+/* Student name-sheet initial picker: auto-derived from the name input until touched. */
+.roster-student-initial-field {
+  margin: 16px 0 12px;
+}
+
+.roster-student-initial-field > span {
+  display: block;
+  margin: 0 2px 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.roster-student-initial-chips {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.roster-student-initial-chip {
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--control);
+  color: var(--ink-soft);
+  font-size: 14px;
+  font-weight: 600;
+  touch-action: manipulation;
+}
+
+.roster-student-initial-chip:active {
+  background: color-mix(in srgb, var(--teal) 10%, var(--control));
+}
+
+.roster-student-initial-chip[aria-pressed="true"] {
+  color: var(--teal);
+  background: color-mix(in srgb, var(--teal) 10%, var(--card));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--teal) 18%, var(--line));
+}
+
+.roster-student-initial-chip:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: -2px;
+}
