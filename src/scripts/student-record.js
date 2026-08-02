@@ -1,9 +1,10 @@
 import { elements } from './dom.js';
-import { setActiveOverlay } from './state.js';
+import { setActiveOverlay, setTensScoreMode, state } from './state.js';
 import { haptic, Haptic } from './haptics.js';
 import { createSheetController } from './sheet-drag.js';
 import { blurIfSheetChrome, focusSilently, syncChromeInert } from './focus.js';
 import { logLogicDebug } from './sheet-debug.js';
+import { isTensScoreKey, renderScoreKeypad, syncTensToggle } from './score-keypad.js';
 
 export function initStudentRecord({ store, showToast, viewport, closeOthers }) {
   let studentId = null;
@@ -34,6 +35,11 @@ export function initStudentRecord({ store, showToast, viewport, closeOthers }) {
     }
   }
 
+  function syncScoreKeypad() {
+    renderScoreKeypad(elements.studentScoreControls, { tensMode: state.tensScoreMode });
+    syncTensToggle(elements.studentScoreTensToggle, state.tensScoreMode);
+  }
+
   function updateScoreDraft(key) {
     const current = elements.studentScoreInput.value;
     if (key === 'backspace') {
@@ -46,6 +52,40 @@ export function initStudentRecord({ store, showToast, viewport, closeOthers }) {
       if ((!fraction || fraction.length <= 1) && Number(next) <= 100) elements.studentScoreInput.value = next;
     }
     elements.studentScoreError.textContent = '';
+  }
+
+  function saveScoreDraft(draft) {
+    if (draft === '') {
+      const cleared = store.clearStudentRecord(studentId);
+      logLogicDebug('student score cleared', {
+        assignmentId: store.getCurrentAssignment().id,
+        studentId,
+        cleared
+      });
+      haptic(Haptic.medium);
+      showToast(cleared ? '已清空分数' : '没有可清空的记录');
+      close();
+      return;
+    }
+    const result = store.setScore(studentId, draft);
+    if (result === 'invalid') {
+      logLogicDebug('student score rejected', {
+        assignmentId: store.getCurrentAssignment().id,
+        studentId,
+        draftLength: draft.length
+      });
+      elements.studentScoreError.textContent = '请输入 0–100 的分数，最多一位小数';
+      elements.studentScoreInput.focus();
+      return;
+    }
+    logLogicDebug('student score saved', {
+      assignmentId: store.getCurrentAssignment().id,
+      studentId,
+      result
+    });
+    haptic(Haptic.medium);
+    showToast('分数已保存');
+    close();
   }
 
   sheet = createSheetController({
@@ -97,49 +137,28 @@ export function initStudentRecord({ store, showToast, viewport, closeOthers }) {
       : (completed ? '已提交 · 尚未计分' : '未提交');
     elements.studentScoreInput.value = score === undefined ? '' : String(score);
     elements.studentScoreError.textContent = '';
+    syncScoreKeypad();
     sheet.openInstant();
     elements.studentScoreInput.focus({ preventScroll: true });
   }
 
+  elements.studentScoreTensToggle.addEventListener('click', () => {
+    setTensScoreMode(!state.tensScoreMode);
+    syncScoreKeypad();
+  });
   elements.studentScoreControls.addEventListener('click', (event) => {
     const key = event.target.closest('[data-score-key]')?.dataset.scoreKey;
-    if (key) updateScoreDraft(key);
+    if (!key) return;
+    if (state.tensScoreMode && isTensScoreKey(key)) {
+      saveScoreDraft(key);
+      return;
+    }
+    updateScoreDraft(key);
   });
   elements.closeStudentRecordButton.addEventListener('click', close);
   elements.cancelStudentRecordButton.addEventListener('click', close);
   elements.saveStudentRecordButton.addEventListener('click', () => {
-    const draft = elements.studentScoreInput.value.trim();
-    if (draft === '') {
-      const cleared = store.clearStudentRecord(studentId);
-      logLogicDebug('student score cleared', {
-        assignmentId: store.getCurrentAssignment().id,
-        studentId,
-        cleared
-      });
-      haptic(Haptic.medium);
-      showToast(cleared ? '已清空分数' : '没有可清空的记录');
-      close();
-      return;
-    }
-    const result = store.setScore(studentId, draft);
-    if (result === 'invalid') {
-      logLogicDebug('student score rejected', {
-        assignmentId: store.getCurrentAssignment().id,
-        studentId,
-        draftLength: draft.length
-      });
-      elements.studentScoreError.textContent = '请输入 0–100 的分数，最多一位小数';
-      elements.studentScoreInput.focus();
-      return;
-    }
-    logLogicDebug('student score saved', {
-      assignmentId: store.getCurrentAssignment().id,
-      studentId,
-      result
-    });
-    haptic(Haptic.medium);
-    showToast('分数已保存');
-    close();
+    saveScoreDraft(elements.studentScoreInput.value.trim());
   });
 
   return { open, close, sheet };

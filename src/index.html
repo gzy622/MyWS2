@@ -156,7 +156,10 @@
           </div>
           <p class="student-record-status" id="studentRecordStatus"></p>
           <div class="student-score-display">
-            <label for="studentScoreInput">本次得分</label>
+            <div class="student-score-display-head">
+              <label for="studentScoreInput">本次得分</label>
+              <button type="button" class="student-score-tens-toggle" id="studentScoreTensToggle" aria-pressed="false" aria-label="整十模式">整十</button>
+            </div>
             <div><input id="studentScoreInput" inputmode="none" autocomplete="off" readonly aria-describedby="studentScoreError" /><span>/ 100</span></div>
           </div>
           <div class="student-score-keypad" id="studentScoreControls" role="group" aria-label="数字键盘">

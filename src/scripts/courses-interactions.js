@@ -1,5 +1,5 @@
 import { elements } from './dom.js';
-import { setActiveOverlay, setGradeSort, state } from './state.js';
+import { setActiveOverlay, setGradeSort, setTensScoreMode, state } from './state.js';
 import { createSheetController } from './sheet-drag.js';
 import { blurIfSheetChrome, focusSilently } from './focus.js';
 import { haptic, Haptic } from './haptics.js';
@@ -8,6 +8,7 @@ import { describeDebugTarget, logCourseDebug } from './sheet-debug.js';
 import { resolveGradeExamId } from './courses-renderer.js';
 import { bindImmediateAction, createGhostClickGuard } from './pointer-guards.js';
 import { GHOST_GUARD_MS } from './gesture-policy.js';
+import { isTensScoreKey, renderScoreKeypad, syncTensToggle } from './score-keypad.js';
 
 const MOVE_CANCEL_DISTANCE = 9;
 const LONG_PRESS_MS = 480;
@@ -101,7 +102,10 @@ function createGradeSheet() {
     '</div>',
     '<p class="student-record-status" data-field="status"></p>',
     '<div class="student-score-display">',
+    '<div class="student-score-display-head">',
     '<label for="courseGradeInput">本次得分</label>',
+    '<button type="button" class="student-score-tens-toggle" data-field="tens-toggle" aria-pressed="false" aria-label="整十模式">整十</button>',
+    '</div>',
     '<div><input id="courseGradeInput" data-field="input" inputmode="none" autocomplete="off" readonly aria-describedby="courseGradeError" /><span>/ 100</span></div>',
     '</div>',
     '<div class="student-score-keypad" data-field="keypad" role="group" aria-label="数字键盘">',
@@ -175,6 +179,7 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
   const gradeInput = gradeLayer.querySelector('[data-field="input"]');
   const gradeError = gradeLayer.querySelector('[data-field="error"]');
   const gradeKeypad = gradeLayer.querySelector('[data-field="keypad"]');
+  const gradeTensToggle = gradeLayer.querySelector('[data-field="tens-toggle"]');
 
   const statsPanel = statsLayer.querySelector('.course-stats-panel');
   const statsTitle = statsLayer.querySelector('#courseStatsTitle');
@@ -389,6 +394,11 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
   }
 
 
+  function syncGradeKeypad() {
+    renderScoreKeypad(gradeKeypad, { tensMode: state.tensScoreMode });
+    syncTensToggle(gradeTensToggle, state.tensScoreMode);
+  }
+
   function openGrade(studentId, subjectId, trigger) {
     const snapshot = store.getSnapshot();
     const examId = currentExamId(snapshot);
@@ -405,6 +415,7 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     gradeStatus.textContent = score !== undefined ? `已计分 · ${score} 分` : '未计分';
     gradeInput.value = score === undefined ? '' : String(score);
     gradeError.textContent = '';
+    syncGradeKeypad();
     gradeSheet.openInstant();
     gradeInput.focus({ preventScroll: true });
   }
@@ -549,13 +560,13 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     gradeError.textContent = '';
   }
 
-  function saveGrade() {
+  function saveGrade(value = gradeInput.value) {
     if (!gradeTarget) return;
     const result = store.setCourseGrade(
       gradeTarget.examId,
       gradeTarget.studentId,
       gradeTarget.subjectId,
-      gradeInput.value
+      value
     );
     if (result !== 'saved') {
       gradeError.textContent = '请输入 0～100，最多一位小数';
@@ -895,9 +906,18 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     showToast(ok ? '已清除成绩' : '当前没有成绩');
     closeGrade();
   }, 'grade clear');
+  gradeTensToggle.addEventListener('click', () => {
+    setTensScoreMode(!state.tensScoreMode);
+    syncGradeKeypad();
+  });
   gradeKeypad.addEventListener('click', (event) => {
     const key = event.target.closest('[data-score-key]')?.dataset.scoreKey;
-    if (key) updateGradeDraft(key);
+    if (!key) return;
+    if (state.tensScoreMode && isTensScoreKey(key)) {
+      saveGrade(key);
+      return;
+    }
+    updateGradeDraft(key);
   });
 
   bindCourseAction(statsLayer.querySelector('[data-action="close"]'), () => closeStats(), 'stats close');

@@ -50,6 +50,7 @@ export const elements = {
   closeStudentRecordButton: required('#closeStudentRecord'),
   studentRecordStatus: required('#studentRecordStatus'),
   studentScoreControls: required('#studentScoreControls'),
+  studentScoreTensToggle: required('#studentScoreTensToggle'),
   studentScoreInput: required('#studentScoreInput'),
   studentScoreError: required('#studentScoreError'),
   cancelStudentRecordButton: required('#cancelStudentRecord'),

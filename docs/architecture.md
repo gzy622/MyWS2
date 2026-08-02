@@ -105,11 +105,11 @@ Capacitor 依赖只用于原生壳。浏览器代码通过 `globalThis.Capacitor
 
 | 领域 | 模块 |
 | --- | --- |
-| 登记 | `roster-store.js`、`roster-storage.js`、`roster-renderer.js`、`student-interactions.js`、`student-record.js`、`assignments.js`、`student-font-size.js` |
+| 登记 | `roster-store.js`、`roster-storage.js`、`roster-renderer.js`、`student-interactions.js`、`student-record.js`、`score-keypad.js`、`assignments.js`、`student-font-size.js` |
 | 座位 | `seat-geometry.js`、`seat-canvas.js`、`seat-landscape.js` |
 | 姓名索引 | `name-initial.js`、`letter-index.js` |
 | 人员 | `people-renderer.js`、`people-interactions.js` |
-| 课程 | `courses-renderer.js`、`courses-interactions.js`、`exams.js`、`highlight-subjects-model.js`、`highlight-subjects.js` |
+| 课程 | `courses-renderer.js`、`courses-interactions.js`、`score-keypad.js`、`exams.js`、`highlight-subjects-model.js`、`highlight-subjects.js` |
 | 备份 | `backup.js` |
 
 ## 6. 数据流

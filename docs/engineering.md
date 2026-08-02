@@ -67,6 +67,7 @@
 | 网格和座位共享渲染 | `src/scripts/roster-renderer.js` |
 | 学生名单全屏编辑 | `src/scripts/roster-editor.js` |
 | 学生点击、长按和记录面板 | `src/scripts/student-interactions.js`、`src/scripts/student-record.js` |
+| 打分键盘（标准/整十） | `src/scripts/score-keypad.js` |
 | 作业管理 | `src/scripts/assignments.js` |
 | 考试列表与考试名称 | `src/scripts/exams.js` |
 | 座位几何、画布手势与主动横屏 | `src/scripts/seat-geometry.js`、`src/scripts/seat-canvas.js`、`src/scripts/seat-landscape.js` |
@@ -131,7 +132,7 @@
 - 人员与课程：`#roleList`、`#dutyList`、`#weekStrip`、`#gradeTable`；
 - 设置、更多与反馈：`#fontSizePopover`、`#menuDrawer`、`#menuDrawerBuild`、`#closeMenuDrawer`、`#moreMenu`、`#moreMenuPanel`、`#moreMenuHandle`、`#closeMoreMenu`、`#moreMenuBuild`、`#toast`；
 - 备份文件选择：`#backupFileInput`；
-- 学生记录：`#studentRecordSheet`、`#studentRecordPanel`、`#studentRecordHandle`、`#studentRecordTitle`、`#closeStudentRecord`、`#studentRecordStatus`、`#studentScoreControls`、`#studentScoreInput`、`#studentScoreError`、`#cancelStudentRecord`、`#saveStudentRecord`；
+- 学生记录：`#studentRecordSheet`、`#studentRecordPanel`、`#studentRecordHandle`、`#studentRecordTitle`、`#closeStudentRecord`、`#studentRecordStatus`、`#studentScoreTensToggle`、`#studentScoreControls`、`#studentScoreInput`、`#studentScoreError`、`#cancelStudentRecord`、`#saveStudentRecord`；
 - 上下文动作与确认：`#moreMenu [data-more-action]`、`#confirmSheet`、`#confirmTitle`、`#confirmMessage`、`#cancelConfirm`、`#acceptConfirm`。
 
 模块私有标题、字段和面板 selector 也属于各模块内部契约；修改对应 HTML 时必须搜索 `querySelector`、`getElementById` 和事件委托选择器。

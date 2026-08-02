@@ -13,6 +13,8 @@ export const state = {
   seatEditing: false,
   /** Session-only; swipe/back does not clear. Active gestures require !seatEditing. */
   quickScoreMode: false,
+  /** Session-only; shared by register and course grade score sheets. */
+  tensScoreMode: false,
   seatLandscape: false,
   rosterEditorOpen: false,
   /** @type {null | 'assignments' | 'exams' | 'student-record' | 'people-pick' | 'people-edit' | 'course-slot' | 'course-period' | 'course-subject' | 'course-grade' | 'course-stats' | 'course-highlight' | 'more' | 'confirm' | 'roster-editor'} */
@@ -60,6 +62,10 @@ export function setSeatEditing(value) {
 
 export function setQuickScoreMode(value) {
   state.quickScoreMode = Boolean(value);
+}
+
+export function setTensScoreMode(value) {
+  state.tensScoreMode = Boolean(value);
 }
 
 /** True when card gestures should use quick-score semantics (tap opens sheet). */
