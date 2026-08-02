@@ -9,14 +9,9 @@ import {
   isScoreValue,
   parseScore
 } from './roster-model.js';
-import {
-  openTextFile,
-  shareOrDownloadText,
-  MAX_TEXT_FILE_SIZE
-} from './text-file-transfer.js';
 
 export const CSV_FORMAT_VERSION = 1;
-export { MAX_TEXT_FILE_SIZE as MAX_CSV_FILE_SIZE };
+export const MAX_CSV_FILE_SIZE = 1 * 1024 * 1024;
 
 export const CSV_COLUMNS = Object.freeze([
   '记录类型',
@@ -798,92 +793,4 @@ export function parseRosterCsv(text) {
   }
 
   return { ok: true, data: cloneRosterState(state) };
-}
-
-/**
- * Initialise CSV import/export.
- *
- * @param {object} options
- * @param {import('./roster-store.js').RosterStore} options.store
- * @param {(msg: string) => void} options.showToast
- * @param {(opts: { title: string, message: string, action: () => void }) => void} options.confirm
- * @param {HTMLInputElement} options.fileInput
- * @param {() => void} [options.onAfterImport]
- */
-export function initCsvTransfer({ store, showToast, confirm, fileInput, onAfterImport } = {}) {
-  let importing = false;
-  let exporting = false;
-
-  async function exportCsv() {
-    if (exporting) return;
-    exporting = true;
-
-    try {
-      const snapshot = store.getSnapshot();
-      const csv = serializeRosterCsv(snapshot);
-      const filename = generateCsvFilename();
-      const result = await shareOrDownloadText(csv, filename, {
-        mimeType: 'text/csv;charset=utf-8',
-        shareTitle: '教师工作台 CSV',
-        dialogTitle: '导出 CSV'
-      });
-      if (result === 'aborted') return;
-      if (result === 'downloaded') {
-        showToast('CSV 已保存');
-      } else {
-        showToast('CSV 已导出');
-      }
-    } catch {
-      showToast('导出 CSV 失败');
-    } finally {
-      exporting = false;
-    }
-  }
-
-  async function importCsv() {
-    if (importing) return;
-    importing = true;
-
-    try {
-      const result = await openTextFile(fileInput, {
-        accept: '.csv,text/csv',
-        maxSize: MAX_TEXT_FILE_SIZE,
-        tooLargeError: 'CSV 文件过大',
-        readError: '无法读取 CSV 文件'
-      });
-
-      if (result.aborted) return;
-
-      if (result.error) {
-        showToast(result.error);
-        return;
-      }
-
-      const parsed = parseRosterCsv(result.text);
-      if (!parsed.ok) {
-        showToast(parsed.error);
-        return;
-      }
-
-      confirm({
-        title: '导入 CSV',
-        message: '导入 CSV 后将替换当前所有业务数据，此操作不可撤销。',
-        action: () => {
-          const replaceResult = store.replaceSnapshot(parsed.data);
-          if (replaceResult === 'replaced') {
-            showToast('CSV 已导入');
-            onAfterImport?.();
-          } else if (replaceResult === 'persist-failed') {
-            showToast('CSV 导入失败，无法保存');
-          } else {
-            showToast('CSV 数据格式不正确');
-          }
-        }
-      });
-    } finally {
-      importing = false;
-    }
-  }
-
-  return { exportCsv, importCsv };
 }

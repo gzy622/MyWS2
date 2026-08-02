@@ -42,8 +42,8 @@ export function initDrawer({
   showToast,
   onBackupImport,
   onBackupExport,
-  onCsvImport,
-  onCsvExport,
+  onWorkbookImport,
+  onWorkbookExport,
   onEditRoster
 } = {}) {
   closeBusinessOverlays = closeOverlays ?? (() => {});
@@ -73,7 +73,7 @@ export function initDrawer({
     }
     if (action === 'backup-import') { onBackupImport?.(); return; }
     if (action === 'backup-export') { onBackupExport?.(); return; }
-    if (action === 'csv-import') { onCsvImport?.(); return; }
-    if (action === 'csv-export') { onCsvExport?.(); return; }
+    if (action === 'workbook-import') { onWorkbookImport?.(); return; }
+    if (action === 'workbook-export') { onWorkbookExport?.(); return; }
   }));
 }

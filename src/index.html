@@ -237,11 +237,11 @@
               <button class="menu-item" type="button" data-action="edit-roster"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg></span><span class="menu-copy"><b>学生名单</b><small>新增、改名或删除学生</small></span></button>
             </div>
           </section>
-          <section class="menu-drawer-section" aria-labelledby="drawerCsvTitle">
-            <h2 id="drawerCsvTitle">CSV 数据</h2>
+          <section class="menu-drawer-section" aria-labelledby="drawerWorkbookTitle">
+            <h2 id="drawerWorkbookTitle">表格数据</h2>
             <div class="menu-drawer-action-list menu-backup-grid">
-              <button class="menu-item menu-item--backup" type="button" data-action="csv-import"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></svg></span><span class="menu-copy"><b>导入 CSV</b><small>替换业务数据</small></span></button>
-              <button class="menu-item menu-item--backup" type="button" data-action="csv-export"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 11l4 4 4-4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></svg></span><span class="menu-copy"><b>导出 CSV</b><small>查看与修改</small></span></button>
+              <button class="menu-item menu-item--backup" type="button" data-action="workbook-import"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></svg></span><span class="menu-copy"><b>导入表格</b><small>支持 XLSX 与 CSV</small></span></button>
+              <button class="menu-item menu-item--backup" type="button" data-action="workbook-export"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 11l4 4 4-4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></svg></span><span class="menu-copy"><b>导出表格</b><small>多工作表 XLSX</small></span></button>
             </div>
           </section>
           <section class="menu-drawer-section" aria-labelledby="drawerBackupTitle">
@@ -256,7 +256,7 @@
       </aside>
       <div class="drawer-scrim fullscreen-scrim" aria-hidden="true"></div>
       <div class="toast" id="toast" role="status"></div>
-      <input type="file" id="backupFileInput" accept=".json,application/json" style="display:none" tabindex="-1" aria-hidden="true" />
+      <input type="file" id="backupFileInput" accept=".json,.xlsx,.csv,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" style="display:none" tabindex="-1" aria-hidden="true" />
     </main>
     <script type="module" src="./scripts/main.js"></script>
   </body>

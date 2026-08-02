@@ -20,7 +20,7 @@ import { initAssignments } from './assignments.js';
 import { initRosterEditor } from './roster-editor.js';
 import { initMoreSheet } from './more-sheet.js';
 import { initBackup } from './backup.js';
-import { initCsvTransfer } from './csv-transfer.js';
+import { initWorkbookTransfer } from './workbook-transfer.js';
 import { loadRosterState, saveRosterState } from './roster-storage.js';
 import { initTheme } from './theme.js';
 import { initViewport } from './viewport.js';
@@ -120,7 +120,7 @@ const backup = initBackup({
   fileInput: transferFileInput,
   onAfterImport: afterDataReplace
 });
-const csvTransfer = initCsvTransfer({
+const workbookTransfer = initWorkbookTransfer({
   store: rosterStore,
   showToast,
   confirm: (...args) => moreSheet.confirm(...args),
@@ -161,8 +161,8 @@ initDrawer({
   showToast,
   onBackupImport: () => backup.importBackup(),
   onBackupExport: () => backup.exportBackup(),
-  onCsvImport: () => csvTransfer.importCsv(),
-  onCsvExport: () => csvTransfer.exportCsv(),
+  onWorkbookImport: () => workbookTransfer.importWorkbook(),
+  onWorkbookExport: () => workbookTransfer.exportWorkbook(),
   onEditRoster: (options) => rosterEditor.open({ ...options, preserveDrawer: true }),
 });
 initHorizontalGestures({ closeRosterEditor: () => rosterEditor.close() });
