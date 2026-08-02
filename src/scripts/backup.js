@@ -1,12 +1,17 @@
 import {
   cloneRosterState,
-  isValidRosterState,
   migrateRosterStateToCurrent
 } from './roster-model.js';
+import {
+  openTextFile,
+  downloadTextFile,
+  shareOrDownloadText,
+  MAX_TEXT_FILE_SIZE
+} from './text-file-transfer.js';
 
 export const BACKUP_FORMAT = 'teacher-workbench-backup';
 export const BACKUP_FORMAT_VERSION = 1;
-export const MAX_BACKUP_FILE_SIZE = 1 * 1024 * 1024; // 1MB
+export const MAX_BACKUP_FILE_SIZE = MAX_TEXT_FILE_SIZE;
 
 /**
  * Wrap a business state snapshot in a backup envelope.
@@ -86,68 +91,15 @@ export function parseBackup(text) {
   return { ok: true, data: migrated };
 }
 
-// ---------------------------------------------------------------------------
-// Browser I/O helpers (DOM-dependent)
-// ---------------------------------------------------------------------------
-
 /**
  * Open a system file picker restricted to JSON and read the selected file.
- *
- * Returns a Promise of { aborted: true } | { aborted: false, text: string }
- *                                     | { aborted: false, error: string }
- *
- * Cancellation detection listens for window focus after the click() call.
  */
 export function openBackupFile(fileInput) {
-  return new Promise((resolve) => {
-    fileInput.value = '';
-    fileInput.accept = '.json,application/json';
-
-    let settled = false;
-
-    function clean() {
-      settled = true;
-      fileInput.removeEventListener('change', onChange);
-      window.removeEventListener('focus', onFocus);
-    }
-
-    function onChange() {
-      if (settled) return;
-      clean();
-
-      const file = fileInput.files?.[0];
-      if (!file) {
-        resolve({ aborted: true });
-        return;
-      }
-
-      if (file.size > MAX_BACKUP_FILE_SIZE) {
-        resolve({ aborted: false, error: '备份文件过大' });
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.addEventListener('load', () => {
-        resolve({ aborted: false, text: reader.result });
-      });
-      reader.addEventListener('error', () => {
-        resolve({ aborted: false, error: '无法读取备份文件' });
-      });
-      reader.readAsText(file);
-    }
-
-    function onFocus() {
-      requestAnimationFrame(() => {
-        if (!settled) {
-          clean();
-          resolve({ aborted: true });
-        }
-      });
-    }
-
-    fileInput.addEventListener('change', onChange);
-    window.addEventListener('focus', onFocus);
-    fileInput.click();
+  return openTextFile(fileInput, {
+    accept: '.json,application/json',
+    maxSize: MAX_BACKUP_FILE_SIZE,
+    tooLargeError: '备份文件过大',
+    readError: '无法读取备份文件'
   });
 }
 
@@ -155,89 +107,20 @@ export function openBackupFile(fileInput) {
  * Create a Blob and trigger an anchor-based download.
  */
 export function downloadBackup(text, filename) {
-  const blob = new Blob([text], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  downloadTextFile(text, filename, 'application/json');
 }
 
 /**
- * Export a JSON backup, trying each strategy in order:
- *
- * 1. Capacitor native           (write file → share via native share sheet)
- * 2. Web Share API with file    (best browser UX: native share sheet with .json)
- * 3. Web Share API text-only    (broader browser compatibility)
- * 4. Blob anchor download       (all browsers / fallback)
- *
- * Returns 'shared' if the user saw a share UI, 'downloaded' if the
- * file was written via Blob download.
+ * Export a JSON backup via native share or full Blob download.
+ * Same strategy as CSV export (`shareOrDownloadText`).
  */
 export async function shareOrDownloadBackup(text, filename) {
-  // 1) Capacitor native — write file to cache, share via native share sheet
-  try {
-    const Capacitor = globalThis.Capacitor;
-    if (Capacitor?.isNativePlatform?.()) {
-      const fs = Capacitor.Plugins?.Filesystem;
-      const share = Capacitor.Plugins?.Share;
-      if (fs?.writeFile && share?.share) {
-        const { uri } = await fs.writeFile({
-          path: filename,
-          data: text,
-          directory: 'CACHE',
-          recursive: false
-        });
-        await share.share({
-          title: '教师工作台备份',
-          url: uri,
-          files: [uri],
-          dialogTitle: '导出备份'
-        });
-        return 'shared';
-      }
-    }
-  } catch {
-    // Fall through
-  }
-
-  // 2) Web Share — file
-  try {
-    const blob = new Blob([text], { type: 'application/json' });
-    const file = new File([blob], filename, { type: 'application/json' });
-    if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file] });
-      return 'shared';
-    }
-  } catch (err) {
-    if (err.name === 'AbortError') return 'shared';
-  }
-
-  // 3) Web Share — text only (wider platform support, no file)
-  try {
-    if (typeof navigator.share === 'function') {
-      await navigator.share({
-        title: '教师工作台备份',
-        text: text.substring(0, 5000)
-      });
-      return 'shared';
-    }
-  } catch (err) {
-    if (err.name === 'AbortError') return 'shared';
-  }
-
-  // 4) Fallback: Blob download
-  downloadBackup(text, filename);
-  return 'downloaded';
+  return shareOrDownloadText(text, filename, {
+    mimeType: 'application/json',
+    shareTitle: '教师工作台备份',
+    dialogTitle: '导出备份'
+  });
 }
-
-// ---------------------------------------------------------------------------
-// Initialisation (wires import/export into the app lifecycle)
-// ---------------------------------------------------------------------------
 
 /**
  * Initialise the backup feature.
@@ -263,6 +146,7 @@ export function initBackup({ store, showToast, confirm, fileInput, onAfterImport
       const json = serializeBackup(backup);
       const filename = generateBackupFilename();
       const result = await shareOrDownloadBackup(json, filename);
+      if (result === 'aborted') return;
       if (result === 'downloaded') {
         showToast('备份已保存');
       } else {

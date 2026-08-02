@@ -76,6 +76,8 @@
 | 课程渲染与交互 | `src/scripts/courses-renderer.js`、`src/scripts/courses-interactions.js` |
 | 高亮科目校验、存储与 Sheet | `src/scripts/highlight-subjects-model.js`、`src/scripts/highlight-subjects.js` |
 | 备份导入导出 | `src/scripts/backup.js` |
+| CSV 导入导出 | `src/scripts/csv-transfer.js` |
+| 文本文件读写（JSON/CSV 共用） | `src/scripts/text-file-transfer.js` |
 | 主/子导航 | `src/scripts/navigation.js` |
 | 页面、底栏、分段与 Sheet 手势路由 | `src/scripts/gestures.js`、`src/scripts/sheet-gestures.js` |
 | 手势阈值与点击保护纯判定 | `src/scripts/gesture-policy.js` |
@@ -131,7 +133,7 @@
 - 登记与座位：`#studentGrid`、`#gridLetterIndex`、`#studentFontSize`、`#studentFontSizeValue`、`#seatViewport`、`#seatStage`、`#seatGrid`、`#seatHint`、`#seatFitButton`、`#seatLandscapeButton`、`#seatModeBar`、`#seatEditStatus`、`#exitSeatEdit`、`#seatLetterIndex`；
 - 人员与课程：`#roleList`、`#dutyList`、`#weekStrip`、`#gradeTable`；
 - 设置、更多与反馈：`#fontSizePopover`、`#menuDrawer`、`#menuDrawerBuild`、`#closeMenuDrawer`、`#moreMenu`、`#moreMenuPanel`、`#moreMenuHandle`、`#closeMoreMenu`、`#moreMenuBuild`、`#toast`；
-- 备份文件选择：`#backupFileInput`；
+- 备份/CSV 文件选择：`#backupFileInput`（JSON 与 CSV 共用）；
 - 学生记录：`#studentRecordSheet`、`#studentRecordPanel`、`#studentRecordHandle`、`#studentRecordTitle`、`#closeStudentRecord`、`#studentRecordStatus`、`#studentScoreTensToggle`、`#studentScoreControls`、`#studentScoreInput`、`#studentScoreError`、`#cancelStudentRecord`、`#saveStudentRecord`；
 - 上下文动作与确认：`#moreMenu [data-more-action]`、`#confirmSheet`、`#confirmTitle`、`#confirmMessage`、`#cancelConfirm`、`#acceptConfirm`。
 
@@ -206,6 +208,16 @@
 - 学生姓名写入（新增/改名）trim 后非空且不超过 40 字；加载校验仍只要求非空，避免历史长名备份整体回退。
 - Version 1/2/3/4/5 可显式迁移到 Version 6（各版本缺少的 `initial` 按姓名推导补齐）；未知版本、损坏 JSON、重复值、引用失效或无法完整校验时整体回退默认值。
 - 写入失败不破坏当前内存会话。
+
+### 6.2 CSV 数据交换
+
+- CSV 只包含业务 Store 数据；主题、姓名字号、高亮关键词、当前页面和临时界面状态不进入文件。
+- 文件名形如 `teacher-workbench-data-YYYYMMDD-HHmmss.csv`；内容为 UTF-8 BOM、逗号分隔、CRLF；`CSV_FORMAT_VERSION = 1`。
+- 首行固定列必须全部存在且不可重名；允许调整列顺序并增加自定义列。名称后标有「仅供查看」的列仅供人工阅读，导入时以编号关联。
+- 记录类型：`文件信息`、`学生`、`作业`、`作业记录`、`班干`、`班干成员`、`值日`、`值日成员`、`节次`、`课表`、`科目`、`考试`、`课程成绩`。
+- 学生座位行/列从 1 起；作业记录用「是/否」表示提交，分数留空表示已交未计分；星期为「星期一」至「星期五」；实体行顺序决定名单、作业、班干、值日、节次、科目与考试顺序；下一个可用编号取各类现有编号最大值。
+- 解析支持 BOM、LF/CRLF、引号、逗号、双引号及单元格内换行；忽略空白行；对可能被表格软件识别为公式的文本加入不可见安全字符，重新导入时自动移除。
+- 导入前检查文件版本、必需记录、编号、重复、座位、引用、成绩范围、十个节次及唯一当前作业；发现问题拒绝整份文件，并显示带行号的首个错误（如「第 18 行：学生编号 7 不存在」）。成功前不修改现有数据。
 
 ## 7. 工具与生成文件
 

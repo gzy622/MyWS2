@@ -20,6 +20,7 @@ import { initAssignments } from './assignments.js';
 import { initRosterEditor } from './roster-editor.js';
 import { initMoreSheet } from './more-sheet.js';
 import { initBackup } from './backup.js';
+import { initCsvTransfer } from './csv-transfer.js';
 import { loadRosterState, saveRosterState } from './roster-storage.js';
 import { initTheme } from './theme.js';
 import { initViewport } from './viewport.js';
@@ -108,14 +109,23 @@ exams = initExams({
 initStudentInteractions({ store: rosterStore, showToast, openStudentRecord: studentRecord.open });
 export const seatCanvas = initSeatCanvas({ store: rosterStore, showToast, openStudentRecord: studentRecord.open });
 const seatLandscape = initSeatLandscape({ seatCanvas, showToast });
+const transferFileInput = document.getElementById('backupFileInput');
+const afterDataReplace = () => {
+  seatCanvas?.reset();
+};
 const backup = initBackup({
   store: rosterStore,
   showToast,
   confirm: (...args) => moreSheet.confirm(...args),
-  fileInput: document.getElementById('backupFileInput'),
-  onAfterImport: () => {
-    seatCanvas?.reset();
-  }
+  fileInput: transferFileInput,
+  onAfterImport: afterDataReplace
+});
+const csvTransfer = initCsvTransfer({
+  store: rosterStore,
+  showToast,
+  confirm: (...args) => moreSheet.confirm(...args),
+  fileInput: transferFileInput,
+  onAfterImport: afterDataReplace
 });
 
 moreSheet = initMoreSheet({
@@ -151,6 +161,8 @@ initDrawer({
   showToast,
   onBackupImport: () => backup.importBackup(),
   onBackupExport: () => backup.exportBackup(),
+  onCsvImport: () => csvTransfer.importCsv(),
+  onCsvExport: () => csvTransfer.exportCsv(),
   onEditRoster: (options) => rosterEditor.open({ ...options, preserveDrawer: true }),
 });
 initHorizontalGestures({ closeRosterEditor: () => rosterEditor.close() });

@@ -111,6 +111,8 @@ Capacitor 依赖只用于原生壳。浏览器代码通过 `globalThis.Capacitor
 | 人员 | `people-renderer.js`、`people-interactions.js` |
 | 课程 | `courses-renderer.js`、`courses-interactions.js`、`score-keypad.js`、`exams.js`、`highlight-subjects-model.js`、`highlight-subjects.js` |
 | 备份 | `backup.js` |
+| CSV 数据交换 | `csv-transfer.js` |
+| 文本文件读写 | `text-file-transfer.js` |
 
 ## 6. 数据流
 

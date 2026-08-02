@@ -39,6 +39,9 @@ node lan-server.js
 # 所有单元测试
 node --test tests/*.test.mjs
 
+# CSV / JSON 备份相关
+node --test tests/csv-transfer.test.mjs tests/backup.test.mjs tests/roster-store.test.mjs
+
 # 浏览器自动验收（PowerShell 7 + Microsoft Edge）
 # 仅在用户于当前任务明确要求时执行。
 .\tools\verify-web.ps1
@@ -51,6 +54,8 @@ node --check tools/content-id.cjs
 # Git 空白错误
 git diff --check
 ```
+
+CSV 导入导出由 `src/scripts/csv-transfer.js` 实现，文件读写与 JSON 备份共用 `src/scripts/text-file-transfer.js`。人工编辑 CSV 时：固定列必须保留且不可重名；「仅供查看」列可改但导入忽略；以编号关联数据；实体行顺序决定应用中的名单与列表顺序；座位行/列从 1 起；校验失败会拒绝整份文件并提示首个错误行号。
 
 完整验收清单见 [`../engineering.md`](../engineering.md)。
 

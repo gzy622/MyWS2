@@ -42,6 +42,8 @@ export function initDrawer({
   showToast,
   onBackupImport,
   onBackupExport,
+  onCsvImport,
+  onCsvExport,
   onEditRoster
 } = {}) {
   closeBusinessOverlays = closeOverlays ?? (() => {});
@@ -71,5 +73,7 @@ export function initDrawer({
     }
     if (action === 'backup-import') { onBackupImport?.(); return; }
     if (action === 'backup-export') { onBackupExport?.(); return; }
+    if (action === 'csv-import') { onCsvImport?.(); return; }
+    if (action === 'csv-export') { onCsvExport?.(); return; }
   }));
 }
