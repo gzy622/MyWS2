@@ -5,7 +5,7 @@ const SURNAME_INITIALS = Object.freeze({
   朱: 'Z', 秦: 'Q', 尤: 'Y', 许: 'X', 何: 'H', 吕: 'L', 施: 'S', 张: 'Z',
   孔: 'K', 曹: 'C', 严: 'Y', 华: 'H', 金: 'J', 魏: 'W', 陶: 'T', 姜: 'J',
   戚: 'Q', 谢: 'X', 邹: 'Z', 喻: 'Y', 柏: 'B', 水: 'S', 窦: 'D', 章: 'Z',
-  云: 'Y', 苏: 'S', 潘: 'P', 葛: 'G', 奚: 'X', 范: 'F'
+  云: 'Y', 苏: 'S', 潘: 'P', 葛: 'G', 奚: 'X', 范: 'F', 顾: 'G'
 });
 
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
