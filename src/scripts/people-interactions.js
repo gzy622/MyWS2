@@ -9,6 +9,13 @@ import { bindImmediateAction, createGhostClickGuard } from './pointer-guards.js'
 const MOVE_CANCEL_DISTANCE = 9;
 const LONG_PRESS_MS = 480;
 const CLICK_SUPPRESSION_MS = 450;
+const SEARCH_CLEAR_ICON = [
+  '<svg viewBox="0 0 24 24" aria-hidden="true">',
+  '<path d="M6.25 7h11.5"/>',
+  '<path d="M9.25 7V5.75c0-.7.55-1.25 1.25-1.25h3c.7 0 1.25.55 1.25 1.25V7"/>',
+  '<path d="M8 7l.65 10.15A2 2 0 0 0 10.65 19h2.7a2 2 0 0 0 2-1.85L16 7"/>',
+  '</svg>'
+].join('');
 
 export function initPeopleInteractions({ store, showToast, viewport, closeOthers, confirm }) {
   const pickLayer = document.createElement('div');
@@ -20,6 +27,7 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
     '<header class="sheet-head"><div class="sheet-title"><span data-field="eyebrow">班干</span><h2 id="peoplePickTitle">指派</h2>',
     '<p class="people-pick-count" id="peoplePickCount" data-field="count">未选择</p></div>',
     '<button type="button" class="sheet-close" data-action="close" aria-label="关闭">×</button></header>',
+    `<label class="people-pick-search"><input type="search" data-field="search" placeholder="搜索姓名" aria-label="搜索姓名" maxlength="${PEOPLE_TEXT_MAX_LENGTH}" autocomplete="off" enterkeyhint="search"><button type="button" class="people-pick-search-clear" data-action="clear-search" aria-label="清空搜索" hidden>${SEARCH_CLEAR_ICON}</button></label>`,
     '<div class="people-pick-list scroll-thin" role="listbox" aria-multiselectable="true"></div>',
     '<div class="people-pick-actions">',
     '<button type="button" data-action="clear">清除</button>',
@@ -52,6 +60,8 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
 
   const pickPanel = pickLayer.querySelector('.people-pick-panel');
   const pickList = pickLayer.querySelector('.people-pick-list');
+  const pickSearch = pickLayer.querySelector('[data-field="search"]');
+  const pickSearchClear = pickLayer.querySelector('[data-action="clear-search"]');
   const pickEyebrow = pickLayer.querySelector('[data-field="eyebrow"]');
   const pickTitle = pickLayer.querySelector('#peoplePickTitle');
   const pickCount = pickLayer.querySelector('[data-field="count"]');
@@ -73,6 +83,8 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
   let pickReturnFocus = null;
   /** Draft selection while pick sheet is open; committed only on confirm. */
   let pickDraftIds = [];
+  /** Live search query while pick sheet is open; discarded on close. */
+  let pickSearchQuery = '';
   let editTarget = null;
   let editReturnFocus = null;
   const presses = new Map();
@@ -81,9 +93,9 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
   let suppressedClickRow = null;
   let suppressLongPressUntil = 0;
   let suppressClickUntil = 0;
-  const editGhostGuard = createGhostClickGuard({
+  const peopleGhostGuard = createGhostClickGuard({
     owner: 'people',
-    hitSelector: '#nav, .nav-btn, .segment, .confirm-sheet, .people-row, .people-edit-sheet',
+    hitSelector: '#nav, .nav-btn, .segment, .confirm-sheet, .people-row, .people-pick-sheet, .people-edit-sheet',
     onArm: (until) => {
       suppressClickUntil = until;
     },
@@ -91,6 +103,16 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
       suppressClickUntil = 0;
     }
   });
+
+  function resetPickSearch() {
+    pickSearchQuery = '';
+    pickSearch.value = '';
+    syncPickSearchClear();
+  }
+
+  function syncPickSearchClear() {
+    pickSearchClear.hidden = pickSearch.value.length === 0;
+  }
 
   function closePick({ restoreFocus = true } = {}) {
     if (!pickSheet?.isPresented() && !pickLayer.classList.contains('show')) return;
@@ -103,6 +125,7 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
       const focus = pickReturnFocus;
       pickTarget = null;
       pickDraftIds = [];
+      resetPickSearch();
       pickReturnFocus = null;
       if (restoreFocus && focus) focusSilently(focus);
       else blurIfSheetChrome();
@@ -144,13 +167,27 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
     else pickDraftIds.push(studentId);
   }
 
+  function matchesPickSearch(student) {
+    const query = pickSearchQuery.trim().toLowerCase();
+    if (!query) return true;
+    return String(student.name || '').toLowerCase().includes(query);
+  }
+
   function renderPickList() {
     if (!pickTarget) return;
     const snapshot = store.getSnapshot();
     const selectedSet = new Set(pickDraftIds);
+    const visible = snapshot.students.filter(matchesPickSearch);
     pickClear.disabled = pickDraftIds.length === 0;
     updatePickCount(pickDraftIds.length);
-    pickList.replaceChildren(...snapshot.students.map((student) => {
+    if (visible.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'people-pick-empty';
+      empty.textContent = '无匹配学生';
+      pickList.replaceChildren(empty);
+      return;
+    }
+    pickList.replaceChildren(...visible.map((student) => {
       const option = document.createElement('button');
       option.type = 'button';
       option.className = 'people-pick-option';
@@ -197,6 +234,7 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
     pickTarget = { kind, id };
     pickReturnFocus = trigger;
     pickDraftIds = selectedIdsForTarget(snapshot);
+    resetPickSearch();
     pickEyebrow.textContent = kind === 'role' ? '班干' : '值日';
     pickTitle.textContent = item.title;
     renderPickList();
@@ -308,6 +346,7 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
       const focus = pickReturnFocus;
       pickTarget = null;
       pickDraftIds = [];
+      resetPickSearch();
       pickReturnFocus = null;
       if (focus) focusSilently(focus);
       else blurIfSheetChrome();
@@ -425,8 +464,11 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
     longPressedRows.delete(event.pointerId);
   }, true);
 
-  pickLayer.querySelector('[data-action="close"]').addEventListener('click', () => closePick());
-  pickClear.addEventListener('click', () => {
+  const armPeopleGhost = (ms) => peopleGhostGuard.arm(ms);
+  bindImmediateAction(pickLayer.querySelector('[data-action="close"]'), () => {
+    closePick();
+  }, { armGhost: armPeopleGhost, owner: 'people' });
+  bindImmediateAction(pickClear, () => {
     if (!pickTarget) return;
     if (pickDraftIds.length === 0) {
       showToast('当前没有指派');
@@ -435,10 +477,20 @@ export function initPeopleInteractions({ store, showToast, viewport, closeOthers
     pickDraftIds = [];
     haptic(Haptic.light);
     renderPickList();
+  }, { armGhost: armPeopleGhost, owner: 'people' });
+  bindImmediateAction(pickConfirm, confirmPick, { armGhost: armPeopleGhost, owner: 'people' });
+  bindImmediateAction(pickSearchClear, () => {
+    if (!pickSearch.value) return;
+    resetPickSearch();
+    haptic(Haptic.light);
+    renderPickList();
+  }, { armGhost: armPeopleGhost, owner: 'people' });
+  pickSearch.addEventListener('input', () => {
+    pickSearchQuery = pickSearch.value;
+    syncPickSearchClear();
+    renderPickList();
   });
-  pickConfirm.addEventListener('click', confirmPick);
 
-  const armPeopleGhost = (ms) => editGhostGuard.arm(ms);
   bindImmediateAction(editLayer.querySelector('[data-action="cancel"]'), () => {
     closeEdit();
   }, { armGhost: armPeopleGhost, owner: 'people' });

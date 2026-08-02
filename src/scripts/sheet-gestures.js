@@ -32,7 +32,7 @@ function isInteractiveField(target) {
   if (target.closest('input, textarea, select, [contenteditable="true"]')) return true;
   // Android WebView often hit-tests label / field chrome instead of the <input>.
   // Claiming those as sheet drags steals the tap and blocks the soft keyboard.
-  const field = target.closest('label, .course-edit-field, .people-edit-field, .assignment-name-field, .exam-name-field');
+  const field = target.closest('label, .course-edit-field, .people-edit-field, .people-pick-search, .assignment-name-field, .exam-name-field');
   return Boolean(field?.querySelector('input, textarea, select, [contenteditable="true"]'));
 }
 
