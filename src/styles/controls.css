@@ -115,6 +115,7 @@
   .menu-drawer-back:hover { background: var(--control); }
   .menu-item:hover { background: var(--control); }
   .nav-btn:hover:not(.active) { color: var(--ink-soft); }
+  .people-pick-search-clear:hover { color: var(--ink); }
   .more-actions button:hover { background: color-mix(in srgb, var(--control) 70%, transparent); }
   .student-record-panel button:not(.sheet-close):not(#saveStudentRecord):hover,
   .course-grade-panel button:not(.sheet-close):not([data-action="save"]):hover,
@@ -499,6 +500,65 @@
   font-size: 13px;
   font-weight: 500;
 }
+.people-pick-search {
+  flex: none;
+  position: relative;
+  margin: 0 0 8px;
+}
+.people-pick-search input {
+  padding-right: 48px;
+}
+.people-pick-search input[type="search"]::-webkit-search-decoration,
+.people-pick-search input[type="search"]::-webkit-search-cancel-button,
+.people-pick-search input[type="search"]::-webkit-search-results-button,
+.people-pick-search input[type="search"]::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+.people-pick-search-clear {
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--muted);
+  padding: 0;
+  cursor: pointer;
+  transform: translateY(-50%);
+  touch-action: manipulation;
+}
+.people-pick-search-clear[hidden] {
+  display: none;
+}
+.people-pick-search-clear:active {
+  color: var(--accent-text);
+  background: transparent;
+}
+.people-pick-search-clear:disabled {
+  color: var(--disabled);
+  cursor: not-allowed;
+  opacity: .55;
+}
+.people-pick-search-clear svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.people-pick-search-clear:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: -2px;
+}
 .people-pick-list {
   flex: 1 1 auto;
   min-height: 0;
@@ -508,6 +568,14 @@
   overscroll-behavior: contain;
   /* JS owns list scroll + Sheet dismiss edge handoff (see interaction.md §4.1 / §7). */
   touch-action: none;
+}
+.people-pick-empty {
+  margin: 0;
+  padding: 20px 14px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
 }
 .people-pick-option {
   display: block;

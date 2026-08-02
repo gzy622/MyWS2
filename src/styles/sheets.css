@@ -265,6 +265,7 @@
 .assignment-name-field,
 .exam-name-field,
 .people-edit-field,
+.people-pick-search,
 .course-edit-field,
 .course-highlight-field {
   display: block;
@@ -272,7 +273,8 @@
 }
 
 .assignment-name-field,
-.exam-name-field {
+.exam-name-field,
+.people-pick-search {
   margin-bottom: 0;
 }
 
@@ -294,6 +296,7 @@
 .assignment-name-field input,
 .exam-name-field input,
 .people-edit-field input,
+.people-pick-search input,
 .course-edit-field input,
 .course-highlight-field textarea {
   width: 100%;
@@ -311,6 +314,7 @@
 .assignment-name-field input,
 .exam-name-field input,
 .people-edit-field input,
+.people-pick-search input,
 .course-edit-field input {
   height: 48px;
   padding: 0 14px;
@@ -330,6 +334,7 @@
 .assignment-name-field input:focus-visible,
 .exam-name-field input:focus-visible,
 .people-edit-field input:focus-visible,
+.people-pick-search input:focus-visible,
 .course-edit-field input:focus-visible,
 .course-highlight-field textarea:focus-visible {
   outline: 2px solid var(--teal);
@@ -480,5 +485,5 @@
 }
 
 .people-pick-panel .sheet-head {
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
