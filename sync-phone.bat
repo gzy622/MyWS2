@@ -44,9 +44,8 @@ exit /b 0
 :inwt
 rem Already inside Windows Terminal: reuse the current window.
 title Teacher Workbench - Phone Sync
-echo Starting phone sync console...
-echo Tip: 1 = save to refresh. 2 = install on phone. 0 = quit. Use -Details for more.
-echo.
+echo Opening phone sync console...
+echo Tip: press W in the console to pair or connect over Wi-Fi.
 pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0tools\sync-phone.ps1" %*
 set "EXIT_CODE=%ERRORLEVEL%"
 echo.

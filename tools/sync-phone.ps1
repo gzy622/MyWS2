@@ -8,6 +8,9 @@ param(
   [switch]$Details
 )
 
+# Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4
+# Hallmark · component: console TUI · genre: modern-minimal · structure: Workbench
+# states: ready · busy · connected · warning · failure · confirmation
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
@@ -51,6 +54,14 @@ $script:startedServerPid = 0
 $script:logLines = New-Object System.Collections.Generic.List[string]
 $script:logMax = 3
 $script:showDetails = [bool]$Details
+$script:currentView = if ($Details) { 'details' } else { 'home' }
+$script:progressOperation = 'preview'
+$script:previewProgressStage = 1
+$script:previewProgressText = '正在准备网页资源。'
+$script:deviceName = ''
+$script:exitAfterOperation = $false
+$script:connectionMessage = ''
+$script:tuiRule = ('─' * 64)
 $script:dashboardShown = $false
 $script:feedbackInput = [pscustomobject]@{ Key = ''; Label = ''; At = $null }
 $script:feedbackAction = [pscustomobject]@{ Text = '已就绪'; Phase = 'idle'; At = $null }
@@ -336,6 +347,18 @@ function Get-ShortDevice([string]$SerialValue) {
   return ($SerialValue.Substring(0, 18) + '...' + $SerialValue.Substring($SerialValue.Length - 6))
 }
 
+function Get-AdbDeviceName {
+  if (-not $script:deviceSerial) { return '' }
+  try {
+    $result = Invoke-Adb -AdbArgs @('-s', $script:deviceSerial, 'shell', 'getprop', 'ro.product.model')
+    $name = ([string]$result.Text).Trim()
+    if ($name) { return $name }
+  } catch {
+    # Device serial remains a useful fallback when model information is unavailable.
+  }
+  return (Get-ShortDevice $script:deviceSerial)
+}
+
 function Invoke-Adb {
   # Windows PowerShell 5.1 + $ErrorActionPreference=Stop treats native stderr as terminating.
   # Temporarily Continue, then split stdout / stderr so daemon messages never abort the console.
@@ -370,12 +393,11 @@ function Invoke-Adb {
   }
 }
 
-function Get-AdbDeviceRows {
+function Get-AdbDeviceRows([int]$MaxAttempts = 8, [switch]$Quiet) {
   # Always return @{ Items = List } so a single device is never unwrapped by the pipeline.
   $rows = New-Object System.Collections.Generic.List[object]
-  $maxAttempts = 8
   $sawDaemonStart = $false
-  for ($i = 1; $i -le $maxAttempts; $i++) {
+  for ($i = 1; $i -le $MaxAttempts; $i++) {
     if ($i -eq 1) {
       [void](Invoke-Adb -AdbArgs @('start-server'))
     }
@@ -394,9 +416,9 @@ function Get-AdbDeviceRows {
       }
     }
     if ($rows.Count -gt 0) { return @{ Items = $rows } }
-    if ($i -eq 1) {
+    if (-not $Quiet -and $i -eq 1) {
       Write-Host 'adb 服务正在启动，请稍候...' -ForegroundColor DarkGray
-    } elseif ($sawDaemonStart -and $i -eq 2) {
+    } elseif (-not $Quiet -and $sawDaemonStart -and $i -eq 2) {
       Write-Host '等待设备出现在 adb devices（无线调试可能稍慢）...' -ForegroundColor DarkGray
     }
     Start-Sleep -Milliseconds 900
@@ -758,12 +780,43 @@ function Get-LiveReloadBuildPhaseText {
 
 function Update-LiveReloadBuildTail([string]$LogPath, [int]$Lines = 6) {
   $script:liveReloadTail.Clear()
-  if (-not $LogPath) { return }
-  foreach ($line in @(Get-LogTail -Path $LogPath -Lines $Lines)) {
+  if (-not $LogPath) { return $false }
+  $logLines = @(Get-LogTail -Path $LogPath -Lines 120)
+  foreach ($line in @($logLines | Select-Object -Last $Lines)) {
     [void]$script:liveReloadTail.Add([string]$line)
+  }
+  $text = [string]::Join("`n", $logLines)
+  $detectedStage = 1
+  $detectedText = '正在准备网页资源。'
+  if ($text -match 'App running with live reload listing for:' -and $script:previewProgressStage -lt 3) {
+    # When build, install and launch finish between two polls, keep the install
+    # step visible for one refresh before advancing to the connection wait.
+    $detectedStage = 3
+    $detectedText = '正在安装预览版本到手机。'
+  } elseif ($text -match 'App running with live reload listing for:') {
+    $detectedStage = 4
+    $detectedText = '热更新版本已安装，正在等待手机页面连接。'
+  } elseif ($text -match 'Deploying|Installing|Installed|installDebug|app-debug\.apk|Launching app') {
+    $detectedStage = 3
+    $detectedText = '正在安装预览版本到手机。'
+  } elseif ($text -match 'cap run android|Running Gradle build|Gradle|Task :|BUILD SUCCESSFUL|assembleDebug') {
+    $detectedStage = 2
+    $detectedText = '正在打包 Android APK，首次运行可能需要几分钟。'
+  } elseif ($text -match 'Native live preview|Checking phone can reach') {
+    $detectedText = '正在准备实时预览参数。'
+  } elseif ($text -match 'Syncing www web assets') {
+    $detectedText = '正在准备网页资源。'
+  }
+  $changed = $detectedStage -ne $script:previewProgressStage -or $detectedText -ne $script:previewProgressText
+  if ($detectedStage -ge $script:previewProgressStage) {
+    $script:previewProgressStage = $detectedStage
+    $script:previewProgressText = $detectedText
+  } else {
+    $changed = $false
   }
   $phase = Get-LiveReloadBuildPhaseText
   Set-FeedbackAction $phase.Text $phase.Phase
+  return $changed
 }
 
 function Wait-LiveReloadClients(
@@ -783,6 +836,28 @@ function Wait-LiveReloadClients(
   $lastDraw = Get-Date
   $buildComplete = $false
   while ((Get-Date) -lt $deadline) {
+    try {
+      if ([Console]::KeyAvailable) {
+        $key = [Console]::ReadKey($true)
+        $command = Get-ConsoleKey $key
+        if ($command -eq 'D') {
+          if ($script:currentView -eq 'details') {
+            $script:currentView = 'progress'
+            $script:showDetails = $false
+          } else {
+            $script:currentView = 'details'
+            $script:showDetails = $true
+          }
+          Show-Dashboard
+        } elseif ($command -eq '0') {
+          $script:exitAfterOperation = $true
+          Write-Host ''
+          Write-Host '已记录退出请求，当前步骤完成后退出。' -ForegroundColor DarkGray
+        }
+      }
+    } catch {
+      # Non-interactive hosts may not expose Console.KeyAvailable.
+    }
     if ($proc) {
       try {
         if ($proc.HasExited) { return @{ Ok = $false; Reason = 'exited'; Clients = 0 } }
@@ -800,13 +875,18 @@ function Wait-LiveReloadClients(
         $lastLogText = $text
         $lastLogChange = Get-Date
       }
+      $progressChanged = Update-LiveReloadBuildTail -LogPath $LogPath
       if (-not $buildComplete -and $text -match 'App running with live reload listing for:') {
         $buildComplete = $true
         $script:liveReloadState = 'waiting'
         Set-FeedbackAction '热更新版本已安装，等待手机页面连接…' 'busy'
-        Show-Dashboard
+        $progressChanged = $true
       }
-      if ($buildComplete -and $script:liveReloadClients -gt 0 -and $script:liveReloadConnectionSeq -gt $BaselineConnectionSeq) {
+      if ($progressChanged) {
+        Show-Dashboard
+        $lastDraw = Get-Date
+      }
+      if ($buildComplete -and $script:previewProgressStage -eq 4 -and $script:liveReloadClients -gt 0 -and $script:liveReloadConnectionSeq -gt $BaselineConnectionSeq) {
         return @{
           Ok = $true
           Reason = 'connected'
@@ -820,7 +900,6 @@ function Wait-LiveReloadClients(
       # 定期刷新主面板，让用户看到构建/推送的实时进度。
       if ((Get-Date) -gt $lastDraw.AddSeconds(1.5)) {
         $lastDraw = Get-Date
-        Update-LiveReloadBuildTail -LogPath $LogPath
         Show-Dashboard
       }
     }
@@ -862,7 +941,7 @@ function Get-LanServerStatusText {
 
 function Get-LiveReloadStatusText {
   switch ($script:liveReloadState) {
-    'connected' { return @{ Text = ('已连接 · clients={0}' -f $script:liveReloadClients); Color = 'Green' } }
+    'connected' { return @{ Text = ('已连接 · {0} 个页面' -f $script:liveReloadClients); Color = 'Green' } }
     'connecting' { return @{ Text = '构建/推送中'; Color = 'Yellow' } }
     'waiting' { return @{ Text = '等待连接'; Color = 'Yellow' } }
     'exited' { return @{ Text = '异常退出'; Color = 'Red' } }
@@ -882,187 +961,504 @@ function Get-PreviewMode {
   return 'ready'
 }
 
-function Get-NextStep {
-  $mode = Get-PreviewMode
-  if ($mode -eq 'hot') {
-    return @{ Text = '可以了：保存文件后，手机一般会自动更新'; Color = 'Green' }
-  }
-  if ($mode -eq 'hot-wait') {
-    if ($script:liveReloadState -eq 'connecting') {
-      return @{ Text = '正在构建并安装热更新版本…'; Color = 'Cyan' }
-    }
-    return @{ Text = '热更新版本已安装，等待手机页面连接…'; Color = 'Yellow' }
-  }
-  if ($mode -eq 'ready') {
-    if (-not $script:appInstalled) {
-      return @{ Text = '请先按 2，把 App 安装到手机'; Color = 'Yellow' }
-    }
-    return @{ Text = '请按 1，开启「保存后自动更新」'; Color = 'Cyan' }
-  }
-  if (-not $script:appInstalled) {
-    return @{ Text = '手机连不上电脑网络，请先按 2 安装'; Color = 'Yellow' }
-  }
-  return @{ Text = '手机连不上电脑网络，改动请按 2 更新到手机'; Color = 'Yellow' }
+function Get-ConsoleKey([System.ConsoleKeyInfo]$KeyInfo) {
+  $digit = Get-MenuDigit $KeyInfo
+  if ($digit) { return $digit }
+  $character = ([string]$KeyInfo.KeyChar).ToUpperInvariant()
+  if ($character -in @('M', 'D', 'B', 'W', 'R')) { return $character }
+  return ''
 }
 
-function Get-ModeShortLabel([string]$Mode) {
-  if ($script:showDetails) {
-    switch ($Mode) {
-      'hot' { return @{ Text = ("热更新 · clients={0}" -f $script:liveReloadClients); Color = 'Green' } }
-      'hot-wait' { return @{ Text = '等待WebView'; Color = 'Yellow' } }
-      'ready' { return @{ Text = 'LAN就绪'; Color = 'Cyan' } }
-      default { return @{ Text = '包内资源'; Color = 'Yellow' } }
-    }
-  }
-  switch ($Mode) {
-    'hot' { return @{ Text = '已就绪'; Color = 'Green' } }
-    'hot-wait' { return @{ Text = '连接中'; Color = 'Yellow' } }
-    'ready' { return @{ Text = '待开启'; Color = 'Cyan' } }
-    default { return @{ Text = '需更新'; Color = 'Yellow' } }
-  }
-}
-
-function Get-SimpleStatusLine([string]$Mode) {
-  if (-not $script:appInstalled) {
-    return @{ Text = '手机上还没有这个 App'; Color = 'Yellow' }
-  }
-  if ($Mode -eq 'hot') {
-    return @{ Text = '手机已连接，保存即可更新'; Color = 'Green' }
-  }
-  if ($Mode -eq 'hot-wait') {
-    return @{ Text = '正在连接手机预览…'; Color = 'Yellow' }
-  }
-  if ($script:serverReachable) {
-    return @{ Text = '手机已连上电脑，还差一步开启预览'; Color = 'Cyan' }
-  }
-  return @{ Text = '手机与电脑未连上同一网络'; Color = 'Yellow' }
-}
-
-function Show-Dashboard {
-  # Hallmark · macrostructure: Index-First · tone: utilitarian · genre: modern-minimal
-  # medium: console-tui · audience: non-expert default · -Details for diagnostics
+function Write-TuiHeader([string]$Title, [string]$Meta = '') {
   Clear-Host
   $script:dashboardShown = $true
-  $changeText = if ($script:lastChangeAt) { $script:lastChangeAt.ToString('HH:mm:ss') } else { '-' }
-  $autoText = if ($script:autoDeploy) { '开' } else { '关' }
+  Write-Host ''
+  Write-Host '  PHONE SYNC' -NoNewline -ForegroundColor Cyan
+  if ($Meta) {
+    Write-Host ('  /  {0}' -f $Meta) -ForegroundColor DarkGray
+  } else {
+    Write-Host ''
+  }
+  Write-Host ('  {0}' -f $script:tuiRule) -ForegroundColor DarkGray
+  Write-Host ('  {0}' -f $Title) -ForegroundColor White
+  Write-Host ''
+}
+
+function Write-TuiRule {
+  Write-Host ('  {0}' -f $script:tuiRule) -ForegroundColor DarkGray
+}
+
+function Write-TuiKey([string]$Key, [string]$Label, [string]$Color = 'Gray') {
+  Write-Host ('  [{0}] ' -f $Key) -NoNewline -ForegroundColor Cyan
+  Write-Host $Label -ForegroundColor $Color
+}
+
+function Read-TuiCommand([string[]]$Allowed) {
+  while ($true) {
+    $key = [Console]::ReadKey($true)
+    $command = Get-ConsoleKey $key
+    if ($command -in $Allowed) { return $command }
+  }
+}
+
+function Get-AdbResultText([hashtable]$Result) {
+  return ([string]::Join("`n", @($Result.StdOut) + @($Result.StdErr))).Trim()
+}
+
+function Test-WirelessEndpoint([string]$Endpoint) {
+  $value = $Endpoint.Trim()
+  if ($value -notmatch '^(?<host>\[[0-9A-Fa-f:]+\]|[A-Za-z0-9.-]+):(?<port>\d{1,5})$') { return $false }
+  $portNumber = [int]$Matches['port']
+  if ($portNumber -lt 1 -or $portNumber -gt 65535) { return $false }
+  $hostName = $Matches['host'].Trim('[', ']')
+  if ($hostName -match '^\d+(\.\d+){3}$') {
+    foreach ($part in $hostName.Split('.')) {
+      if ([int]$part -gt 255) { return $false }
+    }
+  }
+  return $true
+}
+
+function Read-WirelessEndpoint([string]$Label) {
+  while ($true) {
+    $endpoint = ([string](Read-Host $Label)).Trim()
+    if (-not $endpoint) { return '' }
+    if (Test-WirelessEndpoint $endpoint) { return $endpoint }
+    Write-Host '  地址格式无效，请输入 IP:端口，例如 192.168.1.20:37123。' -ForegroundColor Yellow
+  }
+}
+
+function Wait-WirelessDevice([string]$Endpoint, [int]$Attempts = 8) {
+  for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
+    $rows = (Get-AdbDeviceRows -MaxAttempts 1 -Quiet).Items
+    foreach ($row in $rows) {
+      if ($row.Serial -eq $Endpoint -and $row.State -eq 'device') { return $true }
+    }
+    Start-Sleep -Milliseconds 450
+  }
+  return $false
+}
+
+function Invoke-WirelessConnectPrompt {
+  Write-TuiHeader '连接已配对的手机' '无线调试'
+  Write-Host '  在手机「无线调试」主页面查看 IP 地址和端口。' -ForegroundColor Gray
+  Write-Host '  这里使用连接端口，请勿填写配对页面中的端口。' -ForegroundColor DarkGray
+  Write-Host ''
+  $endpoint = Read-WirelessEndpoint '  连接地址（留空取消）'
+  if (-not $endpoint) { return '' }
+
+  Write-Host ''
+  Write-Host ('  正在连接 {0}…' -f $endpoint) -ForegroundColor Cyan
+  $result = Invoke-Adb -AdbArgs @('connect', $endpoint)
+  $resultText = Get-AdbResultText $result
+  if ($result.ExitCode -ne 0 -or $resultText -match '(?i)failed|cannot|unable|error') {
+    $script:connectionMessage = if ($resultText) { $resultText } else { 'adb connect 未成功。' }
+    Write-Host ('  连接失败：{0}' -f $script:connectionMessage) -ForegroundColor Red
+    Write-Host '  请确认无线调试已开启、地址来自主页面，并且手机与电脑位于同一网络。' -ForegroundColor Yellow
+    Write-Host ''
+    Write-TuiKey 'B' '返回无线调试'
+    [void](Read-TuiCommand @('B'))
+    return ''
+  }
+
+  if (-not (Wait-WirelessDevice $endpoint)) {
+    $script:connectionMessage = 'adb 已接受连接请求，但设备尚未进入可用状态。'
+    Write-Host ('  {0}' -f $script:connectionMessage) -ForegroundColor Yellow
+    Write-Host '  请保持手机解锁并开启无线调试，然后重新连接。' -ForegroundColor Yellow
+    Write-Host ''
+    Write-TuiKey 'B' '返回无线调试'
+    [void](Read-TuiCommand @('B'))
+    return ''
+  }
+
+  $script:connectionMessage = if ($resultText) { $resultText } else { ('已连接 {0}' -f $endpoint) }
+  Write-Host ('  {0}' -f $script:connectionMessage) -ForegroundColor Green
+  Start-Sleep -Milliseconds 500
+  return $endpoint
+}
+
+function Invoke-WirelessPairPrompt {
+  Write-TuiHeader '配对新手机' '无线调试'
+  Write-Host '  1. 手机打开：开发者选项 → 无线调试。' -ForegroundColor Gray
+  Write-Host '  2. 选择「使用配对码配对设备」。' -ForegroundColor Gray
+  Write-Host '  3. 输入该页面显示的 IP、配对端口和六位配对码。' -ForegroundColor Gray
+  Write-Host ''
+  $pairEndpoint = Read-WirelessEndpoint '  配对地址（留空取消）'
+  if (-not $pairEndpoint) { return '' }
+  $pairingCode = ([string](Read-Host '  六位配对码')).Trim()
+  if ($pairingCode -notmatch '^\d{6}$') {
+    $script:connectionMessage = '配对码应为六位数字。'
+    Write-Host ('  {0}' -f $script:connectionMessage) -ForegroundColor Yellow
+    Start-Sleep -Milliseconds 900
+    return ''
+  }
+
+  Write-Host ''
+  Write-Host ('  正在配对 {0}…' -f $pairEndpoint) -ForegroundColor Cyan
+  $result = Invoke-Adb -AdbArgs @('pair', $pairEndpoint, $pairingCode)
+  $resultText = Get-AdbResultText $result
+  $pairingCode = $null
+  if ($result.ExitCode -ne 0 -or $resultText -match '(?i)failed|cannot|unable|error') {
+    $script:connectionMessage = if ($resultText) { $resultText } else { 'adb pair 未成功。' }
+    Write-Host ('  配对失败：{0}' -f $script:connectionMessage) -ForegroundColor Red
+    Write-Host '  手机上的配对码和配对端口会过期，请重新打开配对页面后再试。' -ForegroundColor Yellow
+    Write-Host ''
+    Write-TuiKey 'B' '返回无线调试'
+    [void](Read-TuiCommand @('B'))
+    return ''
+  }
+
+  Write-Host '  配对成功。' -ForegroundColor Green
+  Write-Host '  接下来请输入「无线调试」主页面显示的连接地址。' -ForegroundColor Gray
+  Write-Host '  连接端口通常与刚才的配对端口不同。' -ForegroundColor DarkGray
+  Start-Sleep -Milliseconds 650
+  return (Invoke-WirelessConnectPrompt)
+}
+
+function Show-WirelessView {
+  Write-TuiHeader '无线调试' $(Get-DeviceDisplayName)
+  if ($script:connectionMessage) {
+    Write-Host ('  {0}' -f $script:connectionMessage) -ForegroundColor DarkGray
+    Write-Host ''
+  }
+  Write-Host '  Android 11 及以上可使用配对码建立无线调试。' -ForegroundColor Gray
+  Write-Host '  手机与电脑需要连接同一个无线网络。' -ForegroundColor Gray
+  Write-Host ''
+  Write-TuiKey '1' '配对并连接新手机'
+  Write-TuiKey '2' '连接已配对的手机'
+  Write-TuiKey 'R' '重新检查已连接设备'
+  Write-Host ''
+  Write-TuiKey 'B' '返回'
+  Write-Host ''
+}
+
+function Invoke-WirelessHub {
+  while ($true) {
+    Show-WirelessView
+    $command = Read-TuiCommand @('1', '2', 'R', 'B')
+    switch ($command) {
+      '1' {
+        $serial = Invoke-WirelessPairPrompt
+        if ($serial) { return $serial }
+      }
+      '2' {
+        $serial = Invoke-WirelessConnectPrompt
+        if ($serial) { return $serial }
+      }
+      'R' {
+        try {
+          $serial = Resolve-Device ''
+          if ($serial) { return $serial }
+        } catch {
+          $script:connectionMessage = $_.Exception.Message
+        }
+      }
+      'B' { return '' }
+    }
+  }
+}
+
+function Show-DeviceRequiredView {
+  Write-TuiHeader '连接手机'
+  Write-Host '  ● 暂未检测到可用的 adb 设备' -ForegroundColor Yellow
+  if ($script:connectionMessage) {
+    Write-Host ('    {0}' -f $script:connectionMessage) -ForegroundColor DarkGray
+  }
+  Write-Host ''
+  Write-Host '  可以连接 USB，或直接使用无线调试。' -ForegroundColor Gray
+  Write-Host ''
+  Write-TuiKey 'R' '重新检查 USB 和无线设备'
+  Write-TuiKey 'W' '打开无线调试'
+  Write-TuiKey '0' '退出'
+  Write-Host ''
+}
+
+function Resolve-InitialDevice([string]$Preferred) {
+  try {
+    return (Resolve-Device $Preferred)
+  } catch {
+    $script:connectionMessage = $_.Exception.Message
+  }
+
+  while ($true) {
+    Show-DeviceRequiredView
+    $command = Read-TuiCommand @('R', 'W', '0')
+    if ($command -eq '0') { return '' }
+    if ($command -eq 'W') {
+      $serial = Invoke-WirelessHub
+      if ($serial) { return $serial }
+      continue
+    }
+    try {
+      return (Resolve-Device $Preferred)
+    } catch {
+      $script:connectionMessage = $_.Exception.Message
+    }
+  }
+}
+
+function Set-ActiveDevice([string]$SerialValue) {
+  if (-not $SerialValue) { return $false }
+  if ($script:deviceSerial -and $script:deviceSerial -ne $SerialValue -and ($script:liveReloadLaunched -or $script:liveReloadProcess)) {
+    Stop-LiveReloadSession '已切换手机，原设备的实时预览已停止'
+  }
+  $script:deviceSerial = $SerialValue
+  $script:deviceName = Get-AdbDeviceName
+  if ($script:lanUrl) {
+    $script:appInstalled = Test-AppInstalled
+    Test-PhoneHealth | Out-Null
+  }
+  $script:connectionMessage = ('已连接 {0}' -f (Get-DeviceDisplayName))
+  return $true
+}
+
+function Get-DeviceDisplayName {
+  if ($script:deviceName) { return $script:deviceName }
+  if ($script:deviceSerial) { return (Get-ShortDevice $script:deviceSerial) }
+  return '手机'
+}
+
+function Get-LastFailureReason {
+  if ($script:lastErrorTail.Count -gt 0) {
+    $line = ([string]$script:lastErrorTail[$script:lastErrorTail.Count - 1]).Trim()
+    if ($line) { return $line }
+  }
+  if ($script:feedbackAction.Text) { return $script:feedbackAction.Text }
+  return '后台进程没有完成。'
+}
+
+function Get-ConsoleStatus {
   $mode = Get-PreviewMode
-  $modeLabel = Get-ModeShortLabel $mode
-  $next = Get-NextStep
-  $simpleStatus = Get-SimpleStatusLine $mode
-  $phaseMeta = Get-FeedbackPhaseMeta $script:feedbackAction.Phase
-  $phaseIsProblem = ($script:feedbackAction.Phase -eq 'fail' -or $script:feedbackAction.Phase -eq 'warn')
+  $device = Get-DeviceDisplayName
+  if ($script:lanServerState -eq 'failed' -or $script:liveReloadState -eq 'exited' -or $script:feedbackAction.Phase -eq 'fail') {
+    return @{
+      Key = 'failed'; Title = '实时预览启动失败'; Color = 'Red'
+      Description = '实时预览没有成功启动。'
+      PhoneLine = ("{0} · 未完成" -f $device)
+      PhoneDetail = '手机继续使用当前安装版内容。'
+      Recommendation = '按 1 重试；仍失败时按 D 查看原因和日志。'
+      Reason = Get-LastFailureReason
+    }
+  }
+  if (-not $script:appInstalled) {
+    return @{
+      Key = 'not-installed'; Title = '尚未安装'; Color = 'Yellow'
+      Description = '手机上还没有这个 App。'
+      PhoneLine = ("{0} · 已连接" -f $device)
+      PhoneDetail = '当前没有可显示的安装版本。'
+      Recommendation = '按 2 安装当前版本到手机。'
+      Reason = ''
+    }
+  }
+  if ($script:liveReloadLaunched -and $script:liveReloadState -in @('connecting', 'waiting')) {
+    $step = if ($script:liveReloadState -eq 'waiting') { '安装已完成，正在等待页面连接。' } else { '正在准备构建和安装。' }
+    return @{
+      Key = 'connecting'; Title = '正在开启实时预览'; Color = 'Cyan'
+      Description = '首次开启会构建并安装预览版本。'
+      PhoneLine = ("{0} · 正在连接" -f $device)
+      PhoneDetail = $step
+      Recommendation = '等待当前步骤完成。'
+      Reason = ''
+    }
+  }
+  if ($mode -eq 'hot') {
+    return @{
+      Key = 'connected'; Title = '实时预览已开启'; Color = 'Green'
+      Description = '保存 src/ 中的文件后，手机会自动刷新。'
+      PhoneLine = ("{0} · 已连接" -f $device)
+      PhoneDetail = '当前内容与电脑一致。'
+      Recommendation = '保持本窗口运行，直接修改并保存文件。'
+      Reason = ''
+    }
+  }
+  if (-not $script:serverReachable) {
+    return @{
+      Key = 'network-unavailable'; Title = '当前只能使用安装版'; Color = 'Yellow'
+      Description = '手机暂时无法访问电脑上的预览服务。'
+      PhoneLine = ("{0} · 已连接" -f $device)
+      PhoneDetail = '手机会继续显示安装包内的内容。'
+      Recommendation = '按 2 安装当前版本，或按 3 重新检测。'
+      Reason = ''
+    }
+  }
+  return @{
+    Key = 'ready'; Title = '可以开始预览'; Color = 'Cyan'
+    Description = '手机已安装，实时预览尚未开启。'
+    PhoneLine = ("{0} · 已连接" -f $device)
+    PhoneDetail = '当前内容等待开启实时预览。'
+    Recommendation = '按 1 开启实时预览。首次开启会构建并安装预览版本。'
+    Reason = ''
+  }
+}
 
+function Get-HomePreviewAction([hashtable]$Status) {
+  if ($status.Key -eq 'connected') { return '重新连接实时预览' }
+  return '开启实时预览'
+}
+
+function Get-ProgressModel {
+  $steps = if ($script:progressOperation -eq 'deploy') {
+    @('准备网页资源', '构建 Android 应用', ("安装到 {0}" -f (Get-DeviceDisplayName)))
+  } else {
+    @('准备网页资源', '构建 Android 应用', ("安装到 {0}" -f (Get-DeviceDisplayName)), '等待手机页面连接')
+  }
+  $current = 1
+  $currentText = '正在准备网页资源。'
+  $logText = [string]::Join("`n", @($script:liveReloadTail))
+  if ($script:progressOperation -eq 'deploy') {
+    $current = 2
+    $currentText = '正在构建 Android 应用，首次运行可能需要几分钟。'
+  } elseif ($logText -match 'BUILD FAILED|FAILURE|error:|Error:') {
+    if ($logText -match 'Installing|Installed|installDebug') { $current = 3 }
+    elseif ($logText -match '==>|Task :|BUILD SUCCESSFUL|Gradle|:app:') { $current = 2 }
+    $currentText = '当前步骤失败：' + (Get-LastFailureReason)
+  } elseif ($script:liveReloadState -in @('connecting', 'waiting')) {
+    $current = $script:previewProgressStage
+    $currentText = $script:previewProgressText
+  } elseif ($logText -match 'App running with live reload listing for:') {
+    $current = 4
+    $currentText = '正在等待手机页面连接。'
+  } elseif ($logText -match 'Installing|Installed|installDebug') {
+    $current = 3
+    $currentText = '正在安装预览版本到手机。'
+  } elseif ($logText -match '==>|Task :|BUILD SUCCESSFUL|Gradle|:app:|Syncing|Target device') {
+    $current = 2
+    $currentText = '正在构建 Android 应用。'
+  }
+  return @{ Steps = $steps; Current = $current; CurrentText = $currentText }
+}
+
+function Show-HomeView {
+  $status = Get-ConsoleStatus
+  Write-TuiHeader $status.Title $(Get-DeviceDisplayName)
+  Write-Host ('  ● {0}' -f $status.Description) -ForegroundColor $status.Color
+  if ($status.Reason) {
+    Write-Host ('    原因：{0}' -f $status.Reason) -ForegroundColor Red
+  }
   Write-Host ''
-  Write-Host '  手机同步 · ' -NoNewline -ForegroundColor DarkGray
-  Write-Host $modeLabel.Text -ForegroundColor $modeLabel.Color
+  Write-Host '  手机' -ForegroundColor White
+  Write-Host ('    {0}' -f $status.PhoneLine) -ForegroundColor $status.Color
+  Write-Host ('    {0}' -f $status.PhoneDetail) -ForegroundColor Gray
   Write-Host ''
-
-  Write-Host '  →  ' -NoNewline -ForegroundColor White
-  Write-Host $next.Text -ForegroundColor $next.Color
+  Write-Host '  下一步' -ForegroundColor White
+  Write-Host ('    {0}' -f $status.Recommendation) -ForegroundColor $status.Color
   Write-Host ''
+  Write-TuiRule
+  Write-TuiKey '1' (Get-HomePreviewAction $status)
+  Write-TuiKey '2' '安装当前版本到手机'
+  Write-TuiKey '3' '重新检测'
+  Write-TuiKey 'W' '无线调试'
+  Write-TuiKey 'M' '更多操作'
+  Write-TuiKey 'D' '技术详情'
+  Write-TuiKey '0' '退出'
+  Write-Host ''
+}
 
-  Write-Host ('  {0}' -f $simpleStatus.Text) -ForegroundColor $simpleStatus.Color
-  Write-FingerprintPair
+function Show-ProgressView {
+  $model = Get-ProgressModel
+  $title = if ($script:progressOperation -eq 'deploy') { '正在安装当前版本' } else { '正在开启实时预览' }
+  Write-TuiHeader $title $(Get-DeviceDisplayName)
+  for ($index = 0; $index -lt $model.Steps.Count; $index++) {
+    $stepNumber = $index + 1
+    if ($stepNumber -lt $model.Current) {
+      Write-Host ('  ✓ {0}' -f $model.Steps[$index]) -ForegroundColor Green
+    } elseif ($stepNumber -eq $model.Current) {
+      Write-Host ('  → {0}' -f $model.Steps[$index]) -ForegroundColor Cyan
+    } else {
+      Write-Host ('  · {0}' -f $model.Steps[$index]) -ForegroundColor DarkGray
+    }
+  }
+  Write-Host ''
+  Write-Host ('  当前步骤：{0}' -f $model.CurrentText) -ForegroundColor Cyan
+  Write-Host ''
+  Write-TuiRule
+  Write-TuiKey 'D' '查看技术日志'
+  Write-TuiKey '0' '完成当前步骤后退出'
+  Write-Host ''
+}
 
+function Show-DetailsView {
   $lanStatus = Get-LanServerStatusText
   $lrStatus = Get-LiveReloadStatusText
-  Write-Host '  LAN 服务    ' -NoNewline -ForegroundColor DarkGray
-  Write-Host $lanStatus.Text -ForegroundColor $lanStatus.Color
-  Write-Host '  Live Reload ' -NoNewline -ForegroundColor DarkGray
-  Write-Host $lrStatus.Text -ForegroundColor $lrStatus.Color
-  if ($script:showDetails) {
-    if ($script:startedServerPid -gt 0) {
-      Write-Host ("  LAN 服务 pid={0} · 日志 {1}" -f $script:startedServerPid, $(if ($script:lanServerLogPath) { $script:lanServerLogPath } else { '-' })) -ForegroundColor DarkGray
-    } elseif ($script:lanServerState -eq 'ok') {
-      Write-Host '  LAN 服务复用外部进程（本会话未托管）' -ForegroundColor DarkGray
-    }
-    if ($script:liveReloadPid -gt 0) {
-      Write-Host ("  Live Reload pid={0} · 日志 {1}" -f $script:liveReloadPid, $(if ($script:liveReloadLogPath) { $script:liveReloadLogPath } else { '-' })) -ForegroundColor DarkGray
-    }
-  }
+  $device = Get-DeviceDisplayName
+  $phoneVersion = if ($script:phoneRunId) { $script:phoneRunId } else { '未知' }
+  $localVersion = if ($script:contentId) { $script:contentId } else { '未知' }
+  $serverExtra = if ($script:startedServerPid -gt 0) { ('pid {0}' -f $script:startedServerPid) } else { '已复用' }
+  $clients = $script:liveReloadClients
 
-  if ($script:showDetails) {
-    Write-Host '  ' -NoNewline -ForegroundColor DarkGray
-    if ($script:serverReachable) {
-      Write-Host 'LAN可达' -NoNewline -ForegroundColor Green
-    } else {
-      Write-Host 'LAN不可达' -NoNewline -ForegroundColor Yellow
-    }
-    Write-Host ' · ' -NoNewline -ForegroundColor DarkGray
-    Write-Host ($(if ($script:appInstalled) { '已安装' } else { '未安装' })) -NoNewline -ForegroundColor $(if ($script:appInstalled) { 'Green' } else { 'Yellow' })
-    Write-Host ' · ' -NoNewline -ForegroundColor DarkGray
-    Write-Host (Get-ShortDevice $script:deviceSerial) -NoNewline -ForegroundColor DarkGray
-    if ($script:phoneLanId) {
-      Write-Host ' · ' -NoNewline -ForegroundColor DarkGray
-      Write-Host ("健康检查 {0}" -f $script:phoneLanId) -NoNewline -ForegroundColor DarkGray
-    }
-    if ($script:pendingDeploy) {
-      Write-Host ' · ' -NoNewline -ForegroundColor DarkGray
-      Write-Host ($(if ($mode -eq 'apk') { '有未推送改动' } else { '本地已更新' })) -NoNewline -ForegroundColor $(if ($mode -eq 'apk') { 'Yellow' } else { 'DarkGray' })
-    }
-    if ($script:autoDeploy) {
-      Write-Host (" · 自动推送 {0}" -f $autoText) -NoNewline -ForegroundColor DarkGray
-    }
-    if ($script:lanUrl) {
-      Write-Host ''
-      Write-Host ("  {0} · 更新 {1}" -f $script:lanUrl, $changeText) -ForegroundColor DarkGray
-    } else {
-      Write-Host ''
-    }
-  }
+  $transport = if ($script:deviceSerial -match ':\d+$|_adb-tls-connect') { '无线' } else { 'USB' }
 
-  Write-Host '  ' -NoNewline
-  Write-Host $phaseMeta.Mark -NoNewline -ForegroundColor $phaseMeta.Color
-  Write-Host ' · ' -NoNewline -ForegroundColor DarkGray
-  Write-Host $script:feedbackAction.Text -ForegroundColor $phaseMeta.Color
+  Write-TuiHeader '技术详情' $device
+  Write-Host ('  设备        {0} · {1}' -f $device, (Get-ShortDevice $script:deviceSerial)) -ForegroundColor Gray
+  Write-Host ('  连接方式    {0}' -f $transport) -ForegroundColor Gray
+  Write-Host ('  预览地址    {0}' -f $(if ($script:lanUrl) { $script:lanUrl } else { '未知' })) -ForegroundColor Gray
+  Write-Host ('  网页服务    {0} · {1}' -f $lanStatus.Text, $serverExtra) -ForegroundColor $lanStatus.Color
+  Write-Host ('  实时预览    {0}' -f $lrStatus.Text) -ForegroundColor $lrStatus.Color
+  Write-Host ('  电脑版本    {0}' -f $localVersion) -ForegroundColor Gray
+  Write-Host ('  手机版本    {0}' -f $phoneVersion) -ForegroundColor Gray
+  Write-Host ('  页面连接    {0} 个' -f $clients) -ForegroundColor Gray
+  Write-Host ('  日志        {0}' -f $(if ($script:liveReloadLogPath) { $script:liveReloadLogPath } elseif ($script:lanServerLogPath) { $script:lanServerLogPath } else { '当前会话暂无' })) -ForegroundColor DarkGray
   Write-Host ''
-
-  if ($script:liveReloadState -eq 'exited' -and $script:lastErrorTail.Count -gt 0) {
-    Write-Host ''
-    Write-Host '  热更新进程异常退出，日志末尾：' -ForegroundColor Red
-    foreach ($line in @($script:lastErrorTail)) {
+  if ($script:lastErrorTail.Count -gt 0) {
+    Write-Host '  最近错误' -ForegroundColor Red
+    foreach ($line in @($script:lastErrorTail | Select-Object -Last 8)) {
       Write-Host ('  {0}' -f $line) -ForegroundColor DarkGray
     }
-    if ($script:liveReloadLogPath) {
-      Write-Host ('  完整日志：{0}' -f $script:liveReloadLogPath) -ForegroundColor DarkGray
-    }
-  }
-
-  if (($script:liveReloadState -eq 'connecting' -or $script:liveReloadState -eq 'waiting') -and $script:liveReloadTail.Count -gt 0) {
     Write-Host ''
-    Write-Host '  后台构建/推送实时日志：' -ForegroundColor DarkGray
+  }
+  if ($script:liveReloadTail.Count -gt 0) {
+    Write-Host '  后台日志' -ForegroundColor White
     foreach ($line in @($script:liveReloadTail)) {
       Write-Host ('  {0}' -f $line) -ForegroundColor DarkGray
     }
-    if ($script:showDetails -and $script:liveReloadLogPath) {
-      Write-Host ('  完整日志：{0}' -f $script:liveReloadLogPath) -ForegroundColor DarkGray
-    }
-  }
-
-  Write-Host '  1  开启保存即更新' -ForegroundColor Gray
-  Write-Host '  2  安装/更新到手机' -ForegroundColor Gray
-  Write-Host '  3  刷新连接与版本' -ForegroundColor Gray
-  Write-Host '  0  退出' -ForegroundColor Gray
-  if ($script:showDetails) {
-    Write-Host '  4 重启  5 指纹  6 自动  7 清缓存  8 清数据  9 仅www' -ForegroundColor DarkGray
-  } else {
-    Write-Host '  （更多诊断：sync-phone.bat -Details）' -ForegroundColor DarkGray
-  }
-
-  if ($script:showDetails -or ($phaseIsProblem -and $script:logLines.Count -gt 0)) {
     Write-Host ''
-    $lines = @($script:logLines)
-    if (-not $script:showDetails -and $lines.Count -gt 1) {
-      $lines = @($lines[$lines.Count - 1])
-    }
-    foreach ($line in $lines) {
+  }
+  if ($script:logLines.Count -gt 0) {
+    Write-Host '  会话日志' -ForegroundColor White
+    foreach ($line in @($script:logLines)) {
       Write-Host ('  {0}' -f $line) -ForegroundColor DarkGray
     }
   }
   Write-Host ''
+  Write-TuiRule
+  if ($script:liveReloadState -in @('connecting', 'waiting')) {
+    Write-TuiKey 'D' '返回进度'
+    Write-TuiKey '0' '完成当前步骤后退出'
+  } else {
+    Write-TuiKey 'D' '返回首页'
+    Write-TuiKey 'B' '返回首页'
+    Write-TuiKey '0' '退出'
+  }
+  Write-Host ''
+}
+
+function Show-MoreView {
+  $autoLabel = if ($script:autoDeploy) { '开（保存后自动安装 APK）' } else { '关' }
+  Write-TuiHeader '更多操作' $(Get-DeviceDisplayName)
+  Write-TuiKey '4' '重新打开 App'
+  Write-TuiKey '6' ('保存后自动安装 APK · {0}' -f $autoLabel)
+  Write-TuiKey '7' '清理缓存并重新打开'
+  Write-TuiKey '8' '清除 App 全部数据' 'Yellow'
+  Write-TuiKey '9' '仅生成电脑上的 www'
+  Write-Host ''
+  Write-TuiRule
+  Write-TuiKey 'B' '返回首页'
+  Write-TuiKey '0' '退出'
+  Write-Host ''
+}
+
+function Show-Dashboard {
+  switch ($script:currentView) {
+    'progress' { Show-ProgressView }
+    'details' { Show-DetailsView }
+    'more' { Show-MoreView }
+    default { Show-HomeView }
+  }
 }
 
 function Invoke-Deploy {
+  $script:progressOperation = 'deploy'
+  $script:currentView = 'progress'
   Set-FeedbackAction '正在打包并推送到手机…' 'busy'
   Write-Log '开始打包并推送到手机...' 'Cyan'
   Show-Dashboard
@@ -1080,6 +1476,7 @@ function Invoke-Deploy {
     Write-Log '推送失败' 'Red'
     $script:pendingDeploy = $true
     Set-FeedbackAction '打包推送失败' 'fail'
+    $script:currentView = 'home'
     return $false
   }
   $script:lastDeployId = Get-ContentIdSafe
@@ -1091,6 +1488,7 @@ function Invoke-Deploy {
   $script:contentId = $script:lastDeployId
   Write-Log ("推送完成 id={0}（当前为包内资源；要热更新请按 1）" -f $script:lastDeployId) 'Green'
   Set-FeedbackAction ("打包推送完成 · {0} · 按 1 可开热更新" -f $script:lastDeployId) 'ok'
+  $script:currentView = 'home'
   return $true
 }
 
@@ -1119,9 +1517,10 @@ function Invoke-ClearCacheAndRestart {
 
 function Invoke-WipeAppData {
   Write-Host ''
-  Write-Host '将清除应用全部数据（含本地名单等），确认请输入 y 后回车：' -ForegroundColor Yellow
+  Write-Host '将清除 App 全部数据，包括本地名单等内容。此操作无法恢复。' -ForegroundColor Yellow
+  Write-Host '确认请输入 CLEAR 后回车：' -ForegroundColor Yellow
   $answer = Read-Host
-  if ($answer -ne 'y' -and $answer -ne 'Y') {
+  if ($answer -cne 'CLEAR') {
     Write-Log '已取消清除全部数据' 'DarkYellow'
     Set-FeedbackAction '已取消清除全部数据' 'warn'
     return
@@ -1210,9 +1609,14 @@ function Test-PhoneHealth {
 }
 
 function Start-LiveReloadPreview {
+  $script:progressOperation = 'preview'
+  $script:previewProgressStage = 1
+  $script:previewProgressText = '正在准备网页资源。'
+  $script:currentView = 'progress'
   if (-not $script:appInstalled) {
     Write-Log '尚未安装 App，先按 2 打包安装' 'Yellow'
     Set-FeedbackAction '尚未安装 App，请先按 2' 'warn'
+    $script:currentView = 'home'
     return
   }
   if (-not $script:serverReachable) {
@@ -1228,6 +1632,7 @@ function Start-LiveReloadPreview {
     Update-PhoneRunId
     Write-Log ("热更新已接通 · clients={0}；保存即可刷新" -f $existingClients) 'Green'
     Set-FeedbackAction ("热更新已接通 · clients={0}" -f $existingClients) 'ok'
+    $script:currentView = 'home'
     return
   }
   if ($script:liveReloadProcess -and -not $script:liveReloadProcess.HasExited) {
@@ -1271,6 +1676,7 @@ function Start-LiveReloadPreview {
     [void]$script:lastErrorTail.Add(('无法启动热更新进程：{0}' -f $_.Exception.Message))
     Write-Log '热更新后台进程启动失败' 'Red'
     Set-FeedbackAction '热更新启动失败 · 查看日志' 'fail'
+    $script:currentView = 'home'
     Show-Dashboard
     return
   }
@@ -1285,6 +1691,7 @@ function Start-LiveReloadPreview {
     Update-PhoneRunId
     Write-Log ("热更新已接通 · clients={0}；保持脚本运行，保存即可刷新" -f $wait.Clients) 'Green'
     Set-FeedbackAction ("热更新已接通 · clients={0}" -f $wait.Clients) 'ok'
+    $script:currentView = 'home'
     return
   }
   if ($wait.Reason -eq 'exited') {
@@ -1297,11 +1704,14 @@ function Start-LiveReloadPreview {
     }
     Write-Log '热更新进程异常退出，日志末尾见上；请再按 1 重试' 'Red'
     Set-FeedbackAction '热更新后台进程异常退出 · 请再按 1' 'fail'
+    $script:currentView = 'home'
     Show-Dashboard
     return
   }
   Write-Log '等待超时仍未接通：后台日志长时间无进展且 WebView 未连上。请确认手机与电脑同一 Wi-Fi、App 已安装打开（-Details 可看后台日志）' 'Yellow'
   Set-FeedbackAction '热更新未接通（后台无进展）· 可再按 1' 'warn'
+  $script:currentView = 'home'
+  Show-Dashboard
 }
 
 function Start-Watchers {
@@ -1360,8 +1770,13 @@ try {
   if (-not (Get-Command node -ErrorAction SilentlyContinue)) { throw '未找到 node' }
   if (-not (Get-Command adb -ErrorAction SilentlyContinue)) { throw '未找到 adb' }
 
-  Write-Host '正在连接 adb 设备...' -ForegroundColor Cyan
-  $script:deviceSerial = Resolve-Device $Serial
+  Write-Host '正在检查 adb 设备...' -ForegroundColor Cyan
+  $initialSerial = Resolve-InitialDevice $Serial
+  if (-not $initialSerial) {
+    $script:cleanupLogs = $true
+    return
+  }
+  [void](Set-ActiveDevice $initialSerial)
   $script:lanIp = Get-PreferredLanIp
   $script:lanUrl = 'http://{0}:{1}' -f $script:lanIp, $Port
 
@@ -1379,14 +1794,8 @@ try {
     Write-Log '已指定 -ForceInitialDeploy，执行首次打包' 'Cyan'
   } elseif ($SkipInitialDeploy) {
     Write-Log '已跳过首次推送（-SkipInitialDeploy）' 'DarkYellow'
-  } elseif (-not $script:appInstalled) {
-    $shouldDeploy = $true
-    Write-Log '未安装 App，执行首次打包安装' 'Cyan'
-  } elseif (-not $script:serverReachable) {
-    $shouldDeploy = $true
-    Write-Log '手机暂不可达 LAN，先打包推送保证可用' 'Cyan'
   } else {
-    Write-Log '已安装且 LAN 可达：跳过打包。日常请按 1 热更新' 'Green'
+    Write-Log '启动检查完成，等待选择实时预览或安装当前版本' 'Green'
   }
 
   if ($shouldDeploy) {
@@ -1403,80 +1812,113 @@ try {
     try { $hasKey = [Console]::KeyAvailable } catch { $hasKey = $false }
     if ($hasKey) {
       $key = [Console]::ReadKey($true)
-      $digit = Get-MenuDigit $key
-      switch ($digit) {
+      $command = Get-ConsoleKey $key
+      $exitRequested = $false
+      switch ($command) {
         '0' {
           Set-FeedbackInput '0' '退出'
-          Set-FeedbackAction '正在退出…' 'busy'
           $script:cleanupLogs = $true
-          Show-Dashboard
-          break
+          $exitRequested = $true
         }
-        '1' {
-          Set-FeedbackInput '1' '开启热更新'
-          Set-FeedbackAction '已收到指令 · 准备开启热更新' 'busy'
-          Show-Dashboard
-          Start-LiveReloadPreview
+        'D' {
+          if ($script:currentView -eq 'details') {
+            $script:currentView = 'home'
+            $script:showDetails = $false
+          } else {
+            $script:currentView = 'details'
+            $script:showDetails = $true
+          }
         }
-        '2' {
-          Set-FeedbackInput '2' '打包推送'
-          Set-FeedbackAction '已收到指令 · 准备打包推送' 'busy'
-          Show-Dashboard
-          [void](Invoke-Deploy)
+        'M' {
+          if ($script:currentView -eq 'home') { $script:currentView = 'more' }
         }
-        '3' {
-          Set-FeedbackInput '3' '检测手机连接'
-          Set-FeedbackAction '已收到指令 · 准备检测' 'busy'
-          Show-Dashboard
-          Test-PhoneHealth
+        'W' {
+          if ($script:currentView -eq 'home') {
+            $wirelessSerial = Invoke-WirelessHub
+            if ($wirelessSerial) {
+              [void](Set-ActiveDevice $wirelessSerial)
+              Set-FeedbackAction ("无线设备已连接 · {0}" -f (Get-DeviceDisplayName)) 'ok'
+            }
+            $script:currentView = 'home'
+          }
         }
-        '4' {
-          Set-FeedbackInput '4' '重启 App'
-          Set-FeedbackAction '已收到指令 · 准备重启' 'busy'
-          Show-Dashboard
-          Invoke-RestartApp
-        }
-        '5' {
-          Set-FeedbackInput '5' '刷新指纹'
-          Set-FeedbackAction '已收到指令 · 正在刷新指纹' 'busy'
-          Show-Dashboard
-          Update-ContentStatus
-          Update-PhoneRunId -RefreshPackaged
-          Write-Log ("本地 {0} · 手机运行 {1}" -f $script:contentId, $(if ($script:phoneRunId) { $script:phoneRunId } else { '未知' })) 'Yellow'
-          Set-FeedbackAction ("指纹已刷新 · 本地 {0}" -f $script:contentId) 'ok'
-        }
-        '6' {
-          Set-FeedbackInput '6' '开关自动推送'
-          $script:autoDeploy = -not $script:autoDeploy
-          $autoLabel = if ($script:autoDeploy) { '开（保存后打 APK，较慢）' } else { '关' }
-          Write-Log ("自动打包推送 → {0}" -f $autoLabel) 'Cyan'
-          Set-FeedbackAction ("自动推送已切换为 {0}" -f $autoLabel) 'ok'
-        }
-        '7' {
-          Set-FeedbackInput '7' '清缓存并重开'
-          Set-FeedbackAction '已收到指令 · 准备清缓存' 'busy'
-          Show-Dashboard
-          Invoke-ClearCacheAndRestart
-        }
-        '8' {
-          Set-FeedbackInput '8' '清除全部数据'
-          Set-FeedbackAction '已收到指令 · 等待确认' 'busy'
-          Show-Dashboard
-          Invoke-WipeAppData
-        }
-        '9' {
-          Set-FeedbackInput '9' '仅同步 www'
-          Set-FeedbackAction '已收到指令 · 准备同步 www' 'busy'
-          Show-Dashboard
-          Invoke-SyncWwwOnly
+        'B' {
+          if ($script:currentView -ne 'home') { $script:currentView = 'home' }
         }
         default {
-          $shown = if ($digit) { $digit } elseif ($key.KeyChar) { [string]$key.KeyChar } else { [string]$key.Key }
-          Set-FeedbackInput $shown '未绑定按键'
-          Set-FeedbackAction ("未识别按键 [{0}]，请按下方数字（无需回车）" -f $shown) 'warn'
+          if ($script:currentView -eq 'home') {
+            switch ($command) {
+              '1' {
+                Set-FeedbackInput '1' '开启实时预览'
+                Set-FeedbackAction '正在开启实时预览…' 'busy'
+                $script:progressOperation = 'preview'
+                $script:currentView = 'progress'
+                Show-Dashboard
+                Start-LiveReloadPreview
+              }
+              '2' {
+                Set-FeedbackInput '2' '安装当前版本'
+                Set-FeedbackAction '正在安装当前版本…' 'busy'
+                Clear-Host
+                Write-Host ''
+                Write-Host '此操作会停止实时预览，安装完成后手机使用安装包内的内容。' -ForegroundColor Yellow
+                Write-Host '正在继续…' -ForegroundColor DarkGray
+                Start-Sleep -Milliseconds 700
+                $script:progressOperation = 'deploy'
+                $script:currentView = 'progress'
+                Show-Dashboard
+                [void](Invoke-Deploy)
+              }
+              '3' {
+                Set-FeedbackInput '3' '重新检测'
+                Set-FeedbackAction '正在重新检测…' 'busy'
+                Show-Dashboard
+                Test-PhoneHealth
+              }
+            }
+          } elseif ($script:currentView -eq 'more') {
+            switch ($command) {
+              '4' {
+                Set-FeedbackInput '4' '重新打开 App'
+                Set-FeedbackAction '正在重新打开 App…' 'busy'
+                $script:currentView = 'home'
+                Show-Dashboard
+                Invoke-RestartApp
+              }
+              '6' {
+                Set-FeedbackInput '6' '开关自动安装 APK'
+                $script:autoDeploy = -not $script:autoDeploy
+                $autoLabel = if ($script:autoDeploy) { '开（保存后自动安装 APK）' } else { '关' }
+                Write-Log ("保存后自动安装 APK → {0}" -f $autoLabel) 'Cyan'
+                Set-FeedbackAction ("保存后自动安装 APK 已切换为 {0}" -f $autoLabel) 'ok'
+              }
+              '7' {
+                Set-FeedbackInput '7' '清理缓存并重新打开'
+                Set-FeedbackAction '正在清理缓存…' 'busy'
+                $script:currentView = 'home'
+                Show-Dashboard
+                Invoke-ClearCacheAndRestart
+              }
+              '8' {
+                Set-FeedbackInput '8' '清除 App 全部数据'
+                Set-FeedbackAction '等待输入 CLEAR 确认…' 'busy'
+                $script:currentView = 'home'
+                Show-Dashboard
+                Invoke-WipeAppData
+              }
+              '9' {
+                Set-FeedbackInput '9' '仅生成电脑上的 www'
+                Set-FeedbackAction '正在生成电脑上的 www…' 'busy'
+                $script:currentView = 'home'
+                Show-Dashboard
+                Invoke-SyncWwwOnly
+              }
+            }
+          }
         }
       }
-      if ($digit -eq '0') { break }
+      if ($script:exitAfterOperation) { $exitRequested = $true }
+      if ($exitRequested) { break }
       Show-Dashboard
     }
 
