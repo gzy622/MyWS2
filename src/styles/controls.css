@@ -65,9 +65,9 @@
 .menu-drawer-section > h2,
 .menu-drawer-section > h3 { margin: 0 2px 8px; color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1.4; }
 .menu-drawer-action-list { overflow: hidden; border-radius: var(--radius-card); background: var(--card); box-shadow: var(--shadow-card); }
-.menu-item { width: 100%; min-height: 68px; padding: 10px 12px; border: 0; background: transparent; color: var(--ink); display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 11px; text-align: left; cursor: pointer; transition: background-color 120ms var(--ease), transform 100ms var(--ease); }
+.menu-item { width: 100%; min-height: 68px; padding: 10px 12px; border: 0; background: transparent; color: var(--ink); display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 11px; text-align: left; cursor: pointer; transition: background-color 120ms var(--ease); }
 .menu-item + .menu-item { border-top: .5px solid var(--line); }
-.menu-item:active { background: var(--control); transform: translateY(1px); }
+.menu-item:active { background: var(--control); transition: none; }
 .menu-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; background: var(--card); color: var(--muted); box-shadow: var(--shadow-card); }
 .menu-item--theme .menu-icon { color: var(--teal); }
 .menu-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
