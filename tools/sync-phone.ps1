@@ -969,6 +969,10 @@ function Get-ConsoleKey([System.ConsoleKeyInfo]$KeyInfo) {
 }
 
 function Write-TuiHeader([string]$Title, [string]$Meta = '') {
+  # Recalculate before clearing the screen so every rendered view shows the
+  # latest source fingerprint without leaving a blank frame while Node runs.
+  Update-ContentStatus
+  $localFingerprint = if ($script:contentId) { $script:contentId } else { '未知' }
   Clear-Host
   $script:dashboardShown = $true
   Write-Host ''
@@ -980,6 +984,8 @@ function Write-TuiHeader([string]$Title, [string]$Meta = '') {
   }
   Write-Host ('  {0}' -f $script:tuiRule) -ForegroundColor DarkGray
   Write-Host ('  {0}' -f $Title) -ForegroundColor White
+  Write-Host '  本地内容指纹  ' -NoNewline -ForegroundColor DarkGray
+  Write-Host $localFingerprint -ForegroundColor $(if ($script:contentId) { 'Cyan' } else { 'DarkGray' })
   Write-Host ''
 }
 
@@ -1893,6 +1899,7 @@ try {
   if (-not (Get-Command node -ErrorAction SilentlyContinue)) { throw '未找到 node' }
   if (-not (Get-Command adb -ErrorAction SilentlyContinue)) { throw '未找到 adb' }
 
+  Update-ContentStatus
   Write-Host '正在检查 adb 设备...' -ForegroundColor Cyan
   $initialSerial = Resolve-InitialDevice $Serial
   if (-not $initialSerial) {
@@ -1905,7 +1912,6 @@ try {
 
   Write-Host '正在准备环境...' -ForegroundColor Cyan
   Start-LanServerIfNeeded
-  Update-ContentStatus
   $script:lastChangeAt = Get-Date
   Start-Watchers
   $script:appInstalled = Test-AppInstalled
