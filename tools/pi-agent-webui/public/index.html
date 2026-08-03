@@ -1,0 +1,42 @@
+<!-- Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 -->
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="color-scheme" content="light dark">
+    <title>Pi 子智能体</title>
+    <link rel="stylesheet" href="/tokens.css">
+    <link rel="stylesheet" href="/app.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <h1>Pi 子智能体</h1>
+          <p class="page-note">由 Codex 分派任务，此页面只显示进度。</p>
+          <p id="overall-status" class="overall-status" aria-live="polite">正在连接…</p>
+        </div>
+        <span class="connection-dot" aria-hidden="true"></span>
+      </header>
+
+      <section class="agent-section" aria-labelledby="agent-list-title">
+        <div class="section-heading">
+          <h2 id="agent-list-title">子智能体状态</h2>
+          <p id="agent-count">0 项</p>
+        </div>
+        <div id="agent-list" class="agent-list"></div>
+      </section>
+
+    </main>
+
+    <template id="empty-template">
+      <div class="empty-state">
+        <strong>正在等待任务</strong>
+        <p>当 Codex 派出 Pi 子智能体后，会在这里显示。</p>
+      </div>
+    </template>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

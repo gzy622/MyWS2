@@ -1,0 +1,89 @@
+/* Hallmark · macrostructure: Workbench Stack · genre: modern-minimal · theme: OriginOS tokens · enrichment: none · nav: none · footer: none */
+:root {
+  --color-paper: oklch(96.5% 0.006 255);
+  --color-card: oklch(99.2% 0.003 255);
+  --color-card-hover: oklch(97.7% 0.006 255);
+  --color-control: oklch(93.5% 0.007 255);
+  --color-line: oklch(88.5% 0.008 255);
+  --color-ink: oklch(18% 0.012 255);
+  --color-muted: oklch(43% 0.012 255);
+  --color-faint: oklch(48% 0.01 255);
+  --color-focus: oklch(43% 0.18 255);
+  --color-running: oklch(43% 0.18 255);
+  --color-running-soft: oklch(94% 0.025 255);
+  --color-success: oklch(42% 0.12 165);
+  --color-success-soft: oklch(95% 0.025 165);
+  --color-danger: oklch(44% 0.18 28);
+  --color-danger-soft: oklch(95% 0.025 28);
+  --color-warning: oklch(62% 0.14 75);
+  --color-avatar-1: oklch(90% 0.045 255);
+  --color-avatar-2: oklch(88% 0.035 235);
+  --color-avatar-3: oklch(92% 0.05 270);
+  --color-avatar-4: oklch(89% 0.03 215);
+  --color-avatar-5: oklch(91% 0.035 290);
+  --color-avatar-6: oklch(93% 0.025 250);
+  --color-accent: oklch(24% 0.014 255);
+  --color-accent-ink: oklch(97% 0.006 255);
+  --color-shadow: oklch(20% 0.015 255 / 0.08);
+
+  --font-display: "Microsoft YaHei UI", "Noto Sans CJK SC", system-ui, sans-serif;
+  --font-body: "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+
+  --space-3xs: 0.125rem;
+  --space-2xs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
+  --space-2xl: 4rem;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-md: 1.25rem;
+  --text-lg: 1.5625rem;
+  --text-xl: 1.953rem;
+
+  --radius-control: 0.75rem;
+  --radius-card: 1rem;
+  --radius-shell: 1.5rem;
+  --rule-thin: 1px;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --dur-long: 420ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-paper: oklch(15% 0.01 255);
+    --color-card: oklch(20% 0.012 255);
+    --color-card-hover: oklch(23% 0.014 255);
+    --color-control: oklch(25% 0.014 255);
+    --color-line: oklch(32% 0.014 255);
+    --color-ink: oklch(94% 0.008 255);
+    --color-muted: oklch(74% 0.01 255);
+    --color-faint: oklch(62% 0.012 255);
+    --color-focus: oklch(72% 0.14 255);
+    --color-running: oklch(72% 0.14 255);
+    --color-running-soft: oklch(28% 0.04 255);
+    --color-success: oklch(72% 0.11 165);
+    --color-success-soft: oklch(27% 0.035 165);
+    --color-danger: oklch(70% 0.16 28);
+    --color-danger-soft: oklch(28% 0.045 28);
+    --color-warning: oklch(76% 0.12 75);
+    --color-avatar-1: oklch(31% 0.055 255);
+    --color-avatar-2: oklch(30% 0.045 235);
+    --color-avatar-3: oklch(33% 0.06 270);
+    --color-avatar-4: oklch(30% 0.04 215);
+    --color-avatar-5: oklch(32% 0.045 290);
+    --color-avatar-6: oklch(34% 0.035 250);
+    --color-accent: oklch(92% 0.01 255);
+    --color-accent-ink: oklch(17% 0.012 255);
+    --color-shadow: oklch(5% 0.01 255 / 0.25);
+  }
+}

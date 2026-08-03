@@ -5,6 +5,7 @@
   "private": true,
   "description": "Optional Capacitor Android packaging for the teacher workbench demo",
   "scripts": {
+    "pi:webui": "node ./tools/pi-agent-webui/server.mjs",
     "verify:web": "pwsh -NoProfile -File ./tools/verify-web.ps1",
     "sync:www": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tools/sync-web-assets.ps1",
     "sync:android": "npm run sync:www && npx cap sync android",
