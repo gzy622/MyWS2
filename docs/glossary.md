@@ -113,6 +113,7 @@
 | Web 源码 | `src/` 下唯一应手工修改的 HTML、CSS 和浏览器脚本。 |
 | 浏览器模块 | `src/scripts/*.js` 中由页面直接或间接加载的 ES Module。 |
 | 工具脚本 | `tools/` 下只在开发、同步或交付时运行的 Node/PowerShell 文件。 |
+| Pi 子智能体 WebUI | 只在本机运行的只读状态界面，用卡片展示由 Codex 分派的 Luna、DeepSeek Flash 等 Pi 子智能体及其头像、名称、模型、思考等级、任务和已工作时间；不属于教师工作台产品页面。 |
 | 生成资源 | `www/` 和 `dist/` 下可由工具重建的文件。 |
 | 零构建启动 | 直接运行 `node lan-server.js`，无需先转换 `src/`。 |
 | 内容指纹 | 对全部 Web 源码计算 SHA-256 后，将开头 50 位编码为 10 个 Crockford Base32 字符，并按 `XXXX-XXXX-XX` 分组的摘要。 |

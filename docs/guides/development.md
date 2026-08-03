@@ -33,6 +33,31 @@ $env:DISABLE_LIVE_RELOAD = '1'
 node lan-server.js
 ```
 
+### Pi 子智能体 WebUI
+
+双击根目录的 `start-pi-agent-webui.bat`，或运行：
+
+```powershell
+npm run pi:webui
+```
+
+访问 <http://127.0.0.1:4312>。页面只显示由 Codex 分派的 Pi 子智能体。每项任务使用一张状态卡片，左侧显示稳定生成的头像和名称，右侧显示模型、思考等级、任务、状态、当前动作和最终结果，右上角显示已工作时间。关闭启动窗口会停止 WebUI 及由它启动的子智能体。
+
+Codex 使用本机控制命令分派任务。任务正文优先从标准输入传入，避免长文本转义问题：
+
+```powershell
+@'
+只读取 package.json，说明项目名称。
+'@ | node tools/pi-agent-webui/control.mjs start --model luna --title "确认项目名称"
+
+node tools/pi-agent-webui/control.mjs list
+node tools/pi-agent-webui/control.mjs stop <任务ID>
+```
+
+`--model` 可选 `luna` 或 `flash`。状态服务尚未启动时，控制命令会说明启动方式。浏览器请求不能调用分派或停止接口。
+
+该工具要求本机已安装并登录 Pi Coding Agent；默认允许子智能体在当前工作区内读写，并开放 Shell 运行任务所需的本地检查。路径检查扩展会阻止文件工具访问工作区外位置，以及对 `.git`、`node_modules`、`www` 和 `dist` 的直接写入。Shell 默认从仓库根目录启动；任意 Shell 命令具备访问工作区外位置的能力，任务说明要求子智能体只处理当前工作区，并禁止大量删除、升级依赖、提交或推送 Git。它不进入教师工作台的 `src/`、内容指纹、单文件导出或 Android 同步流程。
+
 ## 2. 测试与静态检查
 
 ```powershell
@@ -50,6 +75,11 @@ node --test tests/workbook-transfer.test.mjs tests/csv-transfer.test.mjs tests/b
 Get-ChildItem src/scripts/*.js | ForEach-Object { node --check $_.FullName }
 node --check lan-server.js
 node --check tools/content-id.cjs
+node --check tools/pi-agent-webui/server.mjs
+node --check tools/pi-agent-webui/agent-manager.mjs
+node --check tools/pi-agent-webui/control.mjs
+node --check tools/pi-agent-webui/public/app.js
+node --test tests/pi-agent-webui.test.mjs
 
 # Git 空白错误
 git diff --check

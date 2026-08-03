@@ -95,6 +95,7 @@
 | 单文件导出 | `tools/build-single-html.ps1` |
 | Web 资源同步 | `tools/sync-web-assets.ps1` |
 | Android 预览、部署、手机同步 | `tools/preview-native.ps1`、`tools/deploy-apk.ps1`、`tools/sync-phone.ps1`、`tools/live-reload-connections.js` |
+| Pi 子智能体 WebUI | `tools/pi-agent-webui/`、`tests/pi-agent-webui.test.mjs` |
 
 不得为了“小改动方便”把 CSS 或 JS 塞回 `src/index.html`。只有出现清晰、独立且可测试的职责时才新建模块。
 
@@ -232,6 +233,7 @@
 - `tools/build-single-html.ps1` 默认从 `src/index.html` 生成 `dist/teacher-workbench.single.html`。
 - `lan-server.js` 的 `POST /__rec` 接收 App 调试录制文本并保存到 `.debug-rec/`（git 忽略）；该目录是运行期调试产物，不属于 Web 源码或生成物，`www/`、`dist/` 重建不涉及它。
 - `tools/live-reload-connections.js` 记录 LAN 服务当前 Live Reload 客户端数与累计连接序号，手机同步控制台用序号区分启动前已有连接和本次新连接。
+- `tools/pi-agent-webui/` 是独立的本机开发工具，使用 Node 内置 HTTP 服务与 Pi JSON 事件管理子智能体；Codex 通过 `control.mjs` 分派和停止任务，浏览器页面只读；服务只监听 `127.0.0.1`，不进入教师工作台浏览器模块、内容指纹、`www/` 或 `dist/`。
 - 源码、文档与配置文本默认保持 UTF-8 无 BOM + LF；根目录 `.bat` 必须保持纯 ASCII + CRLF，`tools/*.ps1` 保持 UTF-8 BOM + CRLF。
 - `.editorconfig` 统一编辑器写入格式，`.gitattributes` 统一 Git 检出换行并阻止二进制规范化；新增文本类型时必须同步评估两者。
 - 生成文件不得纳入日常源码评审；如需验证，重建后检查结果而非手工补丁。

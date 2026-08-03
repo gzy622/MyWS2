@@ -1,0 +1,13 @@
+{
+  "scannedAt": "2026-08-03",
+  "framework": "原生 HTML、CSS 与 JavaScript ES Modules",
+  "fontStack": "本机中文系统无衬线字体",
+  "palette": "design.md 锁定的冷灰纸面、白色内容面、蓝色定位与红色危险操作",
+  "motion": "克制的状态过渡，并支持 prefers-reduced-motion",
+  "spacing": "4pt 语义间距",
+  "preserve": [
+    "零 Web 运行时依赖",
+    "现有设计语义 token",
+    "工具与产品源码分离"
+  ]
+}

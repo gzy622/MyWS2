@@ -53,6 +53,20 @@ src/ ── tools/sync-web-assets.ps1 ──> www/
 www/ ── Capacitor sync ──> android/ ── Gradle ──> APK
 ```
 
+### Pi 子智能体 WebUI
+
+```text
+start-pi-agent-webui.bat / npm run pi:webui
+  └─ tools/pi-agent-webui/server.mjs（127.0.0.1:4312）
+       ├─ /                    → 只读状态界面
+       ├─ /api/agents          → 读取任务
+       ├─ /api/events          → SSE 状态更新
+       ├─ /api/control/*       ← control.mjs（Codex 本机控制命令）
+       └─ Pi JSON 子进程       → Luna / DeepSeek Flash
+```
+
+Codex 通过 `control.mjs` 分派和停止 Pi 子智能体，浏览器页面只订阅并显示状态，不提供控制入口。管理器为每项任务生成稳定的名称和头像编号，并随模型、思考等级、任务与时间信息一同发送给页面。控制接口拒绝带浏览器 Origin 的请求，并要求本机控制请求头。该工具只监听 `127.0.0.1`，工作目录固定为仓库根目录。Pi 路径检查扩展只允许文件工具访问工作区内位置，并阻止直接修改 Git 元数据、依赖和生成资源；Pi 同时开放从仓库根目录启动的 Shell，Shell 命令不受文件路径检查扩展控制。它与 `src/` 产品页面、LAN 服务、Android 通道和生成资源相互独立；关闭服务时同步停止由其启动的 Pi 进程树。
+
 Capacitor 依赖只用于原生壳。浏览器代码通过 `globalThis.Capacitor` 做可选桥接，不静态导入 npm 包。
 
 ## 4. 状态边界

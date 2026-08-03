@@ -1,5 +1,30 @@
 [
   {
+    "date": "2026-08-03",
+    "macrostructure": "Workbench Stack",
+    "theme": "OriginOS tokens",
+    "enrichment": "none",
+    "brief": "Pi 子智能体只读状态 WebUI",
+    "scope": "app",
+    "medium": "tool-webui",
+    "tone": "utilitarian",
+    "genre": "modern-minimal",
+    "nav": "none",
+    "footer": "none"
+  },
+  {
+    "date": "2026-08-03",
+    "macrostructure": "Workbench Stack",
+    "theme": "OriginOS tokens",
+    "enrichment": "none",
+    "brief": "Pi 子智能体极简状态 WebUI",
+    "medium": "tool-webui",
+    "tone": "utilitarian",
+    "genre": "modern-minimal",
+    "nav": "none",
+    "footer": "none"
+  },
+  {
     "date": "2026-07-25",
     "macrostructure": "Almanac soft-mosaic",
     "theme": "OriginOS tokens",
