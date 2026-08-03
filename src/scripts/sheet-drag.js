@@ -266,7 +266,10 @@ export function createSheetController({
 
   /** Promote only the active panel/scrim, then release the GPU layers after settling. */
   function promoteCompositorLayers({ autoRelease = true } = {}) {
-    clearCompositorHints();
+    if (compositorHintTimer) {
+      window.clearTimeout(compositorHintTimer);
+      compositorHintTimer = 0;
+    }
     panel.classList.add('sheet-compositing');
     layer?.classList.add('sheet-scrim-compositing');
     scrimElement?.classList.add('sheet-scrim-compositing');
@@ -570,8 +573,9 @@ export function createSheetController({
     const generation = ++settleGeneration;
 
     flushDragPaint();
-    // Keep the same compositor layers alive while drag hands off to CSS settle.
-    promoteCompositorLayers();
+    // An opened Sheet keeps its panel/scrim layers until it closes. Rebuilding
+    // them at the start of a later close can repaint a large transformed page.
+    promoteCompositorLayers({ autoRelease: !shouldOpen });
     dragging = false;
     settling = true;
     setDraggingClass(false);
@@ -612,9 +616,10 @@ export function createSheetController({
       }
       settleFinish = null;
       settling = false;
-      clearCompositorHints();
       if (!shouldOpen) {
         progress = 0;
+        // Hide first; the settle release timer removes compositor hints only
+        // after the Sheet is no longer visible.
         leavePresented();
         return;
       }
@@ -714,8 +719,8 @@ export function createSheetController({
     cancelDragRaf();
     dragging = false;
     openSource = 'control';
-    // Add the compositor hint before the state change without forcing layout.
-    promoteCompositorLayers();
+    // A visible Sheet retains these two lightweight layers through later close gestures.
+    promoteCompositorLayers({ autoRelease: false });
     enterPresented({ source: 'control' });
     progress = 1;
     paintedProgress = NaN;

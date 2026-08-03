@@ -442,6 +442,7 @@
   cursor: grab;
   touch-action: none;
   user-select: none;
+  contain: layout paint;
 }
 
 .seat-viewport.is-panning {
@@ -529,7 +530,6 @@
   font-weight: 500;
   line-height: 1;
   touch-action: none;
-  will-change: transform;
 }
 
 .seat-name {
@@ -629,6 +629,8 @@
   border-radius: 10px;
   box-shadow: var(--shadow-drag);
   transition: none;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .seat-card.is-letter-hit {
