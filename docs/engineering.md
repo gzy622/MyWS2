@@ -227,7 +227,7 @@
 ## 7. 工具与生成文件
 
 - `tools/sync-web-assets.ps1` 只复制 `src/index.html`、`src/styles/` 和 `src/scripts/` 到 `www/`。
-- `tools/content-id.cjs` 只对上述 Web 源码计算指纹。
+- `tools/content-id.cjs` 只对上述 Web 源码计算指纹；结果使用 `XXXX-XXXX-XX` 格式的 Crockford Base32，排除易混淆的 `I`、`L`、`O`、`U`。
 - `tools/verify-web.ps1` 使用本机 PowerShell 7、Node.js 与 Microsoft Edge，通过临时 LAN 服务和 CDP 模拟 320px、390px、430px 视口，并检查 DOM、控制台、成绩表横拖、幽灵点击和 Sheet 合成层生命周期；不引入第三方依赖，不写入 Web 源码或业务存储。
 - `tools/build-single-html.ps1` 默认从 `src/index.html` 生成 `dist/teacher-workbench.single.html`。
 - `lan-server.js` 的 `POST /__rec` 接收 App 调试录制文本并保存到 `.debug-rec/`（git 忽略）；该目录是运行期调试产物，不属于 Web 源码或生成物，`www/`、`dist/` 重建不涉及它。

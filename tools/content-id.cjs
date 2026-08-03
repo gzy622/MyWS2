@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT_ENTRIES = ['src/index.html', 'src/styles', 'src/scripts'];
+const CROCKFORD_BASE32 = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 
 function shouldSkipName(name) {
   return name === 'build-id.json'
@@ -35,6 +36,25 @@ function collectFiles(root) {
   return files.sort();
 }
 
+function formatContentId(digest) {
+  let value = 0;
+  let bitCount = 0;
+  let compact = '';
+
+  for (const byte of digest) {
+    value = (value << 8) | byte;
+    bitCount += 8;
+    while (bitCount >= 5 && compact.length < 10) {
+      bitCount -= 5;
+      compact += CROCKFORD_BASE32[(value >>> bitCount) & 31];
+    }
+    if (compact.length >= 10) break;
+    value &= (1 << bitCount) - 1;
+  }
+
+  return `${compact.slice(0, 4)}-${compact.slice(4, 8)}-${compact.slice(8, 10)}`;
+}
+
 function computeContentId(root = process.cwd()) {
   const hash = crypto.createHash('sha256');
   for (const rel of collectFiles(root)) {
@@ -43,7 +63,7 @@ function computeContentId(root = process.cwd()) {
     hash.update(fs.readFileSync(path.join(root, rel)));
     hash.update('\0');
   }
-  return hash.digest('hex').slice(0, 12);
+  return formatContentId(hash.digest());
 }
 
 if (require.main === module) {
@@ -51,4 +71,4 @@ if (require.main === module) {
   process.stdout.write(`${computeContentId(root)}\n`);
 }
 
-module.exports = { computeContentId, collectFiles };
+module.exports = { computeContentId, collectFiles, formatContentId };

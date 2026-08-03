@@ -120,7 +120,7 @@ XLSX 导入导出由 `src/scripts/workbook-transfer.js` 实现，底层 Office O
 npm run code:id
 ```
 
-内容指纹只覆盖 `src/index.html`、`src/styles/` 和 `src/scripts/`，用于对比电脑源码、LAN 服务和 APK 内 Web 资源是否一致。
+内容指纹只覆盖 `src/index.html`、`src/styles/` 和 `src/scripts/`，用于对比电脑源码、LAN 服务和 APK 内 Web 资源是否一致。指纹采用 `XXXX-XXXX-XX` 格式的 Crockford Base32，例如 `3W4P-JE5E-Z0`；底层取 SHA-256 开头 50 位，字符排除易混淆的 `I`、`L`、`O`、`U`。已有 APK 中的旧十六进制指纹不会自动变化，重新安装当前版本后会写入新格式。
 
 打开设置页即可在右下角看到当前内容指纹及生成时间（UTC+8，精确到秒）；「更多」底部 Sheet 底部同样显示当前内容指纹。长按左上角设置、连续点击设置 3 次，或使用 `?sheetDebug=1` 可开启按需诊断：调试条会保留最近 120 条手势边界、Sheet 落位与计算动效、登记业务结果，以及未捕获异常；手势边界日志含 `sessionId`、`owner`、`activationSource`、`clearReason`，不记录逐帧触摸、姓名、分数值或输入原文。调试开启时控制台只输出以 `[twb-debug]` 开头的单行 JSON，方便过滤；`?courseDebug=1` 保持兼容但启用同一套诊断。`origin` 为局域网地址时使用 Live Reload；原生 `https://localhost` 一类地址通常表示使用 APK 内资源。
 

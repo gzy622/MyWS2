@@ -115,7 +115,7 @@
 | 工具脚本 | `tools/` 下只在开发、同步或交付时运行的 Node/PowerShell 文件。 |
 | 生成资源 | `www/` 和 `dist/` 下可由工具重建的文件。 |
 | 零构建启动 | 直接运行 `node lan-server.js`，无需先转换 `src/`。 |
-| 内容指纹 | 对全部 Web 源码计算的 12 位 SHA-256 摘要。 |
+| 内容指纹 | 对全部 Web 源码计算 SHA-256 后，将开头 50 位编码为 10 个 Crockford Base32 字符，并按 `XXXX-XXXX-XX` 分组的摘要。 |
 | Live Reload | LAN 服务通过 SSE 通知已连接 WebView 刷新的开发机制。 |
 | 原生壳 | Capacitor Android 容器；不改变 Web 业务架构。 |
 | 业务 Schema | `teacher-workbench.roster.v1` 中数据对象的结构版本；当前为 4。 |
