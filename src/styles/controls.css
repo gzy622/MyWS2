@@ -396,9 +396,42 @@
 .more-menu-panel.dragging { transition: none; will-change: transform; backface-visibility: hidden; }
 .more-menu-head { margin-bottom: 14px; }
 .more-actions { display: grid; gap: 10px; }
+.more-shortcuts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.more-shortcut {
+  min-width: 0;
+  min-height: 96px;
+  padding: 12px;
+  border: 0;
+  border-radius: var(--radius-card);
+  background: var(--paper);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+  text-align: left;
+  cursor: pointer;
+}
+.more-shortcut-icon {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-control);
+  background: var(--control);
+  color: var(--ink-soft);
+  display: grid;
+  place-items: center;
+}
+.more-shortcut-icon svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.more-shortcut-copy { min-width: 0; display: grid; gap: 3px; }
+.more-shortcut-copy b, .more-shortcut-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.more-shortcut-copy b { font-size: 14px; line-height: 1.2; }
+.more-shortcut-copy small { color: var(--muted); font-size: 11px; line-height: 1.2; }
+.more-shortcut[aria-pressed="true"] .more-shortcut-icon { background: var(--action-primary); color: var(--action-primary-text); }
 .more-action-group { overflow: hidden; border-radius: var(--radius-card); background: var(--paper); }
 .more-action-group[hidden] { display: none; }
-.more-actions button {
+.more-action-group button {
   position: relative;
   width: 100%;
   min-height: 50px;
@@ -413,7 +446,7 @@
   line-height: 1.25;
   cursor: pointer;
 }
-.more-actions button + button::before {
+.more-action-group button + button::before {
   content: "";
   position: absolute;
   top: 0;
@@ -423,8 +456,19 @@
   background: var(--line);
 }
 .more-action-group--danger button { color: var(--accent-text); }
+.more-action-group--danger { position: sticky; bottom: 0; z-index: 1; }
+.more-toggle-action { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.more-toggle-action .theme-switch { flex: 0 0 40px; }
+.more-toggle-action[aria-pressed="true"] .theme-switch { background: var(--teal); }
+.more-toggle-action[aria-pressed="true"] .theme-switch span { transform: translateX(18px); }
 .more-actions button:active { background: color-mix(in srgb, var(--control) 70%, transparent); }
-.more-actions button[aria-pressed="true"] { color: var(--teal); }
+.more-shortcut:active { transform: translateY(1px); }
+.more-action-group button[aria-pressed="true"]:not(.more-toggle-action) { color: var(--teal); }
+.more-actions button:disabled { color: var(--muted); opacity: .55; cursor: not-allowed; }
+
+@media (prefers-reduced-motion: reduce) {
+  .more-shortcut:active { transform: none; }
+}
 
 .confirm-sheet {
   position: absolute;

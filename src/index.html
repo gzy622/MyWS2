@@ -180,22 +180,28 @@
             <button type="button" class="sheet-close" id="closeMoreMenu" aria-label="关闭更多操作">×</button>
           </div>
           <div class="more-actions">
-            <section class="more-action-group more-action-group--primary" data-more-group="primary" aria-label="主操作">
+            <section class="more-shortcuts" data-more-group="shortcuts" aria-label="快捷操作">
+              <button type="button" class="more-shortcut" data-more-action="toggle-theme" aria-pressed="false">
+                <span class="more-shortcut-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" /><circle cx="12" cy="12" r="4" /></svg></span>
+                <span class="more-shortcut-copy"><b>深浅色切换</b><small>当前为<span data-more-theme-value>浅色</span></small></span>
+              </button>
+              <button type="button" class="more-shortcut" data-more-action="open-settings">
+                <span class="more-shortcut-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h3m4 0h9M4 17h9m4 0h3" /><circle cx="9" cy="7" r="2" /><circle cx="15" cy="17" r="2" /></svg></span>
+                <span class="more-shortcut-copy"><b>打开设置</b><small>全部设置项</small></span>
+              </button>
+            </section>
+            <section class="more-action-group more-action-group--context" data-more-group="context" aria-label="当前子页面操作">
               <button type="button" data-more-action="register-view">切换至座位视图</button>
               <button type="button" data-more-action="create-assignment">新建作业</button>
               <button type="button" data-more-action="add-role">新增班干</button>
               <button type="button" data-more-action="add-duty">新增值日</button>
               <button type="button" data-more-action="add-subject">新增科目</button>
               <button type="button" data-more-action="add-exam">新增考试</button>
-            </section>
-            <section class="more-action-group" data-more-group="standard" aria-label="其他操作">
-              <button type="button" data-more-action="quick-score" aria-pressed="false">快速打分</button>
+              <button type="button" class="more-toggle-action" data-more-action="quick-score" aria-pressed="false"><span>快速打分</span><span class="theme-switch" aria-hidden="true"><span></span></span></button>
               <button type="button" data-more-action="font-size">调整姓名字号</button>
               <button type="button" data-more-action="seat-edit" aria-pressed="false">编辑座位表</button>
-              <button type="button" data-more-action="seat-reset">复位座位视图</button>
               <button type="button" data-more-action="highlight-subjects">高亮科目</button>
               <button type="button" data-more-action="grade-stats">成绩统计</button>
-              <button type="button" data-more-action="open-settings">打开设置</button>
             </section>
             <section class="more-action-group more-action-group--danger" data-more-group="danger" aria-label="危险操作">
               <button type="button" data-more-action="clear-assignment">清除当前作业</button>

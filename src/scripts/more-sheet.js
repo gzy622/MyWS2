@@ -16,16 +16,16 @@ const DUTY_SUBVIEW_INDEX = 1;
 const SCHEDULE_SUBVIEW_INDEX = 0;
 const GRADES_SUBVIEW_INDEX = 1;
 
-const REGISTER_ACTIONS = new Set(['register-view', 'create-assignment', 'clear-assignment', 'quick-score', 'font-size', 'seat-edit', 'seat-reset']);
+const REGISTER_ACTIONS = new Set(['register-view', 'create-assignment', 'clear-assignment', 'quick-score', 'font-size', 'seat-edit']);
 const PEOPLE_ROLE_ACTIONS = new Set(['add-role', 'clear-roles']);
 const PEOPLE_DUTY_ACTIONS = new Set(['add-duty', 'clear-duties']);
 const PEOPLE_ACTIONS = new Set([...PEOPLE_ROLE_ACTIONS, ...PEOPLE_DUTY_ACTIONS]);
 const COURSES_SCHEDULE_ACTIONS = new Set(['clear-schedule', 'highlight-subjects']);
 const COURSES_GRADES_ACTIONS = new Set(['add-subject', 'add-exam', 'grade-stats', 'clear-grades']);
 const COURSES_ACTIONS = new Set([...COURSES_SCHEDULE_ACTIONS, ...COURSES_GRADES_ACTIONS]);
-const GLOBAL_ACTIONS = new Set(['open-settings']);
+const GLOBAL_ACTIONS = new Set(['toggle-theme', 'open-settings']);
 
-export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOthers, highlightSubjects, openCreateAssignment, openCreateExam, openGradeStats, onQuickScoreChange }) {
+export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, closeOthers, highlightSubjects, openCreateAssignment, openCreateExam, openGradeStats, onQuickScoreChange }) {
   let trigger = null;
   let confirmAction = null;
   let confirmReturnFocus = null;
@@ -109,6 +109,12 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
     const isDuties = state.subviews[PEOPLE_PAGE_INDEX] === DUTY_SUBVIEW_INDEX;
     const isSchedule = state.subviews[COURSES_PAGE_INDEX] === SCHEDULE_SUBVIEW_INDEX;
     const isGrades = state.subviews[COURSES_PAGE_INDEX] === GRADES_SUBVIEW_INDEX;
+    const isDark = theme?.get() === 'dark';
+    const themeButton = elements.moreMenu.querySelector('[data-more-action="toggle-theme"]');
+    const themeValue = themeButton?.querySelector('[data-more-theme-value]');
+    themeButton?.setAttribute('aria-pressed', String(isDark));
+    themeButton?.setAttribute('aria-label', isDark ? '切换到浅色模式' : '切换到深色模式');
+    if (themeValue) themeValue.textContent = isDark ? '深色' : '浅色';
     for (const button of elements.moreActions) {
       const action = button.dataset.moreAction;
       let hidden = false;
@@ -116,7 +122,7 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
         hidden = false;
       } else if (REGISTER_ACTIONS.has(action)) {
         hidden = !onRegister
-          || ((action === 'seat-edit' || action === 'seat-reset') && !isSeats);
+          || (action === 'seat-edit' && !isSeats);
       } else if (PEOPLE_ACTIONS.has(action)) {
         hidden = !onPeople
           || (PEOPLE_ROLE_ACTIONS.has(action) && !isRoles)
@@ -134,7 +140,6 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
       }
       if (action === 'quick-score') {
         button.setAttribute('aria-pressed', String(state.quickScoreMode));
-        button.textContent = state.quickScoreMode ? '退出快速打分' : '快速打分';
       }
       if (action === 'seat-edit') {
         button.setAttribute('aria-pressed', String(state.seatEditing));
@@ -205,6 +210,12 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
   elements.moreActions.forEach((button) => button.addEventListener('click', (event) => {
     event.stopPropagation();
     const action = button.dataset.moreAction;
+    if (action === 'toggle-theme') {
+      const nextTheme = theme?.toggle();
+      render();
+      showToast(nextTheme === 'dark' ? '已切换到深色模式' : '已切换到浅色模式');
+      return;
+    }
     if (action === 'open-settings') {
       close({ restoreFocus: false });
       openDrawer({ returnFocus: elements.moreButton });
@@ -243,6 +254,7 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
       setQuickScoreMode(!state.quickScoreMode);
       onQuickScoreChange?.();
       syncQuickScoreModeHint();
+      render();
       close();
       showToast(state.quickScoreMode ? '已进入快速打分' : '已退出快速打分');
       return;
@@ -251,12 +263,6 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, closeOth
       seatCanvas.setEditing(!state.seatEditing);
       close();
       showToast(state.seatEditing ? '已进入座位编辑模式' : '已退出座位编辑模式');
-      return;
-    }
-    if (action === 'seat-reset') {
-      seatCanvas.reset();
-      close();
-      showToast('座位视图已复位');
       return;
     }
     if (action === 'add-role') {
