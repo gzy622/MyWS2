@@ -44,6 +44,16 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
   let resizeFrame;
   let pendingResizeConstraint = false;
   let keyboardSelection = null;
+  let pendingRecordTimer;
+
+  function openStudentRecordAfterPointer(studentId, card) {
+    clearTimeout(pendingRecordTimer);
+    pendingRecordTimer = window.setTimeout(() => {
+      pendingRecordTimer = undefined;
+      if (!card.isConnected || !isQuickScoreActive()) return;
+      openStudentRecord(studentId, card);
+    }, 0);
+  }
 
   function stopInertia() {
     if (inertiaFrame !== undefined) cancelAnimationFrame(inertiaFrame);
@@ -480,7 +490,7 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
         selectCardForKeyboard(cardGesture.card);
       } else if (isQuickScoreActive()) {
         haptic(Haptic.medium);
-        openStudentRecord(cardGesture.studentId, cardGesture.card);
+        openStudentRecordAfterPointer(cardGesture.studentId, cardGesture.card);
       } else {
         const wasCompleted = cardGesture.card.getAttribute('aria-pressed') === 'true';
         if (store.toggleCompletion(cardGesture.studentId)) {
@@ -660,6 +670,7 @@ export function initSeatCanvas({ store, showToast, openStudentRecord }) {
     destroy() {
       stopInertia();
       cancelAnimationFrame(resizeFrame);
+      clearTimeout(pendingRecordTimer);
       cancelCardInteraction();
       clearKeyboardSelection({ resetStatus: false });
       observer.disconnect();
