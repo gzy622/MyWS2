@@ -661,25 +661,46 @@ try {
   Open-Page -Uri "$baseUri/?verify=drawer-compositor" -Width 390
   $drawerOpened = Invoke-JavaScript -Expression @'
 (() => {
-  document.querySelector('#menuButton').click();
+  document.querySelector('#settingsButton').click();
+  const drawer = document.querySelector('#menuDrawer');
   return {
     open: document.querySelector('#app').classList.contains('drawer-open'),
-    panelPromoted: document.querySelector('#menuDrawer').classList.contains('sheet-compositing'),
-    scrimPromoted: document.querySelector('#scrim').classList.contains('sheet-scrim-compositing')
+    panelShown: drawer.getAttribute('aria-hidden') === 'false' && !drawer.inert
+  };
+})()
+'@
+  Assert-Verification -Condition ($drawerOpened.open -and $drawerOpened.panelShown) -Message '设置按钮可打开通用菜单且面板可见'
+  Start-Sleep -Milliseconds 500
+  $drawerSettled = Invoke-JavaScript -Expression @'
+(() => {
+  const drawer = document.querySelector('#menuDrawer');
+  return {
+    stillOpen: document.querySelector('#app').classList.contains('drawer-open'),
+    panelShown: drawer.getAttribute('aria-hidden') === 'false' && !drawer.inert,
+    scrimOpacity: parseFloat(getComputedStyle(document.querySelector('.drawer-scrim')).opacity),
+    noDragState: !drawer.classList.contains('is-dragging')
   };
 })()
 '@
   Assert-Verification -Condition (
-    $drawerOpened.open -and $drawerOpened.panelPromoted -and $drawerOpened.scrimPromoted
-  ) -Message '通用菜单打开时临时提升真实遮罩'
-  Start-Sleep -Milliseconds 500
-  $drawerReleased = Invoke-JavaScript -Expression @'
-(() => !document.querySelector('#menuDrawer').classList.contains('sheet-compositing')
-  && !document.querySelector('#scrim').classList.contains('sheet-scrim-compositing'))()
+    $drawerSettled.stillOpen -and $drawerSettled.panelShown -and
+    $drawerSettled.scrimOpacity -gt 0.95 -and $drawerSettled.noDragState
+  ) -Message '通用菜单落位后遮罩显示完整且无残留手势状态'
+  $drawerClosed = Invoke-JavaScript -Expression @'
+(() => {
+  document.querySelector('#closeMenuDrawer').click();
+  return {
+    closed: !document.querySelector('#app').classList.contains('drawer-open'),
+    hidden: document.querySelector('#menuDrawer').getAttribute('aria-hidden') === 'true'
+  };
+})()
 '@
-  Assert-Verification -Condition ([bool]$drawerReleased) -Message '通用菜单落位后释放合成层提示'
+  Assert-Verification -Condition ($drawerClosed.closed -and $drawerClosed.hidden) -Message '关闭按钮可隐藏通用菜单'
+  Start-Sleep -Milliseconds 500
+  $scrimAfterClose = Invoke-JavaScript -Expression 'parseFloat(getComputedStyle(document.querySelector(".drawer-scrim")).opacity)'
+  Assert-Verification -Condition ($scrimAfterClose -lt 0.05) -Message '通用菜单关闭后遮罩淡出完成'
 
-  Open-Page -Uri "$baseUri/?verify=drawer-nav-after-close" -Width 390
+  Open-Page -Uri "$baseUri/?verify=more-nav-after-close" -Width 390
   $registerNavPoint = Invoke-JavaScript -Expression @'
 (() => {
   const rect = document.querySelector('.nav-btn[data-index="1"]').getBoundingClientRect();
@@ -687,21 +708,193 @@ try {
 })()
 '@
   Invoke-TouchVerticalSwipe -X $registerNavPoint.x -StartY $registerNavPoint.y -EndY 350
-  $drawerOpenedByNavSwipe = Invoke-JavaScript -Expression 'document.querySelector("#app").classList.contains("drawer-open")'
-  Assert-Verification -Condition ([bool]$drawerOpenedByNavSwipe) -Message '从底栏上滑可打开通用菜单'
-  $drawerHandlePoint = Invoke-JavaScript -Expression @'
+  $moreSheetOpenedByNavSwipe = Invoke-JavaScript -Expression 'document.querySelector("#moreMenu").classList.contains("show")'
+  Assert-Verification -Condition ([bool]$moreSheetOpenedByNavSwipe) -Message '从底栏上滑可打开更多菜单'
+  $moreSheetHandlePoint = Invoke-JavaScript -Expression @'
 (() => {
-  const rect = document.querySelector('#menuDrawerHandle').getBoundingClientRect();
+  const rect = document.querySelector('#moreMenuHandle').getBoundingClientRect();
   return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
 })()
 '@
   # The 300ms close is visually complete while the 450ms trailing-click guard is still armed.
-  Invoke-TouchVerticalSwipe -X $drawerHandlePoint.x -StartY $drawerHandlePoint.y -EndY 820 -WaitMilliseconds 330
+  Invoke-TouchVerticalSwipe -X $moreSheetHandlePoint.x -StartY $moreSheetHandlePoint.y -EndY 820 -WaitMilliseconds 330
   Invoke-TouchTap -X $registerNavPoint.x -Y $registerNavPoint.y
   $registerSubviewSwitched = Invoke-JavaScript -Expression @'
 (() => document.querySelector('.page[data-page="1"] .subview[data-view="1"]').classList.contains('active'))()
 '@
-  Assert-Verification -Condition ([bool]$registerSubviewSwitched) -Message '手势关闭通用菜单后立即点击登记可首次切换子视图'
+  Assert-Verification -Condition ([bool]$registerSubviewSwitched) -Message '手势关闭更多菜单后立即点击登记可首次切换子视图'
+
+  Write-Host '快速打分描边显隐' -ForegroundColor Cyan
+  # 明确模拟 no-preference，避免宿主系统 reduced-motion 设置干扰时长断言。
+  Send-CdpMessage -Method 'Emulation.setEmulatedMedia' -Params @{ features = @(@{ name = 'prefers-reduced-motion'; value = 'no-preference' }) } | Out-Null
+  Open-Page -Uri "$baseUri/?verify=quick-score-outline" -Width 390
+
+  # 声明级：基础态 180ms 无延迟淡出；带 class 后 60ms 延迟 + 240ms 淡入；滑块主体只剩 transform 过渡。
+  # 初始渲染会保留 .dragging（首屏不播放动画），读主体过渡前临时摘除并恢复。
+  $outlineDecl = Invoke-JavaScript -Expression @'
+(() => {
+  const glider = document.querySelector('#glider');
+  const wasDragging = glider.classList.contains('dragging');
+  glider.classList.remove('dragging');
+  const bodyTransitionProperty = getComputedStyle(glider).transitionProperty;
+  if (wasDragging) glider.classList.add('dragging');
+  const base = getComputedStyle(glider, '::after');
+  const idle = {
+    opacity: parseFloat(base.opacity),
+    duration: parseFloat(base.transitionDuration),
+    delay: parseFloat(base.transitionDelay),
+    property: base.transitionProperty
+  };
+  glider.classList.add('nav-glider--quick-score');
+  const active = getComputedStyle(glider, '::after');
+  const result = {
+    idle,
+    active: {
+      opacity: parseFloat(active.opacity),
+      duration: parseFloat(active.transitionDuration),
+      delay: parseFloat(active.transitionDelay),
+      property: active.transitionProperty
+    },
+    gliderTransitionProperty: bodyTransitionProperty
+  };
+  glider.classList.remove('nav-glider--quick-score');
+  return result;
+})()
+'@
+  Assert-Verification -Condition (
+    $outlineDecl.idle.opacity -eq 0 -and
+    $outlineDecl.idle.duration -gt 0.17 -and $outlineDecl.idle.duration -lt 0.19 -and
+    $outlineDecl.idle.delay -eq 0 -and
+    $outlineDecl.idle.property -eq 'opacity'
+  ) -Message '描边基础态透明，180ms 淡出过渡且无延迟'
+  # 过渡延迟期内计算样式仍为起始值，opacity 是否到位由下方行为级检查覆盖。
+  Assert-Verification -Condition (
+    $outlineDecl.active.duration -gt 0.23 -and $outlineDecl.active.duration -lt 0.25 -and
+    $outlineDecl.active.delay -gt 0.05 -and $outlineDecl.active.delay -lt 0.07 -and
+    $outlineDecl.active.property -eq 'opacity'
+  ) -Message '描边激活态为 60ms 延迟 + 240ms 淡入'
+  Assert-Verification -Condition ($outlineDecl.gliderTransitionProperty -eq 'transform') -Message '滑块主体仅保留 transform 过渡'
+
+  # 行为级：进入时 60ms 延迟内保持隐藏，约 180ms 过渡过半，约 340ms 显示完整。
+  $outlineEntry = Invoke-JavaScript -Expression @'
+(() => {
+  const glider = document.querySelector('#glider');
+  const read = () => parseFloat(getComputedStyle(glider, '::after').opacity);
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  return (async () => {
+    glider.classList.remove('nav-glider--quick-score');
+    await sleep(250);
+    const idle = read();
+    glider.classList.add('nav-glider--quick-score');
+    await sleep(40);
+    const duringDelay = read();
+    await sleep(140);
+    const midpoint = read();
+    await sleep(160);
+    const settled = read();
+    return { idle, duringDelay, midpoint, settled };
+  })();
+})()
+'@
+  Assert-Verification -Condition ($outlineEntry.idle -lt 0.05) -Message '进入前描边为透明'
+  Assert-Verification -Condition ($outlineEntry.duringDelay -lt 0.15) -Message '进入描边在 60ms 延迟内不显示'
+  Assert-Verification -Condition (
+    $outlineEntry.midpoint -ge 0.25 -and $outlineEntry.midpoint -le 0.75
+  ) -Message '进入描边约 180ms 时过渡过半'
+  Assert-Verification -Condition ($outlineEntry.settled -gt 0.95) -Message '进入描边约 340ms 时显示完整'
+
+  # 行为级：退出时无延迟，约 90ms 过渡过半，约 250ms 完全消失。
+  $outlineExit = Invoke-JavaScript -Expression @'
+(() => {
+  const glider = document.querySelector('#glider');
+  const read = () => parseFloat(getComputedStyle(glider, '::after').opacity);
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  return (async () => {
+    glider.classList.add('nav-glider--quick-score');
+    await sleep(350);
+    const full = read();
+    glider.classList.remove('nav-glider--quick-score');
+    await sleep(40);
+    const early = read();
+    await sleep(50);
+    const midpoint = read();
+    await sleep(160);
+    const settled = read();
+    return { full, early, midpoint, settled };
+  })();
+})()
+'@
+  Assert-Verification -Condition ($outlineExit.full -gt 0.95) -Message '退出前描边显示完整'
+  Assert-Verification -Condition (
+    $outlineExit.early -gt 0.55 -and $outlineExit.early -lt 0.95
+  ) -Message '退出描边 40ms 时立即开始淡出'
+  Assert-Verification -Condition (
+    $outlineExit.midpoint -ge 0.25 -and $outlineExit.midpoint -le 0.75
+  ) -Message '退出描边约 90ms 时过渡过半'
+  Assert-Verification -Condition ($outlineExit.settled -lt 0.05) -Message '退出描边约 250ms 完全消失'
+
+  # 减少动态效果：取消 60ms 延迟且时长压缩为 0.01ms，显隐接近即时。
+  Send-CdpMessage -Method 'Emulation.setEmulatedMedia' -Params @{ features = @(@{ name = 'prefers-reduced-motion'; value = 'reduce' }) } | Out-Null
+  $outlineReduced = Invoke-JavaScript -Expression @'
+(() => {
+  const glider = document.querySelector('#glider');
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  return (async () => {
+    glider.classList.remove('nav-glider--quick-score');
+    await sleep(60);
+    glider.classList.add('nav-glider--quick-score');
+    const active = getComputedStyle(glider, '::after');
+    const delay = parseFloat(active.transitionDelay);
+    const duration = parseFloat(active.transitionDuration);
+    await sleep(60);
+    const shown = parseFloat(getComputedStyle(glider, '::after').opacity);
+    glider.classList.remove('nav-glider--quick-score');
+    await sleep(60);
+    const hidden = parseFloat(getComputedStyle(glider, '::after').opacity);
+    return { delay, duration, shown, hidden };
+  })();
+})()
+'@
+  Assert-Verification -Condition (
+    $outlineReduced.delay -eq 0 -and $outlineReduced.duration -lt 0.001
+  ) -Message '减少动态效果时描边无延迟且时长压缩'
+  Assert-Verification -Condition ($outlineReduced.shown -gt 0.95) -Message '减少动态效果时描边立即显示'
+  Assert-Verification -Condition ($outlineReduced.hidden -lt 0.05) -Message '减少动态效果时描边立即消失'
+  # 恢复默认媒体偏好，避免影响后续检查。
+  Send-CdpMessage -Method 'Emulation.setEmulatedMedia' -Params @{ features = @(@{ name = 'prefers-reduced-motion'; value = 'no-preference' }) } | Out-Null
+
+  # 真实入口：登记页更多菜单开启快速打分，滑块获得描边 class；切离登记页后移除。
+  Open-Page -Uri "$baseUri/?verify=quick-score-ui" -Width 390
+  $moreMenuOpened = Invoke-JavaScript -Expression @'
+(() => {
+  document.querySelector('#moreButton').click();
+  return document.querySelector('#moreMenu').classList.contains('show');
+})()
+'@
+  Assert-Verification -Condition ([bool]$moreMenuOpened) -Message '更多按钮可打开更多菜单'
+  Start-Sleep -Milliseconds 350
+  $quickScoreToggle = Invoke-JavaScript -Expression @'
+(() => {
+  document.querySelector('[data-more-action="quick-score"]').click();
+  return {
+    sheetClosed: !document.querySelector('#moreMenu').classList.contains('show'),
+    classApplied: document.querySelector('#glider').classList.contains('nav-glider--quick-score')
+  };
+})()
+'@
+  Assert-Verification -Condition (
+    $quickScoreToggle.sheetClosed -and $quickScoreToggle.classApplied
+  ) -Message '登记页开启快速打分后滑块带描边 class'
+  $peopleNavPoint = Invoke-JavaScript -Expression @'
+(() => {
+  const rect = document.querySelector('.nav-btn[data-index="0"]').getBoundingClientRect();
+  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+})()
+'@
+  Invoke-TouchTap -X $peopleNavPoint.x -Y $peopleNavPoint.y
+  Start-Sleep -Milliseconds 500
+  $outlineRemoved = Invoke-JavaScript -Expression '!document.querySelector("#glider").classList.contains("nav-glider--quick-score")'
+  Assert-Verification -Condition ([bool]$outlineRemoved) -Message '切离登记页后描边 class 移除'
 
   $browserErrors = @(Get-BrowserErrors)
   if ($browserErrors.Count -gt 0) {

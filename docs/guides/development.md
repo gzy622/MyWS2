@@ -55,6 +55,57 @@ node --check tools/content-id.cjs
 git diff --check
 ```
 
+### RTK 可选试用
+
+RTK 仅用于减少智能体读取的终端输出，不参与应用运行、构建、测试逻辑或 CI。未安装 RTK 时，全部原命令保持可用。试用固定使用 Windows x86_64 MSVC 版 `v0.44.2`；从 [官方 Release](https://github.com/rtk-ai/rtk/releases/tag/v0.44.2) 下载后由用户放入 `PATH`，不写入仓库、不加入 `package.json`。不要从 crates.io 安装同名包。
+
+安装和隐私检查：
+
+```powershell
+Get-Command rtk -ErrorAction Stop
+rtk --version
+rtk telemetry disable
+rtk telemetry status
+rtk config --create
+```
+
+Windows 配置文件位于 `$env:APPDATA\rtk\config.toml`。试用期关闭失败原始输出保存，避免学生姓名、成绩、设备信息或其它诊断内容留在 RTK 日志中：
+
+```toml
+[tee]
+enabled = false
+mode = "never"
+```
+
+Codex 当前依靠说明文件主动调用 RTK。试用期不得运行 `rtk init -g --codex`，也不安装自动改写 Hook。建议只在输出预计较长时显式调用：
+
+```powershell
+# 概览 Git 状态、差异和提交
+rtk git status
+rtk git diff
+rtk git log -n 10
+
+# 折叠通过项，只突出测试失败
+rtk test node --test tests/*.test.mjs
+
+# 初步搜索；需要完整长行和精确上下文时改用原始 rg
+rtk grep "pattern" src
+```
+
+以下操作继续使用原命令：精确源码读取、`git diff --check`、文件级完整差异、失败调查、安全检查、复杂 PowerShell 命令，以及 `git add`、`git commit`、`git push`。RTK 输出无法直接支持判断时，立即改用原命令，不重复调整压缩方式。
+
+以 10 个真实开发任务作为一个试用周期，并使用 `rtk gain` 查看估算结果。满足以下条件后再考虑长期采用：
+
+| 核对项 | 采用条件 |
+| --- | --- |
+| 终端输出减少量 | 平均至少 30% |
+| 因信息不足重新执行原命令 | 每 10 个任务不超过 2 次 |
+| 命令退出码 | 与原命令一致 |
+| 测试失败信息 | 可直接定位失败测试 |
+| Windows 兼容性 | 中文、空格路径和 PowerShell 参数正常 |
+
+停止试用时，从 `PATH` 移除 `rtk.exe`，并按需删除 `$env:APPDATA\rtk` 下的配置与本地统计数据。仓库无需执行恢复操作。
+
 XLSX 导入导出由 `src/scripts/workbook-transfer.js` 实现，底层 Office Open XML/ZIP 处理位于 `src/scripts/xlsx-workbook.js`，文件读写与 JSON 备份共用 `src/scripts/text-file-transfer.js`。新导出格式为版本 2，固定生成「学生名单」「作业登记」「人员安排」「课程表」「考试成绩」五个工作表；版本 1 的十二工作表 XLSX 和旧 CSV 仍从「导入表格」读取。人工编辑时保留固定工作表、标题行、隐藏编号、数量信息和矩阵数据行；灰色姓名列用于查看，编号用于关联；学生座位行/列从 1 起；检查失败会拒绝整份文件并提示 `工作表!单元格：说明`。
 
 表格快速检查应覆盖：五个固定工作表、隐藏行列、作业单列布局、`空白/✓/整数/一位小数`、人员下拉与重名文本、课程表十个节次、考试/科目两层表头、缺少行列、重复座位、多个当前作业、无效成绩，以及版本 1、版本 2、旧 CSV 和 JSON 备份互不影响。可以使用常用表格库打开生成文件并重新保存，再将保存后的文件交回 `parseRosterWorkbook` 检查隐藏编号仍可读取。
@@ -285,7 +336,7 @@ npm run sync:phone
 
 控制台使用固定的工作台式 TUI：顶部显示当前设备与页面名称，中间显示当前情况、手机内容和一个下一步，底部集中放置按键。总体状态包括「尚未安装」「可以开始预览」「正在开启实时预览」「实时预览已开启」「当前只能使用安装版」「实时预览启动失败」。技术信息、版本指纹和日志位于 `D` 技术详情。
 
-开启实时预览时会显示固定的四步进度：准备网页资源、构建 Android 应用、安装到手机、等待手机页面连接；安装当前版本时显示前三步。实时预览会持续读取后台输出，进入打包、安装和等待连接时依次更新进度；构建日志默认隐藏，可按 `D` 查看，失败时首页显示原因、影响和建议。
+开启实时预览时会显示固定的四步进度：准备网页资源、构建 Android 应用、安装到手机、等待手机页面连接；安装当前版本时显示前三步。两种任务都会持续读取后台输出，依次更新准备、打包、安装和等待连接等阶段。实时预览在 Gradle 打包完成时进入安装阶段，以覆盖 Capacitor 实际推送 APK 的等待时间。进度界面只在阶段或页面发生变化时重绘，等待期间不会周期性清屏；构建日志默认隐藏，可按 `D` 查看，失败时首页显示原因、影响和建议。
 
 主要操作：
 

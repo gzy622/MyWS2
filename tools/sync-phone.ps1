@@ -58,6 +58,12 @@ $script:currentView = if ($Details) { 'details' } else { 'home' }
 $script:progressOperation = 'preview'
 $script:previewProgressStage = 1
 $script:previewProgressText = '正在准备网页资源。'
+$script:deployProgressStage = 1
+$script:deployProgressText = '正在检查环境并准备网页资源。'
+$script:deployRunning = $false
+$script:deployProcess = $null
+$script:deployLogPath = ''
+$script:deployTail = New-Object System.Collections.Generic.List[string]
 $script:deviceName = ''
 $script:exitAfterOperation = $false
 $script:connectionMessage = ''
@@ -796,7 +802,7 @@ function Update-LiveReloadBuildTail([string]$LogPath, [int]$Lines = 6) {
   } elseif ($text -match 'App running with live reload listing for:') {
     $detectedStage = 4
     $detectedText = '热更新版本已安装，正在等待手机页面连接。'
-  } elseif ($text -match 'Deploying|Installing|Installed|installDebug|app-debug\.apk|Launching app') {
+  } elseif ($text -match 'Running Gradle build in\s+\d|Deploying|Installing|Installed|installDebug|app-debug\.apk|Launching app') {
     $detectedStage = 3
     $detectedText = '正在安装预览版本到手机。'
   } elseif ($text -match 'cap run android|Running Gradle build|Gradle|Task :|BUILD SUCCESSFUL|assembleDebug') {
@@ -833,7 +839,6 @@ function Wait-LiveReloadClients(
   $deadline = (Get-Date).AddSeconds($TimeoutSec)
   $lastLogText = ''
   $lastLogChange = Get-Date
-  $lastDraw = Get-Date
   $buildComplete = $false
   while ((Get-Date) -lt $deadline) {
     try {
@@ -884,7 +889,6 @@ function Wait-LiveReloadClients(
       }
       if ($progressChanged) {
         Show-Dashboard
-        $lastDraw = Get-Date
       }
       if ($buildComplete -and $script:previewProgressStage -eq 4 -and $script:liveReloadClients -gt 0 -and $script:liveReloadConnectionSeq -gt $BaselineConnectionSeq) {
         return @{
@@ -896,11 +900,6 @@ function Wait-LiveReloadClients(
       }
       if ($lastLogText -ne '' -and (Get-Date) -gt $lastLogChange.AddSeconds($IdleTimeoutSec)) {
         return @{ Ok = $false; Reason = 'timeout'; Clients = 0 }
-      }
-      # 定期刷新主面板，让用户看到构建/推送的实时进度。
-      if ((Get-Date) -gt $lastDraw.AddSeconds(1.5)) {
-        $lastDraw = Get-Date
-        Show-Dashboard
       }
     }
     Start-Sleep -Milliseconds 700
@@ -1306,8 +1305,8 @@ function Get-ProgressModel {
   $currentText = '正在准备网页资源。'
   $logText = [string]::Join("`n", @($script:liveReloadTail))
   if ($script:progressOperation -eq 'deploy') {
-    $current = 2
-    $currentText = '正在构建 Android 应用，首次运行可能需要几分钟。'
+    $current = $script:deployProgressStage
+    $currentText = $script:deployProgressText
   } elseif ($logText -match 'BUILD FAILED|FAILURE|error:|Error:') {
     if ($logText -match 'Installing|Installed|installDebug') { $current = 3 }
     elseif ($logText -match '==>|Task :|BUILD SUCCESSFUL|Gradle|:app:') { $current = 2 }
@@ -1397,7 +1396,18 @@ function Show-DetailsView {
   Write-Host ('  电脑版本    {0}' -f $localVersion) -ForegroundColor Gray
   Write-Host ('  手机版本    {0}' -f $phoneVersion) -ForegroundColor Gray
   Write-Host ('  页面连接    {0} 个' -f $clients) -ForegroundColor Gray
-  Write-Host ('  日志        {0}' -f $(if ($script:liveReloadLogPath) { $script:liveReloadLogPath } elseif ($script:lanServerLogPath) { $script:lanServerLogPath } else { '当前会话暂无' })) -ForegroundColor DarkGray
+  $detailLogPath = if ($script:progressOperation -eq 'deploy' -and $script:deployLogPath) {
+    $script:deployLogPath
+  } elseif ($script:liveReloadLogPath) {
+    $script:liveReloadLogPath
+  } elseif ($script:deployLogPath) {
+    $script:deployLogPath
+  } elseif ($script:lanServerLogPath) {
+    $script:lanServerLogPath
+  } else {
+    '当前会话暂无'
+  }
+  Write-Host ('  日志        {0}' -f $detailLogPath) -ForegroundColor DarkGray
   Write-Host ''
   if ($script:lastErrorTail.Count -gt 0) {
     Write-Host '  最近错误' -ForegroundColor Red
@@ -1406,9 +1416,16 @@ function Show-DetailsView {
     }
     Write-Host ''
   }
-  if ($script:liveReloadTail.Count -gt 0) {
+  if ($script:progressOperation -ne 'deploy' -and $script:liveReloadTail.Count -gt 0) {
     Write-Host '  后台日志' -ForegroundColor White
     foreach ($line in @($script:liveReloadTail)) {
+      Write-Host ('  {0}' -f $line) -ForegroundColor DarkGray
+    }
+    Write-Host ''
+  }
+  if ($script:progressOperation -eq 'deploy' -and $script:deployTail.Count -gt 0) {
+    Write-Host '  安装日志' -ForegroundColor White
+    foreach ($line in @($script:deployTail)) {
       Write-Host ('  {0}' -f $line) -ForegroundColor DarkGray
     }
     Write-Host ''
@@ -1421,7 +1438,7 @@ function Show-DetailsView {
   }
   Write-Host ''
   Write-TuiRule
-  if ($script:liveReloadState -in @('connecting', 'waiting')) {
+  if ($script:deployRunning -or $script:liveReloadState -in @('connecting', 'waiting')) {
     Write-TuiKey 'D' '返回进度'
     Write-TuiKey '0' '完成当前步骤后退出'
   } else {
@@ -1456,8 +1473,93 @@ function Show-Dashboard {
   }
 }
 
+function Update-DeployProgress([string]$LogPath, [int]$Lines = 16) {
+  $script:deployTail.Clear()
+  if (-not $LogPath) { return $false }
+  $logLines = @(Get-LogTail -Path $LogPath -Lines 120)
+  foreach ($line in @($logLines | Select-Object -Last $Lines)) {
+    [void]$script:deployTail.Add([string]$line)
+  }
+
+  $text = [string]::Join("`n", $logLines)
+  $detectedStage = 1
+  $detectedText = '正在检查环境并准备网页资源。'
+  if ($text -match '==> Install APK|==> Launch app|Done: deployed') {
+    $detectedStage = 3
+    $detectedText = ("正在将 APK 安装到 {0}。" -f (Get-DeviceDisplayName))
+  } elseif ($text -match '==> Gradle assembleDebug|Task :|BUILD SUCCESSFUL|assembleDebug') {
+    $detectedStage = 2
+    $detectedText = '正在打包 Android APK，首次运行可能需要几分钟。'
+  } elseif ($text -match '==> Capacitor sync android') {
+    $detectedText = '正在同步 Android 工程。'
+  } elseif ($text -match '==> Sync web assets to www') {
+    $detectedText = '正在准备网页资源。'
+  }
+
+  $changed = $detectedStage -ne $script:deployProgressStage -or $detectedText -ne $script:deployProgressText
+  if ($detectedStage -ge $script:deployProgressStage) {
+    $script:deployProgressStage = $detectedStage
+    $script:deployProgressText = $detectedText
+  } else {
+    $changed = $false
+  }
+  Set-FeedbackAction $script:deployProgressText 'busy'
+  return $changed
+}
+
+function Wait-DeployProcess([System.Diagnostics.Process]$Process, [string]$LogPath) {
+  $installShownAt = $null
+  while (-not $Process.HasExited) {
+    $changed = Update-DeployProgress -LogPath $LogPath
+    if ($script:deployProgressStage -eq 3 -and -not $installShownAt) {
+      $installShownAt = Get-Date
+    }
+    try {
+      if ([Console]::KeyAvailable) {
+        $key = [Console]::ReadKey($true)
+        $command = Get-ConsoleKey $key
+        if ($command -eq 'D') {
+          if ($script:currentView -eq 'details') {
+            $script:currentView = 'progress'
+            $script:showDetails = $false
+          } else {
+            $script:currentView = 'details'
+            $script:showDetails = $true
+          }
+          $changed = $true
+        } elseif ($command -eq '0') {
+          $script:exitAfterOperation = $true
+          Write-Host ''
+          Write-Host '已记录退出请求，安装完成后退出。' -ForegroundColor DarkGray
+        }
+      }
+    } catch {
+      # Non-interactive hosts may not expose Console.KeyAvailable.
+    }
+    if ($changed) { Show-Dashboard }
+    Start-Sleep -Milliseconds 200
+  }
+
+  $Process.WaitForExit()
+  $changed = Update-DeployProgress -LogPath $LogPath
+  if ($script:deployProgressStage -eq 3 -and -not $installShownAt) {
+    $installShownAt = Get-Date
+    $changed = $true
+  }
+  if ($changed) { Show-Dashboard }
+  if ($installShownAt) {
+    $remaining = 500 - [int]((Get-Date) - $installShownAt).TotalMilliseconds
+    if ($remaining -gt 0) { Start-Sleep -Milliseconds $remaining }
+  }
+  return $Process.ExitCode
+}
+
 function Invoke-Deploy {
   $script:progressOperation = 'deploy'
+  $script:deployProgressStage = 1
+  $script:deployProgressText = '正在检查环境并准备网页资源。'
+  $script:deployTail.Clear()
+  $script:lastErrorTail.Clear()
   $script:currentView = 'progress'
   Set-FeedbackAction '正在打包并推送到手机…' 'busy'
   Write-Log '开始打包并推送到手机...' 'Cyan'
@@ -1471,8 +1573,29 @@ function Invoke-Deploy {
     '-File', $deployScript,
     '-Serial', $script:deviceSerial
   )
-  & powershell @deployArgs
-  if (-not $?) {
+  $script:deployLogPath = New-SessionTempLog 'deploy'
+  $script:deployRunning = $true
+  try {
+    $windowsPowerShell = (Get-Command powershell -ErrorAction Stop).Source
+    $script:deployProcess = Start-WindowlessProcess -FilePath $windowsPowerShell `
+      -Arguments $deployArgs `
+      -WorkingDirectory $root `
+      -LogFile $script:deployLogPath
+    $exitCode = Wait-DeployProcess -Process $script:deployProcess -LogPath $script:deployLogPath
+  } catch {
+    $exitCode = 1
+    $script:lastErrorTail.Clear()
+    [void]$script:lastErrorTail.Add(('无法启动安装进程：{0}' -f $_.Exception.Message))
+  } finally {
+    $script:deployRunning = $false
+    $script:deployProcess = $null
+  }
+  if ($exitCode -ne 0) {
+    if ($script:lastErrorTail.Count -eq 0) {
+      foreach ($line in @(Get-LogTail -Path $script:deployLogPath -Lines 12)) {
+        [void]$script:lastErrorTail.Add([string]$line)
+      }
+    }
     Write-Log '推送失败' 'Red'
     $script:pendingDeploy = $true
     Set-FeedbackAction '打包推送失败' 'fail'
