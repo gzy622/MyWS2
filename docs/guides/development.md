@@ -33,7 +33,21 @@ $env:DISABLE_LIVE_RELOAD = '1'
 node lan-server.js
 ```
 
-### Pi 子智能体 WebUI
+### Pi 子智能体调用
+
+#### Pi Subagent 扩展
+
+Pi 会话中当前工具列表提供 `subagent` 时，优先使用安装在 `~/.pi/agent/extensions/subagent/` 的用户级扩展。扩展为每次委派启动独立 Pi 进程，支持单任务、并行任务和链式任务；本项目不安装示例 `/implement` 等模板，避免形成第二套固定实施流程。
+
+| Agent | 模型 | 思考等级 | 选择条件 |
+| --- | --- | --- | --- |
+| 「虎鲸」 | DeepSeek V4 Flash | `High` | 用户指定 DeepSeek，或未指定模型的常规任务 |
+| 「皓月」 | GPT-5.6 Luna | `Max` | 用户指定 Luna 子智能体，或复杂分析与关键复核 |
+| 「远山」 | GPT-5.6 Terra | `High` | 用户指定 Terra 子智能体 |
+
+Agent 定义位于 `~/.pi/agent/agents/`。默认只使用用户级 Agent；不要为本项目启用 `agentScope: "project"` 或 `"both"`，除非仓库后续明确新增并审核 `.pi/agents/`。扩展不可用或当前环境没有 `subagent` 工具时，直接使用下述 WebUI 回退，不为同一任务同时使用两种入口。
+
+#### Pi 子智能体 WebUI 回退
 
 双击根目录的 `start-pi-agent-webui.bat`，或运行：
 
@@ -41,7 +55,7 @@ node lan-server.js
 npm run pi:webui
 ```
 
-访问 <http://127.0.0.1:4312>。页面只显示由 Codex 分派的 Pi 子智能体。每项任务使用一张状态卡片，左侧显示稳定生成的头像和名称，右侧显示模型、思考等级、任务、状态、当前动作和最终结果，右上角显示已工作时间。关闭启动窗口会停止 WebUI 及由它启动的子智能体。
+访问 <http://127.0.0.1:4312>。页面只显示由 Codex 分派的 Pi 子智能体。每项任务使用一张状态卡片，左侧显示稳定生成的头像和按模型生成的名称：DeepSeek 系列使用鲸类名称，GPT-5.6 Luna 使用以「月」字结尾的词语，其他模型使用通用名称；右侧显示模型、思考等级、任务、状态、当前动作和最终结果，右上角显示已工作时间。关闭启动窗口会停止 WebUI 及由它启动的子智能体。
 
 Codex 使用本机控制命令分派任务。任务正文优先从标准输入传入，避免长文本转义问题：
 

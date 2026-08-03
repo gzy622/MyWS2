@@ -33,11 +33,16 @@ test('任务校验会清理空白并拒绝空任务', () => {
   assert.equal(normalizeTitle('', '检查代码\n详细说明'), '检查代码');
 });
 
-test('子智能体名称和头像由任务 ID 稳定生成', () => {
-  const identity = createAgentIdentity('fixed-agent-id');
-  assert.deepEqual(createAgentIdentity('fixed-agent-id'), identity);
-  assert.ok(identity.agentName.length > 0);
-  assert.ok(identity.avatarId >= 1 && identity.avatarId <= 6);
+test('子智能体名称按模型生成并与头像保持稳定', () => {
+  const lunaIdentity = createAgentIdentity('fixed-agent-id', MODEL_PRESETS.luna);
+  const deepseekIdentity = createAgentIdentity('fixed-agent-id', MODEL_PRESETS.flash);
+  const fallbackIdentity = createAgentIdentity('fixed-agent-id');
+
+  assert.deepEqual(createAgentIdentity('fixed-agent-id', MODEL_PRESETS.luna), lunaIdentity);
+  assert.match(lunaIdentity.agentName, /月$/);
+  assert.match(deepseekIdentity.agentName, /鲸$/);
+  assert.doesNotMatch(fallbackIdentity.agentName, /[月鲸]$/);
+  assert.ok(lunaIdentity.avatarId >= 1 && lunaIdentity.avatarId <= 6);
 });
 
 test('Pi 参数固定模型、思考等级、工作区工具与安全说明', () => {
@@ -85,9 +90,10 @@ test('管理器限制并发并可停止任务', () => {
   });
 
   const first = manager.start({ task: '任务一', modelId: 'luna' });
-  assert.ok(first.agentName.length > 0);
+  assert.match(first.agentName, /月$/);
   assert.ok(first.avatarId >= 1 && first.avatarId <= 6);
-  manager.start({ task: '任务二', modelId: 'flash' });
+  const second = manager.start({ task: '任务二', modelId: 'flash' });
+  assert.match(second.agentName, /鲸$/);
   manager.start({ task: '任务三', modelId: 'luna' });
   assert.throws(() => manager.start({ task: '任务四', modelId: 'flash' }), /最多同时运行 3 个/);
   manager.stop(first.id);

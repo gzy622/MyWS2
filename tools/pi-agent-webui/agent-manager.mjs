@@ -17,6 +17,14 @@ const AGENT_NAMES = Object.freeze([
   '青禾', '远山', '星野', '知夏', '听澜', '望舒',
   '明川', '云岫', '清和', '南枝', '时雨', '景行'
 ]);
+const DEEPSEEK_AGENT_NAMES = Object.freeze([
+  '虎鲸', '蓝鲸', '座头鲸', '抹香鲸', '白鲸', '独角鲸',
+  '露脊鲸', '灰鲸', '小须鲸', '长须鲸', '弓头鲸', '塞鲸'
+]);
+const LUNA_AGENT_NAMES = Object.freeze([
+  '新月', '弦月', '望月', '皓月', '霁月', '桂月',
+  '素月', '松月', '江月', '山月', '海月', '星月'
+]);
 
 export const MODEL_PRESETS = Object.freeze({
   luna: Object.freeze({
@@ -67,13 +75,21 @@ export function normalizeTitle(value, task) {
   return title.length <= MAX_TITLE_LENGTH ? title : `${title.slice(0, MAX_TITLE_LENGTH - 1)}…`;
 }
 
-export function createAgentIdentity(id) {
+export function createAgentIdentity(id, preset) {
   let hash = 0;
   for (const character of String(id)) {
     hash = ((hash * 31) + character.codePointAt(0)) >>> 0;
   }
+
+  const modelName = `${preset?.model ?? ''} ${preset?.label ?? ''}`.toLowerCase();
+  const names = modelName.includes('deepseek')
+    ? DEEPSEEK_AGENT_NAMES
+    : modelName.includes('gpt-5.6-luna')
+      ? LUNA_AGENT_NAMES
+      : AGENT_NAMES;
+
   return {
-    agentName: AGENT_NAMES[hash % AGENT_NAMES.length],
+    agentName: names[hash % names.length],
     avatarId: (hash % 6) + 1
   };
 }
@@ -257,7 +273,7 @@ export function createAgentManager({
     trimHistory();
     const startedAt = now();
     const id = randomUUID();
-    const identity = createAgentIdentity(id);
+    const identity = createAgentIdentity(id, preset);
     const agent = {
       id,
       ...identity,
