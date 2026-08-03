@@ -205,7 +205,11 @@
   transition:
     opacity var(--scrollbar-fade) var(--ease),
     visibility 0s linear var(--scrollbar-fade);
+}
+/* 绘制层提示只在显示与淡出期间存在，完全隐藏后释放（R7）。 */
+.scroll-thin-thumb.is-compositing {
   will-change: opacity;
+  backface-visibility: hidden;
 }
 
 .scroll-thin-thumb[data-mode="panel"] {

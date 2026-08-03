@@ -24,10 +24,11 @@
 
 ## 执行计划
 
-当前无进行中的阶段计划。已完成计划见 [`archive/`](archive/)。
+当前无进行中的阶段计划。已完成计划见下表及 [`archive/`](archive/)。
 
 | 文档 | 状态 | 用途 |
 | --- | --- | --- |
+| [`archive/webview-flicker-remediation-plan.md`](archive/webview-flicker-remediation-plan.md) | 已完成并验收通过（2026-08-03） | WebView 闪烁风险修订、分批实施和验证记录 |
 | [`archive/milestone-one-unification-plan.md`](archive/milestone-one-unification-plan.md) | 已完成（2026-07-30） | 里程碑一触摸可靠性、滚动与 UI 统一收口记录 |
 
 ## 指南与档案

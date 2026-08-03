@@ -113,6 +113,7 @@ export function bindScrollThin(element) {
   }
 
   let hideTimer = 0;
+  let compositingTimer = 0;
   let hover = false;
 
   const clearHideTimer = () => {
@@ -121,11 +122,27 @@ export function bindScrollThin(element) {
     hideTimer = 0;
   };
 
+  /** Release the compositing hint after the fade-out completes (R7). */
+  const scheduleCompositingRelease = () => {
+    if (compositingTimer) window.clearTimeout(compositingTimer);
+    compositingTimer = window.setTimeout(() => {
+      compositingTimer = 0;
+      thumb.classList.remove('is-compositing');
+    }, readMs('--scrollbar-fade', 280));
+  };
+
+  const clearCompositingRelease = () => {
+    if (!compositingTimer) return;
+    window.clearTimeout(compositingTimer);
+    compositingTimer = 0;
+  };
+
   const dismissNow = () => {
     clearHideTimer();
+    clearCompositingRelease();
     hover = false;
     thumb.classList.add('is-snap-hide');
-    thumb.classList.remove('is-visible', 'is-ready');
+    thumb.classList.remove('is-visible', 'is-ready', 'is-compositing');
     window.requestAnimationFrame(() => thumb.classList.remove('is-snap-hide'));
   };
 
@@ -134,6 +151,8 @@ export function bindScrollThin(element) {
       dismissNow();
       return;
     }
+    clearCompositingRelease();
+    thumb.classList.add('is-compositing');
     thumb.classList.remove('is-snap-hide');
     window.requestAnimationFrame(() => {
       if (!thumb.classList.contains('is-ready')) return;
@@ -148,6 +167,7 @@ export function bindScrollThin(element) {
     hideTimer = window.setTimeout(() => {
       hideTimer = 0;
       thumb.classList.remove('is-visible');
+      scheduleCompositingRelease();
     }, readMs('--scrollbar-hold', 1100));
   };
 
@@ -158,6 +178,8 @@ export function bindScrollThin(element) {
       hover = true;
       clearHideTimer();
       if (syncThumbGeometry(element, thumb, panel instanceof HTMLElement ? panel : null, mode, layer)) {
+        clearCompositingRelease();
+        thumb.classList.add('is-compositing');
         thumb.classList.remove('is-snap-hide');
         window.requestAnimationFrame(() => {
           if (isSheetPresented(element, layer)) thumb.classList.add('is-visible');
@@ -167,6 +189,7 @@ export function bindScrollThin(element) {
     element.addEventListener('pointerleave', () => {
       hover = false;
       thumb.classList.remove('is-visible');
+      scheduleCompositingRelease();
     });
   }
 

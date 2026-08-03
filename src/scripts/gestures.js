@@ -49,9 +49,21 @@ const DRAWER_FLICK_CLOSE_VELOCITY = 0.4;
 const DRAWER_FLICK_MIN_CLOSE_PX = 36;
 /** Fallback timer for the drawer settle animation (mirrors sheet settle). */
 const DRAWER_SETTLE_MS = 360;
+/** Page-swipe settle transition (~420ms) plus margin before topbar blur returns. */
+const PAGE_GESTURING_HOLD_MS = 460;
 
 /** @type {((reason?: string) => void) | null} */
 let cancelActivePointerGestureImpl = null;
+
+// 跟手帧按动画帧合并写入：把一次 pointermove 风暴折叠为每帧一次样式写入。
+// R1 页面/导航/分段横滑共用；R5 全屏左滑面（设置页/学生名单）共用。
+let pageDragRaf = 0;
+let pendingPageDrag = null;
+let pageGesturingTimer = 0;
+let fullscreenPaintRaf = 0;
+let pendingFullscreenOffset = 0;
+let pendingFullscreenWidth = 0;
+let fullscreenPaintDirty = false;
 
 /**
  * Safely end the in-flight page/Sheet pointer sequence and residual close guards.
@@ -396,16 +408,8 @@ export function initHorizontalGestures({ closeRosterEditor = () => {} } = {}) {
       if (fullscreenDragStarted && layer) {
         const width = elements.viewport.clientWidth || elements.app.clientWidth || 0;
         const offset = Math.max(-width, Math.min(0, deltaX));
-        layer.style.transform = `translate3d(${offset}px, 0, 0)`;
-        const scrim = fullscreenScrimEl;
-        if (scrim) {
-          // 遮罩透明度与面板 1:1 跟手：1 = 完全打开，0 = 完全移出。
-          const token = Math.max(0, Math.min(1, 1 + offset / width)).toFixed(3);
-          if (paintedScrimOpacity !== token) {
-            paintedScrimOpacity = token;
-            scrim.style.opacity = token;
-          }
-        }
+        // 面板 transform 与遮罩 opacity 合并到下一动画帧写入（R5）。
+        scheduleFullscreenPaint(offset, width);
         event.preventDefault();
       }
       return;
@@ -431,6 +435,10 @@ export function initHorizontalGestures({ closeRosterEditor = () => {} } = {}) {
         }
         if (axis === 'x' && !isSegments && !horizontalScrollPort && claim !== 'sheet') {
           setLetterIndexPageDragging(true);
+          // 页面横滑跟手与 CSS 落位期间关闭顶栏 backdrop-filter（R1）。
+          // 范围仅限页面/导航横滑（页面 transform 会变化）；分段横滑不移动
+          // 页面与顶栏背景，不添加该状态。
+          elements.app.classList.add('is-page-gesturing');
         }
         if (isSheetDebugEnabled()) {
           logGestureSession('axis locked', {
@@ -501,7 +509,8 @@ export function initHorizontalGestures({ closeRosterEditor = () => {} } = {}) {
       resistedOffset *= EDGE_RESISTANCE;
     }
     if (isSegments) {
-      renderSegmentDrag(resistedOffset);
+      // 跟手帧按动画帧合并写入（R1）。
+      schedulePageDrag('segments', resistedOffset);
       const segmentWidth = getSegmentGliderWidth();
       if (segmentWidth > 0) {
         const segment = clampSubview(Math.round(currentSub + resistedOffset / segmentWidth));
@@ -511,7 +520,7 @@ export function initHorizontalGestures({ closeRosterEditor = () => {} } = {}) {
         }
       }
     } else if (isNav) {
-      renderNavDrag(resistedOffset);
+      schedulePageDrag('nav', resistedOffset);
       const navSegmentWidth = elements.glider.offsetWidth || elements.nav.clientWidth / PAGE_COUNT;
       if (navSegmentWidth > 0) {
         const segment = clampPage(Math.round(state.currentPage + resistedOffset / navSegmentWidth));
@@ -521,13 +530,102 @@ export function initHorizontalGestures({ closeRosterEditor = () => {} } = {}) {
         }
       }
     } else {
-      renderDrag(resistedOffset);
+      schedulePageDrag('pages', resistedOffset);
     }
   }, { passive: false });
 
   /** True when the user prefers reduced motion (settle lands instantly). */
   const prefersReducedMotion = () =>
     globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
+
+  /**
+   * Schedule a page/nav/segment drag paint on the next animation frame so a
+   * burst of pointermove events collapses into one style write per frame.
+   * @param {'pages'|'nav'|'segments'} mode
+   */
+  const schedulePageDrag = (mode, offset) => {
+    pendingPageDrag = { mode, offset };
+    if (pageDragRaf) return;
+    pageDragRaf = requestAnimationFrame(() => {
+      pageDragRaf = 0;
+      const pending = pendingPageDrag;
+      pendingPageDrag = null;
+      if (!pending) return;
+      if (pending.mode === 'nav') renderNavDrag(pending.offset);
+      else if (pending.mode === 'segments') renderSegmentDrag(pending.offset);
+      else renderDrag(pending.offset);
+    });
+  };
+
+  /** Cancel a pending page-drag paint before settle renders the final state. */
+  const cancelPendingPageDrag = () => {
+    if (pageDragRaf) {
+      cancelAnimationFrame(pageDragRaf);
+      pageDragRaf = 0;
+    }
+    pendingPageDrag = null;
+  };
+
+  /** Keep `is-page-gesturing` through the settle transition, then release it. */
+  const schedulePageGesturingEnd = () => {
+    if (pageGesturingTimer) clearTimeout(pageGesturingTimer);
+    pageGesturingTimer = window.setTimeout(() => {
+      pageGesturingTimer = 0;
+      elements.app.classList.remove('is-page-gesturing');
+    }, PAGE_GESTURING_HOLD_MS);
+  };
+
+  /**
+   * Full-screen drawer/roster drag: paint panel transform and scrim opacity on
+   * the next animation frame, collapsing per-pointermove writes into one.
+   */
+  const scheduleFullscreenPaint = (offset, width) => {
+    pendingFullscreenOffset = offset;
+    pendingFullscreenWidth = width;
+    fullscreenPaintDirty = true;
+    if (fullscreenPaintRaf) return;
+    fullscreenPaintRaf = requestAnimationFrame(() => {
+      fullscreenPaintRaf = 0;
+      const layer = fullscreenSurface === 'roster-editor'
+        ? element.querySelector('.roster-editor')
+        : elements.menuDrawer;
+      if (!layer) return;
+      layer.style.transform = `translate3d(${pendingFullscreenOffset}px, 0, 0)`;
+      const scrim = fullscreenScrimEl;
+      if (scrim) {
+        // 遮罩透明度与面板 1:1 跟手：1 = 完全打开，0 = 完全移出。
+        const token = Math.max(0, Math.min(1, 1 + pendingFullscreenOffset / pendingFullscreenWidth)).toFixed(3);
+        if (paintedScrimOpacity !== token) {
+          paintedScrimOpacity = token;
+          scrim.style.opacity = token;
+        }
+      }
+      fullscreenPaintDirty = false;
+    });
+  };
+
+  /** Flush a pending fullscreen paint immediately (called before settle). */
+  const flushFullscreenPaint = () => {
+    if (fullscreenPaintRaf) {
+      cancelAnimationFrame(fullscreenPaintRaf);
+      fullscreenPaintRaf = 0;
+    }
+    if (!fullscreenPaintDirty) return;
+    fullscreenPaintDirty = false;
+    const layer = fullscreenSurface === 'roster-editor'
+      ? element.querySelector('.roster-editor')
+      : elements.menuDrawer;
+    if (!layer) return;
+    layer.style.transform = `translate3d(${pendingFullscreenOffset}px, 0, 0)`;
+    const scrim = fullscreenScrimEl;
+    if (scrim) {
+      const token = Math.max(0, Math.min(1, 1 + pendingFullscreenOffset / pendingFullscreenWidth)).toFixed(3);
+      if (paintedScrimOpacity !== token) {
+        paintedScrimOpacity = token;
+        scrim.style.opacity = token;
+      }
+    }
+  };
 
   /**
    * Settle a full-screen leftward drag: close when the leftward travel or flick
@@ -621,6 +719,8 @@ export function initHorizontalGestures({ closeRosterEditor = () => {} } = {}) {
     // Full-screen surfaces settle their leftward slide first, then guard the
     // trailing click exactly like other claimed gestures.
     if (fullscreenDrag) {
+      // 把最后一帧跟手位置立即落到样式上，settle 才能从当前位置过渡（R5）。
+      flushFullscreenPaint();
       fullscreenDrag = false;
       const surface = fullscreenSurface;
       fullscreenSurface = null;
@@ -744,9 +844,12 @@ export function initHorizontalGestures({ closeRosterEditor = () => {} } = {}) {
         const pageDelta = isNav ? navPageDelta : (directionDelta < 0 ? 1 : -1);
         setCurrentPage(clampPage(state.currentPage + pageDelta));
       }
+      // settle 会直接渲染最终状态，取消尚未执行的跟手帧（R1）。
+      cancelPendingPageDrag();
       renderNavigation();
       syncLetterIndexPageVisibility();
     } else if (!handledSheet) {
+      cancelPendingPageDrag();
       renderNavigation();
       syncLetterIndexPageVisibility();
     } else {
@@ -828,6 +931,8 @@ export function initHorizontalGestures({ closeRosterEditor = () => {} } = {}) {
     }
 
     if (element.hasPointerCapture?.(pointerId)) element.releasePointerCapture(pointerId);
+    // 落位动画结束后恢复顶栏模糊（R1；无类时此调用为无害空操作）。
+    schedulePageGesturingEnd();
   };
 
   element.addEventListener('pointerup', (event) => endGesture(event));
