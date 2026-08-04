@@ -122,8 +122,9 @@ Capacitor 依赖只用于原生壳。浏览器代码通过 `globalThis.Capacitor
 | 登记 | `roster-store.js`、`roster-storage.js`、`roster-renderer.js`、`student-interactions.js`、`student-record.js`、`score-keypad.js`、`assignments.js`、`student-font-size.js` |
 | 座位 | `seat-geometry.js`、`seat-canvas.js`、`seat-landscape.js` |
 | 姓名索引 | `name-initial.js`、`letter-index.js` |
-| 人员 | `people-renderer.js`、`people-interactions.js` |
-| 课程 | `courses-renderer.js`、`courses-interactions.js`、`score-keypad.js`、`exams.js`、`highlight-subjects-model.js`、`highlight-subjects.js` |
+| 人员（安排页） | `people-renderer.js`、`people-interactions.js` |
+| 课表与考试成绩（安排页课表 / 统计页考试） | `courses-renderer.js`、`courses-interactions.js`、`score-keypad.js`、`exams.js`、`highlight-subjects-model.js`、`highlight-subjects.js` |
+| 登记汇总（统计页作业子视图） | `summary-renderer.js` |
 | 备份 | `backup.js` |
 | 表格数据交换 | `workbook-transfer.js`、`xlsx-workbook.js`；`csv-transfer.js` 保留旧文件导入 |
 | 文本与二进制文件读写 | `text-file-transfer.js` |

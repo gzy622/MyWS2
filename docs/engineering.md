@@ -72,8 +72,9 @@
 | 考试列表与考试名称 | `src/scripts/exams.js` |
 | 座位几何、画布手势与主动横屏 | `src/scripts/seat-geometry.js`、`src/scripts/seat-canvas.js`、`src/scripts/seat-landscape.js` |
 | 姓名首字母和侧边索引 | `src/scripts/name-initial.js`、`src/scripts/letter-index.js` |
-| 人员渲染与交互 | `src/scripts/people-renderer.js`、`src/scripts/people-interactions.js` |
-| 课程渲染与交互 | `src/scripts/courses-renderer.js`、`src/scripts/courses-interactions.js` |
+| 人员渲染与交互（安排页） | `src/scripts/people-renderer.js`、`src/scripts/people-interactions.js` |
+| 课表与成绩渲染交互（课表在安排页、考试成绩在统计页） | `src/scripts/courses-renderer.js`、`src/scripts/courses-interactions.js` |
+| 登记汇总渲染（统计页作业子视图） | `src/scripts/summary-renderer.js` |
 | 高亮科目校验、存储与 Sheet | `src/scripts/highlight-subjects-model.js`、`src/scripts/highlight-subjects.js` |
 | 备份导入导出 | `src/scripts/backup.js` |
 | 表格导入导出 | `src/scripts/workbook-transfer.js`；旧 CSV 导入兼容保留在 `csv-transfer.js` |
@@ -119,7 +120,7 @@
 
 以下属性必须保留语义、唯一性和从 0 开始的连续索引：
 
-- `data-page`：主页面，人员 `0`、登记 `1`、课程 `2`；
+- `data-page`：主页面，安排 `0`、登记 `1`、统计 `2`；
 - `data-index`：底部导航，与主页面一一对应；
 - `data-sub`：子视图按钮索引；
 - `data-view`：子视图内容索引；
@@ -133,7 +134,7 @@
 
 - 外壳与导航：`#app`、`#viewport`、`#pages`、`#nav`、`#glider`、`#topbarTitle`、`#topbarTitleLabel`、`#settingsButton`、`#moreButton`；
 - 登记与座位：`#studentGrid`、`#gridLetterIndex`、`#studentFontSize`、`#studentFontSizeValue`、`#seatViewport`、`#seatStage`、`#seatGrid`、`#seatHint`、`#seatFitButton`、`#seatLandscapeButton`、`#seatModeBar`、`#seatEditStatus`、`#exitSeatEdit`、`#seatLetterIndex`；
-- 人员与课程：`#roleList`、`#dutyList`、`#weekStrip`、`#gradeTable`；
+- 人员与课程：`#roleList`、`#dutyList`、`#weekStrip`、`#gradeTable`、`#assignmentSummary`；
 - 设置、更多与反馈：`#fontSizePopover`、`#menuDrawer`、`#menuDrawerBuild`、`#closeMenuDrawer`、`#moreMenu`、`#moreMenuPanel`、`#moreMenuHandle`、`#closeMoreMenu`、`#moreMenuBuild`、`#toast`；
 - 备份/表格文件选择：`#backupFileInput`（JSON、XLSX 与旧 CSV 共用）；
 - 学生记录：`#studentRecordSheet`、`#studentRecordPanel`、`#studentRecordHandle`、`#studentRecordTitle`、`#closeStudentRecord`、`#studentRecordStatus`、`#studentScoreTensToggle`、`#studentScoreControls`、`#studentScoreInput`、`#studentScoreError`、`#cancelStudentRecord`、`#saveStudentRecord`；
