@@ -9,7 +9,7 @@ function namesByIds(students, studentIds) {
 function createRoleRow(role, names) {
   const row = document.createElement('button');
   row.type = 'button';
-  row.className = 'card row people-row';
+  row.className = 'row people-row';
   row.setAttribute('role', 'listitem');
   row.dataset.peopleKind = 'role';
   row.dataset.peopleId = String(role.id);
@@ -34,7 +34,7 @@ function createRoleRow(role, names) {
 function createDutyRow(duty, names) {
   const row = document.createElement('button');
   row.type = 'button';
-  row.className = 'card row people-row';
+  row.className = 'row people-row';
   row.setAttribute('role', 'listitem');
   row.dataset.peopleKind = 'duty';
   row.dataset.peopleId = String(duty.id);

@@ -74,6 +74,7 @@
   min-height: 0;
 }
 
+.page[data-page="0"] .page-inner,
 .page[data-page="2"] .page-inner {
   display: flex;
   flex-direction: column;
@@ -83,11 +84,13 @@
   padding: calc(var(--topbar-h) + env(safe-area-inset-top) + 6px) 12px 12px;
 }
 
+.page[data-page="0"] .segments,
 .page[data-page="2"] .segments {
   margin-bottom: 10px;
   flex: none;
 }
 
+.page[data-page="0"] .subview.active,
 .page[data-page="2"] .subview.active {
   flex: 1;
   min-height: 0;
@@ -95,9 +98,50 @@
   flex-direction: column;
 }
 
-.page[data-page="2"] .subview[data-view="0"].active .week-strip {
+/* 安排页·人员：班干与值日合并为同一张卡片，仿课表/作业/考试子视图的单卡样式。 */
+.page[data-page="0"] .subview[data-view="0"].active {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.page[data-page="0"] .subview[data-view="0"].active .people-card {
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  /* JS owns card scroll (see interaction.md §7); native pan here would
+     pointercancel mid-gesture and swallow taps on people rows. */
+  touch-action: none;
+  padding: 4px 0 6px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.page[data-page="0"] .subview[data-view="0"].active .people-card::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* 安排页·课表：一屏完整显示，无需纵向滚动。 */
+.page[data-page="0"] .subview[data-view="1"].active .week-strip {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 统计页·作业：矩阵复用成绩表滚动路径（.grade-scroll）。 */
+.page[data-page="2"] .subview[data-view="0"].active {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.page[data-page="2"] .subview[data-view="0"].active .summary-table {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
@@ -899,21 +943,6 @@
   right: auto;
 }
 
-.section-title {
-  margin: 0 2px 11px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 17px;
-  font-weight: 600;
-}
-
-.section-title span {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 500;
-}
-
 .card {
   background: var(--card);
   border: 0;
@@ -969,18 +998,18 @@
   color: var(--ink);
 }
 
-.people-stack {
+.people-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
 }
 
 .people-row {
   width: 100%;
-  min-height: 48px;
+  min-height: 52px;
   margin: 0;
-  padding: 14px 16px;
+  padding: 12px 16px;
   border: 0;
+  background: transparent;
   color: inherit;
   font: inherit;
   text-align: left;
@@ -990,17 +1019,37 @@
 
 .people-row:focus-visible {
   outline: 2px solid var(--teal);
-  outline-offset: 2px;
+  outline-offset: -2px;
+}
+
+/* 人员卡片：组标题与行之间用发丝分隔线，单卡内呈现班干与值日两组子条目。 */
+.people-card .people-section-title {
+  margin: 0;
+  padding: 14px 16px 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.people-card .people-row + .people-row,
+.people-card .people-list + .people-section-title {
+  border-top: .5px solid var(--line);
+}
+
+.people-card .people-section-title + .people-list .people-row:first-child {
+  border-top: 0;
+}
+
+.people-card .people-row:active {
+  background: var(--control);
 }
 
 .role-list:empty::after,
 .duty-list:empty::after {
   content: "暂无项目";
   display: block;
-  padding: 18px 16px;
-  border-radius: var(--radius-card);
-  background: var(--card);
-  box-shadow: var(--shadow-card);
+  padding: 12px 16px 16px;
   color: var(--muted);
   font-size: 13px;
 }
@@ -1161,18 +1210,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
-  padding-inline: 6px 4px;
-}
-
-.week-slot-cell.is-filled::before {
-  content: "";
-  position: absolute;
-  left: 3px;
-  top: 22%;
-  bottom: 22%;
-  width: 2.5px;
-  border-radius: 999px;
-  background: var(--accent);
+  padding-inline: 6px;
 }
 
 .week-slot-cell.is-filled.is-today-col {
@@ -1188,17 +1226,9 @@
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--teal) 18%, var(--line));
 }
 
-.week-slot-cell.is-filled.is-highlight::before {
-  background: color-mix(in srgb, var(--teal) 72%, var(--card));
-}
-
 .week-slot-cell.is-filled.is-highlight.is-today-col {
   background: color-mix(in srgb, var(--teal) 14%, var(--card));
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--teal) 24%, var(--line));
-}
-
-.week-slot-cell.is-filled.is-highlight.is-today-col::before {
-  background: var(--teal);
 }
 
 .week-slot-cell:active {
@@ -1245,7 +1275,8 @@
   }
 }
 
-.grade-table {
+.grade-table,
+.summary-table {
   position: relative;
   padding: 14px 0 10px;
   overflow: hidden;
@@ -1405,6 +1436,21 @@
 
 .grade-score-cell.is-filled {
   color: var(--ink);
+}
+
+/* 登记汇总：复用成绩表矩阵；只读单元格居中，✓ 态用最小修饰类区分。 */
+.summary-matrix .grade-subject-head,
+.summary-matrix .grade-score-cell {
+  text-align: center;
+}
+
+.summary-matrix .grade-subject-head {
+  justify-content: center;
+}
+
+.summary-matrix .summary-cell.is-checked {
+  color: var(--muted);
+  font-weight: 600;
 }
 
 .course-stats-list {
