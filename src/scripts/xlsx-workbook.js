@@ -67,10 +67,11 @@ function cellStyle(cell, rowIndex) {
 
 function serializeCell(cell, rowIndex, columnIndexValue) {
   const value = cellValue(cell);
-  if (value === '' || value === null || value === undefined) return '';
   const reference = cellReference(rowIndex, columnIndexValue);
+  const hasExplicitStyle = cell && typeof cell === 'object' && !Array.isArray(cell) && Number.isInteger(cell.style);
   const style = cellStyle(cell, rowIndex);
   const styleAttr = style ? ` s="${style}"` : '';
+  if (value === '' || value === null || value === undefined) return hasExplicitStyle && style ? `<c r="${reference}"${styleAttr}/>` : '';
   const formula = cell && typeof cell === 'object' && !Array.isArray(cell) ? cell.formula : '';
   if (formula) {
     const formulaType = typeof value === 'number' && Number.isFinite(value) ? '' : ' t="str"';
@@ -125,11 +126,22 @@ function hiddenColumnSet(sheet) {
 function worksheetColumnsXml(sheet) {
   const hidden = hiddenColumnSet(sheet);
   const widths = sheet.widths ?? [];
-  const columnCount = Math.max(widths.length, hidden.size ? Math.max(...hidden) + 1 : 0);
+  const columnStyles = sheet.columnStyles ?? {};
+  const styledColumns = Object.keys(columnStyles)
+    .map((index) => Number(index))
+    .filter((index) => Number.isInteger(index) && index >= 0);
+  const columnCount = Math.max(
+    widths.length,
+    hidden.size ? Math.max(...hidden) + 1 : 0,
+    styledColumns.length ? Math.max(...styledColumns) + 1 : 0
+  );
   if (!columnCount) return '';
   return Array.from({ length: columnCount }, (_, index) => {
     const width = Number(widths[index]) || 12;
-    return `<col min="${index + 1}" max="${index + 1}" width="${width}" customWidth="1"${hidden.has(index) ? ' hidden="1"' : ''}/>`;
+    const style = Number.isInteger(columnStyles[index]) && columnStyles[index] > 0
+      ? ` style="${columnStyles[index]}"`
+      : '';
+    return `<col min="${index + 1}" max="${index + 1}" width="${width}" customWidth="1"${hidden.has(index) ? ' hidden="1"' : ''}${style}/>`;
   }).join('');
 }
 
@@ -414,10 +426,10 @@ function parseWorksheet(xml, sharedStrings) {
     const row = [];
     if (attr(rowMatch[1], 'hidden') === '1') hiddenRows.push(rowIndex);
     const body = rowMatch[2] ?? '';
-    const cellPattern = /<c\b([^>]*)>([\s\S]*?)<\/c>|<c\b([^>]*)\/>/g;
+    const cellPattern = /<c\b([^>]*?)\/>|<c\b([^>]*)>([\s\S]*?)<\/c>/g;
     for (const cellMatch of body.matchAll(cellPattern)) {
-      const attributes = cellMatch[1] ?? cellMatch[3] ?? '';
-      const body = cellMatch[2] ?? '';
+      const attributes = cellMatch[1] ?? cellMatch[2] ?? '';
+      const body = cellMatch[3] ?? '';
       const index = columnIndex(attr(attributes, 'r'));
       if (index >= 0) row[index] = parseCell(body, attributes, sharedStrings);
     }
@@ -425,11 +437,16 @@ function parseWorksheet(xml, sharedStrings) {
     rows[rowIndex] = row;
   }
   const hiddenColumns = [];
+  const columnStyles = {};
   for (const match of xml.matchAll(/<col\b([^>]*?)(?:\/>|>)/g)) {
-    if (attr(match[1], 'hidden') !== '1') continue;
     const min = Number(attr(match[1], 'min')) - 1;
     const max = Number(attr(match[1], 'max')) - 1;
-    if (Number.isInteger(min) && min >= 0 && Number.isInteger(max) && max >= min) hiddenColumns.push([min, max]);
+    if (!Number.isInteger(min) || min < 0 || !Number.isInteger(max) || max < min) continue;
+    if (attr(match[1], 'hidden') === '1') hiddenColumns.push([min, max]);
+    const style = Number(attr(match[1], 'style'));
+    if (Number.isInteger(style) && style > 0) {
+      for (let index = min; index <= max; index += 1) columnStyles[index] = style;
+    }
   }
   const merges = [...xml.matchAll(/<mergeCell\b([^>]*?)(?:\/>|>)/g)].map((match) => attr(match[1], 'ref')).filter(Boolean);
   const filterMatch = xml.match(/<autoFilter\b([^>]*?)(?:\/>|>)/);
@@ -438,6 +455,7 @@ function parseWorksheet(xml, sharedStrings) {
     meta: {
       hiddenRows,
       hiddenColumns,
+      columnStyles,
       merges,
       autoFilter: filterMatch ? attr(filterMatch[1], 'ref') : ''
     }

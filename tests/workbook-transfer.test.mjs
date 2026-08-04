@@ -3,16 +3,23 @@ import test from 'node:test';
 import { createDefaultRosterState } from '../src/scripts/roster-model.js';
 import {
   LEGACY_WORKBOOK_SHEET_NAMES,
+  V2_WORKBOOK_FORMAT_VERSION,
+  V2_WORKBOOK_SHEET_NAMES,
   WORKBOOK_FORMAT_VERSION,
   WORKBOOK_SHEET_NAMES,
   buildRosterWorkbookSheets,
+  buildRosterWorkbookSheetsV2,
   generateWorkbookFilename,
-  parseLegacyRosterWorkbookSheets,
   parseRosterWorkbook,
   parseRosterWorkbookSheets,
+  parseRosterWorkbookSheetsV2,
   serializeRosterWorkbook
 } from '../src/scripts/workbook-transfer.js';
 import { createXlsxWorkbook, readXlsxWorkbook } from '../src/scripts/xlsx-workbook.js';
+
+const cellValue = (cell) => (
+  cell && typeof cell === 'object' && !Array.isArray(cell) && 'value' in cell ? cell.value : cell
+);
 
 function richSnapshot() {
   const state = createDefaultRosterState();
@@ -41,17 +48,19 @@ function richSnapshot() {
   return state;
 }
 
-function rawSheets(snapshot) {
-  return new Map(buildRosterWorkbookSheets(snapshot).map((sheet) => [
+function rawSheets(snapshot, build = buildRosterWorkbookSheets) {
+  return new Map(build(snapshot).map((sheet) => [
     sheet.name,
-    sheet.rows.map((row) => row.map((cell) => (
-      cell && typeof cell === 'object' && 'value' in cell ? cell.value : cell
-    )))
+    sheet.rows.map((row) => row.map(cellValue))
   ]));
 }
 
-function byName(snapshot) {
-  return new Map(buildRosterWorkbookSheets(snapshot).map((sheet) => [sheet.name, sheet]));
+function byName(snapshot, build = buildRosterWorkbookSheets) {
+  return new Map(build(snapshot).map((sheet) => [sheet.name, sheet]));
+}
+
+function seatListRow(sheet, studentId) {
+  return sheet.rows.findIndex((row, index) => index >= 12 && cellValue(row[41]) === studentId);
 }
 
 function legacySheets(snapshot) {
@@ -84,16 +93,45 @@ function legacySheets(snapshot) {
     ])
   ])];
   const roleRows = [['班干编号', '班干名称'], ...snapshot.roles.map((item) => [item.id, item.title])];
-  const roleMemberRows = [['班干编号', '班干名称（仅供查看）', '学生编号', '学生姓名（仅供查看）'], ...snapshot.roles.flatMap((role) => role.studentIds.map((studentId) => [role.id, role.title, studentId, students.find((student) => student.id === studentId).name]))];
+  const roleMemberRows = [
+    ['班干编号', '班干名称（仅供查看）', '学生编号', '学生姓名（仅供查看）'],
+    ...snapshot.roles.flatMap((role) => role.studentIds.map((studentId) => [
+      role.id,
+      role.title,
+      studentId,
+      students.find((student) => student.id === studentId).name
+    ]))
+  ];
   const dutyRows = [['值日编号', '值日名称', '说明'], ...snapshot.duties.map((item) => [item.id, item.title, item.note])];
-  const dutyMemberRows = [['值日编号', '值日名称（仅供查看）', '学生编号', '学生姓名（仅供查看）'], ...snapshot.duties.flatMap((duty) => duty.studentIds.map((studentId) => [duty.id, duty.title, studentId, students.find((student) => student.id === studentId).name]))];
+  const dutyMemberRows = [
+    ['值日编号', '值日名称（仅供查看）', '学生编号', '学生姓名（仅供查看）'],
+    ...snapshot.duties.flatMap((duty) => duty.studentIds.map((studentId) => [
+      duty.id,
+      duty.title,
+      studentId,
+      students.find((student) => student.id === studentId).name
+    ]))
+  ];
   const dayLabels = ['星期一', '星期二', '星期三', '星期四', '星期五'];
-  const scheduleRows = [['节次编号', '节次名称', ...dayLabels], ...snapshot.periods.map((period) => [period.id, period.title, ...dayLabels.map((_, day) => snapshot.scheduleSlots.find((slot) => slot.day === day && slot.periodId === period.id)?.subject ?? '')])];
+  const scheduleRows = [
+    ['节次编号', '节次名称', ...dayLabels],
+    ...snapshot.periods.map((period) => [
+      period.id,
+      period.title,
+      ...dayLabels.map((_, day) => snapshot.scheduleSlots.find((slot) => slot.day === day && slot.periodId === period.id)?.subject ?? '')
+    ])
+  ];
   const subjectRows = [['科目编号', '科目名称'], ...snapshot.subjects.map((item) => [item.id, item.title])];
   const examRows = [['考试编号', '考试名称'], ...snapshot.exams.map((item) => [item.id, item.title])];
   const gradeRows = [
     ['考试编号', '考试名称（仅供查看）', '学生编号', '学生姓名（仅供查看）', ...snapshot.subjects.map((subject) => `成绩｜${subject.id}｜${subject.title}`)],
-    ...snapshot.exams.flatMap((exam) => students.map((student) => [exam.id, exam.title, student.id, student.name, ...snapshot.subjects.map((subject) => grades.get(`${exam.id}:${subject.id}:${student.id}`) ?? '')]))
+    ...snapshot.exams.flatMap((exam) => students.map((student) => [
+      exam.id,
+      exam.title,
+      student.id,
+      student.name,
+      ...snapshot.subjects.map((subject) => grades.get(`${exam.id}:${subject.id}:${student.id}`) ?? '')
+    ]))
   ];
   return [
     { name: '使用说明', rows: [['教师工作台数据工作簿', ''], ['', ''], ['格式版本', 1], ['数据版本', 6]] },
@@ -111,7 +149,7 @@ function legacySheets(snapshot) {
   ];
 }
 
-test('完整业务数据可通过五工作表 XLSX 往返', async () => {
+test('完整业务数据可通过 v3 六工作表 XLSX 往返', async () => {
   const original = richSnapshot();
   const bytes = await serializeRosterWorkbook(original, { exportedAt: '2026-08-02T00:00:00.000Z' });
   assert.deepEqual([...bytes.subarray(0, 4)], [0x50, 0x4b, 0x03, 0x04]);
@@ -120,122 +158,177 @@ test('完整业务数据可通过五工作表 XLSX 往返', async () => {
   assert.deepEqual(result.data, original);
 });
 
-test('导出严格包含五个固定工作表和五表布局', async () => {
+test('v3 严格生成六表顺序、8×13 座位矩阵和讲台', async () => {
   const state = richSnapshot();
   const sheets = buildRosterWorkbookSheets(state);
   assert.deepEqual(sheets.map((sheet) => sheet.name), WORKBOOK_SHEET_NAMES);
-  assert.equal(WORKBOOK_FORMAT_VERSION, 2);
-  assert.deepEqual(sheets[0].rows[0].slice(4, 7), ['姓名', '座位行', '座位列']);
-  assert.deepEqual(sheets[0].hiddenColumns, [0, 1, 2, 3]);
-  assert.deepEqual(sheets[0].validations.map((item) => item.sqref), [`F2:F${state.students.length + 1}`, `G2:G${state.students.length + 1}`]);
-  assert.deepEqual(sheets[1].rows[0].slice(2), [1, 2]);
-  assert.equal(sheets[1].rows[1][2], '');
-  assert.equal(sheets[1].rows[2][1], '学生姓名');
-  assert.equal(sheets[1].rows[2][2].value, '作业 1');
-  assert.equal(sheets[1].rows[3].length, 4);
-  assert.equal(sheets[1].freezeRows, 3);
-  assert.equal(sheets[2].rows[0][0], '班干名称');
-  assert.equal(sheets[2].rows[6][0], '值日名称');
-  assert.equal(sheets[2].freezeRows, 7);
-  assert.ok(sheets[2].hiddenColumns.length >= 5);
-  assert.deepEqual(sheets[3].rows[0].slice(0, 6), ['节次', '星期一', '星期二', '星期三', '星期四', '星期五']);
-  assert.equal(sheets[3].rows.length, 11);
-  assert.equal(sheets[4].rows[1][2].value, '考试 1');
-  assert.equal(sheets[4].rows[2][1], '学生姓名');
-  assert.deepEqual(sheets[4].merges, ['C2:E2', 'F2:H2']);
-  assert.equal(sheets[4].freezeRows, 3);
+  assert.equal(WORKBOOK_FORMAT_VERSION, 3);
+
+  const seat = sheets[0];
+  assert.equal(seat.rows.length, 58);
+  assert.equal(cellValue(seat.rows[0][0]), '讲台方向 ↓（讲台在下方）');
+  assert.deepEqual(seat.rows[9].slice(0, 13).map(cellValue), ['讲台', ...Array(12).fill('')]);
+  assert.deepEqual(seat.merges, ['A1:M1', 'A10:M10']);
+  assert.deepEqual(seat.rows[11].slice(0, 4), ['姓名', '首字母', '座位行', '座位列']);
+  assert.ok(seat.hiddenColumns.some((range) => range[0] === 14 && range[1] === 41));
+
+  const studentsById = new Map(state.students.map((student) => [student.id, student]));
+  const seatsByIndex = new Map(state.seats.map((item) => [item.seatIndex, item.studentId]));
+  let emptyCount = 0;
+  for (let row = 0; row < 8; row += 1) {
+    assert.equal(seat.rows[row + 1].slice(0, 13).length, 13);
+    for (let column = 0; column < 13; column += 1) {
+      const seatIndex = row * 13 + column;
+      const studentId = seatsByIndex.get(seatIndex);
+      const expected = studentId == null ? '' : studentsById.get(studentId).name;
+      assert.equal(cellValue(seat.rows[row + 1][column]), expected);
+      assert.equal(seat.rows[row + 1][column].style, 5);
+      if (!studentId) emptyCount += 1;
+    }
+  }
+  assert.equal(emptyCount, 104 - state.students.length);
+  assert.equal(cellValue(seat.rows[12][41]), state.students[0].id);
+
+  const assignment = sheets[1];
+  assert.deepEqual(assignment.rows[2].slice(2).map(cellValue), ['作业 1', '作业 2']);
+  assert.deepEqual(assignment.rows[3].slice(2).map(cellValue), ['✓', '']);
+  assert.deepEqual(assignment.columnStyles, { 2: 5, 3: 5 });
+  for (let row = 1; row < assignment.rows.length; row += 1) {
+    for (let column = 2; column < 4; column += 1) {
+      const cell = assignment.rows[row][column];
+      if (cellValue(cell) === '' || cellValue(cell) === null) continue;
+      assert.ok([1, 5, 8].includes(cell?.style), `作业登记!${row + 1},${column + 1} 未居中`);
+    }
+  }
 
   const workbook = await readXlsxWorkbook(await serializeRosterWorkbook(state));
   assert.deepEqual([...workbook.keys()], WORKBOOK_SHEET_NAMES);
-  assert.equal(workbook.get('作业登记').length, state.students.length + 3);
-  assert.equal(workbook.get('考试成绩').length, state.students.length + 3);
-  assert.deepEqual(workbook.getSheetMeta('作业登记').hiddenRows, [0]);
-  assert.deepEqual(workbook.getSheetMeta('作业登记').hiddenColumns, [[0, 0]]);
-  assert.deepEqual(workbook.getSheetMeta('考试成绩').merges, ['C2:E2', 'F2:H2']);
-  assert.equal(workbook.getSheetMeta('考试成绩').autoFilter, 'B3:H49');
+  assert.deepEqual(workbook.get('座位表').slice(1, 9).map((row) => row.slice(0, 13).length), Array(8).fill(13));
+  assert.equal(workbook.getSheetMeta('座位表').autoFilter, 'A12:D58');
+  assert.equal(workbook.getSheetMeta('作业登记').columnStyles[2], 5);
+  assert.equal(workbook.getSheetMeta('作业登记').columnStyles[3], 5);
 });
 
-test('修改五表中的名称、登记、安排、课表和成绩后可导入', async () => {
+test('v3 座位表按隐藏稳定 ID 保留重名、改名、首字母和座位移动', () => {
   const state = createDefaultRosterState();
-  const sheets = byName(state);
-  sheets.get('学生名单').rows[1][4] = '修改后的姓名';
-  sheets.get('学生名单').rows[1][5] = 3;
-  sheets.get('学生名单').rows[1][6] = 7;
-  sheets.get('作业登记').rows[2][2] = '单元练习';
-  sheets.get('作业登记').rows[3][2] = 89.5;
-  sheets.get('人员安排').rows[1][0] = '新班长';
-  sheets.get('人员安排').rows[1][1] = '钱书宁';
-  sheets.get('人员安排').rows[7][0] = '周一值日';
-  sheets.get('人员安排').rows[7][1] = '整理图书角';
-  sheets.get('人员安排').rows[7][2] = '孙知远';
-  sheets.get('课程表').rows[2][3] = '英语';
-  sheets.get('考试成绩').rows[1][2] = '第一次考试';
-  sheets.get('考试成绩').rows[2][2] = '语文卷面';
-  sheets.get('考试成绩').rows[3][2] = 76.5;
-
-  const result = parseRosterWorkbookSheets(await readXlsxWorkbook(await createXlsxWorkbook([...sheets.values()])));
-  assert.equal(result.ok, true, result.error);
-  assert.equal(result.data.students[0].name, '修改后的姓名');
-  assert.equal(result.data.seats[0].seatIndex, (3 - 1) * 13 + 7 - 1);
-  assert.equal(result.data.assignments[0].name, '单元练习');
-  assert.deepEqual(result.data.submissions, [{ assignmentId: 1, studentId: 1 }]);
-  assert.deepEqual(result.data.scores, [{ assignmentId: 1, studentId: 1, value: 89.5 }]);
-  assert.equal(result.data.roles[0].title, '新班长');
-  assert.deepEqual(result.data.roles[0].studentIds, [2]);
-  assert.equal(result.data.duties[0].title, '周一值日');
-  assert.deepEqual(result.data.duties[0].studentIds, [3]);
-  assert.deepEqual(result.data.scheduleSlots, [{ day: 2, periodId: 2, subject: '英语' }]);
-  assert.equal(result.data.exams[0].title, '第一次考试');
-  assert.equal(result.data.subjects[0].title, '语文卷面');
-  assert.deepEqual(result.data.courseGrades, [{ examId: 1, subjectId: 1, studentId: 1, value: 76.5 }]);
-});
-
-test('重名学生的成员下拉文本和隐藏编号均可恢复', () => {
-  const state = createDefaultRosterState();
-  state.students[0].name = '李雷';
-  state.students[1].name = '李雷';
+  state.students[0].name = '重名学生';
+  state.students[1].name = '重名学生';
   state.roles[0].studentIds = [1, 2];
+  state.duties[0].studentIds = [1, 2];
   const sheets = byName(state);
-  const people = sheets.get('人员安排');
-  assert.equal(people.rows[1][1], '李雷（编号 1）');
-  assert.equal(people.rows[1][2], '李雷（编号 2）');
+  const seat = sheets.get('座位表');
+  const firstRow = seatListRow(seat, 1);
+  const emptySeat = [...Array(104).keys()].find((seatIndex) => !state.seats.some((item) => item.seatIndex === seatIndex));
+  seat.rows[firstRow][0] = '改名学生';
+  seat.rows[firstRow][1] = '#';
+  seat.rows[firstRow][2] = Math.floor(emptySeat / 13) + 1;
+  seat.rows[firstRow][3] = emptySeat % 13 + 1;
+
   const result = parseRosterWorkbookSheets(new Map([...sheets].map(([name, sheet]) => [name, sheet.rows])));
   assert.equal(result.ok, true, result.error);
+  assert.deepEqual(result.data.students[0], { id: 1, name: '改名学生', initial: '#' });
+  assert.equal(result.data.seats.find((item) => item.studentId === 1).seatIndex, emptySeat);
   assert.deepEqual(result.data.roles[0].studentIds, [1, 2]);
+  assert.deepEqual(result.data.duties[0].studentIds, [1, 2]);
 });
 
-test('后续考试的同科目标题跟随第一场考试', () => {
-  const state = richSnapshot();
+test('v3 班干和值日拆表，成员单格可读且能处理空成员、重名和特殊字符', () => {
+  const state = createDefaultRosterState();
+  state.students[0].name = '张；\u005c括号（甲）';
+  state.students[1].name = '李雷';
+  state.students[2].name = '李雷';
+  state.roles[0].studentIds = [1, 2, 3];
+  state.duties[0].studentIds = [];
   const sheets = byName(state);
-  assert.equal(sheets.get('考试成绩').rows[2][5].formula, 'C3');
-  sheets.get('考试成绩').rows[2][2] = '语文改名';
-  sheets.get('考试成绩').rows[2][5] = '后续标题不作为来源';
+  const role = sheets.get('班干安排');
+  const duty = sheets.get('值日安排');
+  assert.equal(role.rows[0][0], '班干名称');
+  assert.equal(role.rows[0][1], '成员');
+  assert.equal(duty.rows[0][0], '值日名称');
+  assert.equal(duty.rows[0][1], '说明');
+  assert.equal(duty.rows[0][2], '成员');
+  assert.match(role.rows[1][1], /编号 1/);
+  assert.match(role.rows[1][1], /；/);
+  assert.equal(role.rows[0][2], '');
+  assert.equal(duty.rows[1][2], '');
+  assert.match(role.comments[0].text, /反斜杠/);
+
   const result = parseRosterWorkbookSheets(new Map([...sheets].map(([name, sheet]) => [name, sheet.rows])));
   assert.equal(result.ok, true, result.error);
-  assert.equal(result.data.subjects[0].title, '语文改名');
+  assert.deepEqual(result.data.roles[0].studentIds, [1, 2, 3]);
+  assert.deepEqual(result.data.duties[0].studentIds, []);
 });
 
-test('无效字符、删除行列和重复当前作业会指出准确单元格', () => {
+test('v3 成员重复、缺失学生和错误格式指出准确单元格', () => {
+  const state = createDefaultRosterState();
+  state.roles[0].studentIds = [1, 2];
+  const duplicate = byName(state);
+  duplicate.get('班干安排').rows[1][1] = `${duplicate.get('班干安排').rows[1][1]}；${duplicate.get('班干安排').rows[1][1].split('；')[0]}`;
+  assert.match(parseRosterWorkbookSheets(new Map([...duplicate].map(([name, sheet]) => [name, sheet.rows]))).error, /^班干安排!B2：/);
+
+  const missing = byName(state);
+  missing.get('班干安排').rows[1][1] = '不存在（编号 999）';
+  assert.match(parseRosterWorkbookSheets(new Map([...missing].map(([name, sheet]) => [name, sheet.rows]))).error, /^班干安排!B2：学生编号 999 不存在/);
+
+  const malformed = byName(state);
+  malformed.get('值日安排').rows[1][2] = '只写姓名';
+  assert.match(parseRosterWorkbookSheets(new Map([...malformed].map(([name, sheet]) => [name, sheet.rows]))).error, /^值日安排!C2：/);
+
+  const splitMembers = byName(state);
+  splitMembers.get('班干安排').rows[1][2] = '不应出现的成员列';
+  assert.match(parseRosterWorkbookSheets(new Map([...splitMembers].map(([name, sheet]) => [name, sheet.rows]))).error, /^班干安排!C2：/);
+});
+
+test('v3 作业状态校验、缺失学生和重复座位拒绝整份文件', () => {
   const state = createDefaultRosterState();
   const invalidScore = rawSheets(state);
   invalidScore.get('作业登记')[3][2] = '92.55';
   assert.match(parseRosterWorkbookSheets(invalidScore).error, /^作业登记!C4：/);
 
-  const invalidCheckmark = rawSheets(state);
-  invalidCheckmark.get('考试成绩')[3][2] = '✓';
-  assert.match(parseRosterWorkbookSheets(invalidCheckmark).error, /^考试成绩!C4：/);
-
-  const duplicateCurrent = rawSheets({ ...state, assignments: [{ id: 1, name: '作业 1' }, { id: 2, name: '作业 2' }], activeAssignmentId: 1, nextAssignmentId: 2 });
+  const duplicateCurrent = rawSheets({
+    ...state,
+    assignments: [{ id: 1, name: '作业 1' }, { id: 2, name: '作业 2' }],
+    activeAssignmentId: 1,
+    nextAssignmentId: 2
+  });
   duplicateCurrent.get('作业登记')[1][3] = '✓';
   assert.match(parseRosterWorkbookSheets(duplicateCurrent).error, /^作业登记!D2：/);
 
-  const missingStudent = rawSheets(state);
-  missingStudent.get('学生名单').splice(10, 1);
-  assert.match(parseRosterWorkbookSheets(missingStudent).error, /^学生名单!A47：/);
+  const duplicateStudent = rawSheets(state);
+  const first = seatListRow({ rows: duplicateStudent.get('座位表') }, 1);
+  const second = seatListRow({ rows: duplicateStudent.get('座位表') }, 2);
+  duplicateStudent.get('座位表')[second][41] = duplicateStudent.get('座位表')[first][41];
+  assert.match(parseRosterWorkbookSheets(duplicateStudent).error, /^座位表!AP\d+：学生编号重复/);
 
-  const missingAssignment = rawSheets(state);
-  missingAssignment.get('作业登记')[0][2] = '';
-  assert.match(parseRosterWorkbookSheets(missingAssignment).error, /^作业登记!C1：/);
+  const duplicateSeat = rawSheets(state);
+  duplicateSeat.get('座位表')[second][2] = duplicateSeat.get('座位表')[first][2];
+  duplicateSeat.get('座位表')[second][3] = duplicateSeat.get('座位表')[first][3];
+  assert.match(parseRosterWorkbookSheets(duplicateSeat).error, /^座位表!C\d+：座位重复/);
+
+  const missingStudent = rawSheets(state);
+  missingStudent.get('座位表').splice(13, 1);
+  assert.match(parseRosterWorkbookSheets(missingStudent).error, /^座位表!A\d+：名单学生行不能为空/);
+});
+
+test('个人附加工作表忽略，v2 五表与 v3 路由互不混淆', async () => {
+  const state = richSnapshot();
+  const v3 = buildRosterWorkbookSheets(state);
+  const withPersonal = [
+    ...v3,
+    { name: '我的备注', rows: [['仅供查看']] },
+    { name: '使用说明', rows: [['个人工作表，不是 v1 格式']] }
+  ];
+  const v3Result = await parseRosterWorkbook(await createXlsxWorkbook(withPersonal));
+  assert.equal(v3Result.ok, true, v3Result.error);
+
+  const v2 = buildRosterWorkbookSheetsV2(state);
+  assert.deepEqual(v2.map((sheet) => sheet.name), V2_WORKBOOK_SHEET_NAMES);
+  assert.equal(cellValue(v2[0].rows[0][0]), V2_WORKBOOK_FORMAT_VERSION);
+  const v2Result = await parseRosterWorkbook(await createXlsxWorkbook([...v2, { name: '我的备注', rows: [['忽略']] }]));
+  assert.equal(v2Result.ok, true, v2Result.error);
+  assert.deepEqual(v2Result.data, state);
+  const direct = parseRosterWorkbookSheetsV2(new Map(v2.map((sheet) => [sheet.name, sheet.rows])));
+  assert.equal(direct.ok, true, direct.error);
 });
 
 test('版本 1 的十二工作表 XLSX 仍可读取', async () => {
@@ -250,7 +343,7 @@ test('版本 1 的十二工作表 XLSX 仍可读取', async () => {
   assert.equal(result.data.exams[0].title, state.exams[0].title);
 });
 
-test('generateWorkbookFilename 返回 XLSX 文件名', () => {
+test('generateWorkbookFilename 保持 XLSX 文件名', () => {
   assert.equal(
     generateWorkbookFilename(new Date(2026, 7, 2, 15, 4, 5)),
     'teacher-workbench-data-20260802-150405.xlsx'

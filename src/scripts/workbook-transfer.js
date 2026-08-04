@@ -22,10 +22,19 @@ import {
   readXlsxWorkbook
 } from './xlsx-workbook.js';
 
-export const WORKBOOK_FORMAT_VERSION = 2;
+export const WORKBOOK_FORMAT_VERSION = 3;
+export const V2_WORKBOOK_FORMAT_VERSION = 2;
 export const LEGACY_WORKBOOK_FORMAT_VERSION = 1;
 export const MAX_WORKBOOK_FILE_SIZE = MAX_BINARY_FILE_SIZE;
 export const WORKBOOK_SHEET_NAMES = Object.freeze([
+  '座位表',
+  '作业登记',
+  '班干安排',
+  '值日安排',
+  '课程表',
+  '考试成绩'
+]);
+export const V2_WORKBOOK_SHEET_NAMES = Object.freeze([
   '学生名单',
   '作业登记',
   '人员安排',
@@ -50,6 +59,18 @@ export const LEGACY_WORKBOOK_SHEET_NAMES = Object.freeze([
 const CHECKMARK = '✓';
 const STUDENT_COUNT_MARKER = '学生行数量';
 const DAY_LABELS = Object.freeze(['星期一', '星期二', '星期三', '星期四', '星期五']);
+const SEAT_DIRECTION_LABEL = '讲台方向 ↓（讲台在下方）';
+const PODIUM_LABEL = '讲台';
+const V3_SEAT_MATRIX_START_ROW = 1;
+const V3_SEAT_MATRIX_END_ROW = V3_SEAT_MATRIX_START_ROW + SEAT_ROWS - 1;
+const V3_SEAT_PODIUM_ROW = V3_SEAT_MATRIX_END_ROW + 1;
+const V3_SEAT_LIST_HEADER_ROW = V3_SEAT_PODIUM_ROW + 2;
+const V3_SEAT_LIST_START_ROW = V3_SEAT_LIST_HEADER_ROW + 1;
+const V3_SEAT_METADATA_START_COLUMN = 14;
+const V3_SEAT_MATRIX_ID_START_COLUMN = 28;
+const V3_SEAT_LIST_ID_COLUMN = V3_SEAT_MATRIX_ID_START_COLUMN + SEAT_COLUMNS;
+const MEMBER_SEPARATOR = '；';
+const MEMBER_ESCAPE = '\\';
 const textDecoder = new TextDecoder('utf-8');
 
 const STYLE_READONLY = 4;
@@ -128,7 +149,7 @@ function text(raw) {
 }
 
 function rowCell(rows, rowIndex, columnIndex) {
-  return rows[rowIndex]?.[columnIndex];
+  return rows?.[rowIndex]?.[columnIndex];
 }
 
 function rawText(rows, rowIndex, columnIndex) {
@@ -201,15 +222,181 @@ function displayStudentLabels(students) {
   return { byId, labels: [...byId.values()] };
 }
 
+function escapeMemberText(value) {
+  return String(value ?? '')
+    .replaceAll(MEMBER_ESCAPE, `${MEMBER_ESCAPE}${MEMBER_ESCAPE}`)
+    .replaceAll(MEMBER_SEPARATOR, `${MEMBER_ESCAPE}${MEMBER_SEPARATOR}`)
+    .replaceAll('（', `${MEMBER_ESCAPE}（`)
+    .replaceAll('）', `${MEMBER_ESCAPE}）`);
+}
+
+function encodeMemberList(studentIds, studentsById) {
+  return studentIds.map((studentId) => {
+    const student = studentsById.get(studentId);
+    if (!student) return '';
+    return `${escapeMemberText(student.name)}（编号 ${student.id}）`;
+  }).filter(Boolean).join(MEMBER_SEPARATOR);
+}
+
+function encodeMemberIds(studentIds) {
+  return studentIds.join('|');
+}
+
+function setV3SeatMetadata(row, index, label, value) {
+  const labelColumn = V3_SEAT_METADATA_START_COLUMN + index * 2;
+  row[labelColumn] = label;
+  row[labelColumn + 1] = value;
+}
+
+function buildSeatSheet(snapshot) {
+  const studentsById = new Map(snapshot.students.map((student) => [student.id, student]));
+  const seatsByIndex = new Map(snapshot.seats.map((seat) => [seat.seatIndex, seat]));
+  const rows = [];
+  const directionRow = Array(V3_SEAT_LIST_ID_COLUMN + 1).fill('');
+  directionRow[0] = styled(SEAT_DIRECTION_LABEL, STYLE_GROUP_HEADER);
+  setV3SeatMetadata(directionRow, 0, '格式版本', WORKBOOK_FORMAT_VERSION);
+  setV3SeatMetadata(directionRow, 1, '数据版本', ROSTER_SCHEMA_VERSION);
+  setV3SeatMetadata(directionRow, 2, '座位行数', SEAT_ROWS);
+  setV3SeatMetadata(directionRow, 3, '座位列数', SEAT_COLUMNS);
+  setV3SeatMetadata(directionRow, 4, '学生数量', snapshot.students.length);
+  setV3SeatMetadata(directionRow, 5, '矩阵开始行', V3_SEAT_MATRIX_START_ROW + 1);
+  setV3SeatMetadata(directionRow, 6, '名单表头行', V3_SEAT_LIST_HEADER_ROW + 1);
+  rows.push(directionRow);
+
+  for (let rowIndex = 0; rowIndex < SEAT_ROWS; rowIndex += 1) {
+    const row = Array(V3_SEAT_LIST_ID_COLUMN + 1).fill('');
+    for (let columnIndex = 0; columnIndex < SEAT_COLUMNS; columnIndex += 1) {
+      const seatIndex = rowIndex * SEAT_COLUMNS + columnIndex;
+      const seat = seatsByIndex.get(seatIndex);
+      const student = seat ? studentsById.get(seat.studentId) : null;
+      row[columnIndex] = centered(student?.name ?? '');
+      row[V3_SEAT_MATRIX_ID_START_COLUMN + columnIndex] = seat?.studentId ?? '';
+    }
+    rows.push(row);
+  }
+
+  const podiumRow = Array(V3_SEAT_LIST_ID_COLUMN + 1).fill('');
+  podiumRow[0] = styled(PODIUM_LABEL, STYLE_GROUP_HEADER);
+  rows.push(podiumRow);
+  rows.push(Array(V3_SEAT_LIST_ID_COLUMN + 1).fill(''));
+
+  const listHeader = Array(V3_SEAT_LIST_ID_COLUMN + 1).fill('');
+  listHeader[0] = '姓名';
+  listHeader[1] = '首字母';
+  listHeader[2] = '座位行';
+  listHeader[3] = '座位列';
+  listHeader[V3_SEAT_LIST_ID_COLUMN] = '学生编号';
+  rows.push(listHeader);
+  snapshot.students.forEach((student) => {
+    const seat = snapshot.seats.find((item) => item.studentId === student.id);
+    const row = Array(V3_SEAT_LIST_ID_COLUMN + 1).fill('');
+    row[0] = student.name;
+    row[1] = student.initial;
+    row[2] = Math.floor(seat.seatIndex / SEAT_COLUMNS) + 1;
+    row[3] = (seat.seatIndex % SEAT_COLUMNS) + 1;
+    row[V3_SEAT_LIST_ID_COLUMN] = student.id;
+    rows.push(row);
+  });
+
+  const listEndRow = V3_SEAT_LIST_START_ROW + snapshot.students.length;
+  const columnStyles = Object.fromEntries([
+    ...Array.from({ length: SEAT_COLUMNS }, (_, index) => [index, STYLE_CENTER]),
+    [1, STYLE_CENTER],
+    [2, STYLE_CENTER],
+    [3, STYLE_CENTER]
+  ]);
+  const widths = Array(V3_SEAT_LIST_ID_COLUMN + 1).fill(12);
+  widths[0] = 22;
+  widths[1] = 12;
+  widths[2] = 12;
+  widths[3] = 12;
+  return {
+    name: '座位表',
+    header: true,
+    freezeRows: V3_SEAT_LIST_HEADER_ROW + 1,
+    autoFilter: { ref: `A${V3_SEAT_LIST_HEADER_ROW + 1}:D${listEndRow}` },
+    hiddenColumns: [[V3_SEAT_METADATA_START_COLUMN, V3_SEAT_LIST_ID_COLUMN]],
+    columnStyles,
+    validations: [
+      integerValidation(2, V3_SEAT_LIST_START_ROW + 1, listEndRow, 1, SEAT_ROWS),
+      integerValidation(3, V3_SEAT_LIST_START_ROW + 1, listEndRow, 1, SEAT_COLUMNS)
+    ],
+    widths,
+    merges: [`A1:M1`, `A${V3_SEAT_PODIUM_ROW + 1}:M${V3_SEAT_PODIUM_ROW + 1}`],
+    comments: [
+      { ref: 'A1', text: '讲台在矩阵下方；矩阵按 seatIndex 行优先从第 1 排第 1 列开始，完整保留 8×13 个位置。' },
+      { ref: `A${V3_SEAT_LIST_HEADER_ROW + 1}`, text: '矩阵是座位复刻显示区；请在下方名单编辑区修改姓名、首字母和座位行列。学生编号隐藏保存并作为稳定关联主键。' },
+      { ref: `B${V3_SEAT_LIST_HEADER_ROW + 1}`, text: '首字母只能填写单个 A～Z 或 #。' },
+      { ref: `C${V3_SEAT_LIST_HEADER_ROW + 1}`, text: '座位行只能填写 1～8；座位列只能填写 1～13。' }
+    ],
+    rows
+  };
+}
+
+function buildV3PeopleSheet(snapshot, kind) {
+  const isRole = kind === 'role';
+  const name = isRole ? '班干安排' : '值日安排';
+  const items = isRole ? snapshot.roles : snapshot.duties;
+  const memberColumn = isRole ? 1 : 2;
+  const entityIdColumn = 14;
+  const memberIdsColumn = 15;
+  const studentsById = new Map(snapshot.students.map((student) => [student.id, student]));
+  const rows = [];
+  const header = Array(memberIdsColumn + 1).fill('');
+  header[0] = isRole ? '班干名称' : '值日名称';
+  if (!isRole) header[1] = '说明';
+  header[memberColumn] = '成员';
+  setMetadata(header, 4, '格式版本', WORKBOOK_FORMAT_VERSION);
+  setMetadata(header, 6, '数据版本', ROSTER_SCHEMA_VERSION);
+  setMetadata(header, 8, '行数量', items.length);
+  setMetadata(header, 10, '学生数量', snapshot.students.length);
+  header[entityIdColumn] = isRole ? '班干编号' : '值日编号';
+  header[memberIdsColumn] = '成员编号序列';
+  rows.push(header);
+  for (const item of items) {
+    const row = Array(memberIdsColumn + 1).fill('');
+    row[0] = item.title;
+    if (!isRole) row[1] = item.note;
+    row[memberColumn] = encodeMemberList(item.studentIds, studentsById);
+    row[entityIdColumn] = item.id;
+    row[memberIdsColumn] = encodeMemberIds(item.studentIds);
+    rows.push(row);
+  }
+  const endRow = items.length + 1;
+  const widths = Array(memberIdsColumn + 1).fill(12);
+  widths[0] = 24;
+  if (!isRole) widths[1] = 30;
+  widths[memberColumn] = 64;
+  return {
+    name,
+    header: true,
+    freezeRows: 1,
+    autoFilter: { ref: `A1:${columnName(memberColumn)}${endRow}` },
+    hiddenColumns: [[4, memberIdsColumn]],
+    widths,
+    columnStyles: { [memberColumn]: STYLE_WRAP },
+    comments: [
+      { ref: `${columnName(memberColumn)}1`, text: `同一行全部成员放在一个单元格，格式为「姓名（编号 n）」并用「${MEMBER_SEPARATOR}」分隔。姓名中的反斜杠、分隔符和括号使用反斜杠转义；编号是稳定学生 ID，重名也不会混淆。留空表示没有成员。` },
+      { ref: 'A1', text: `${isRole ? '班干名称' : '值日名称'}和成员单元格可以直接修改；重复成员、未知编号或不完整格式会拒绝整份导入。` }
+    ],
+    rows
+  };
+}
+
+function setMetadata(row, column, label, value) {
+  row[column] = label;
+  row[column + 1] = value;
+}
+
 function assignmentValue(assignmentId, studentId, submitted, scores) {
   const item = scores.get(key(assignmentId, studentId));
   if (item !== undefined) return item;
   return submitted.has(key(assignmentId, studentId)) ? CHECKMARK : '';
 }
 
-function buildStudentSheet(snapshot) {
+function buildV2StudentSheet(snapshot) {
   const rows = [
-    [WORKBOOK_FORMAT_VERSION, ROSTER_SCHEMA_VERSION, '学生编号', '首字母', '姓名', '座位行', '座位列'],
+    [V2_WORKBOOK_FORMAT_VERSION, ROSTER_SCHEMA_VERSION, '学生编号', '首字母', '姓名', '座位行', '座位列'],
     ...snapshot.students.map((student) => {
       const seat = snapshot.seats.find((item) => item.studentId === student.id);
       return [
@@ -245,18 +432,21 @@ function buildStudentSheet(snapshot) {
   };
 }
 
-function buildAssignmentSheet(snapshot) {
+function buildAssignmentSheet(snapshot, formatVersion = WORKBOOK_FORMAT_VERSION) {
   const submitted = new Set(snapshot.submissions.map((item) => key(item.assignmentId, item.studentId)));
   const scores = new Map(snapshot.scores.map((item) => [key(item.assignmentId, item.studentId), item.value]));
   const rows = [
-    [WORKBOOK_FORMAT_VERSION, snapshot.assignments.length, ...snapshot.assignments.map((item) => item.id)],
-    [ROSTER_SCHEMA_VERSION, '当前作业', ...snapshot.assignments.map((item) => item.id === snapshot.activeAssignmentId ? styled(CHECKMARK, STYLE_PALE_BLUE) : '')],
+    [formatVersion, snapshot.assignments.length, ...snapshot.assignments.map((item) => item.id)],
+    [ROSTER_SCHEMA_VERSION, '当前作业', ...snapshot.assignments.map((item) => item.id === snapshot.activeAssignmentId
+      ? styled(CHECKMARK, STYLE_PALE_BLUE)
+      : formatVersion === WORKBOOK_FORMAT_VERSION ? centered('') : '')],
     [snapshot.students.length, '学生姓名', ...snapshot.assignments.map((item) => styled(item.name, item.id === snapshot.activeAssignmentId ? STYLE_PALE_BLUE : 1))],
     ...snapshot.students.map((student) => [
       student.id,
       readonly(student.name),
       ...snapshot.assignments.map((assignment) => {
         const value = assignmentValue(assignment.id, student.id, submitted, scores);
+        if (formatVersion === WORKBOOK_FORMAT_VERSION) return centered(value);
         if (value === CHECKMARK) return centered(value);
         if (value === '') return '';
         return scoreCell(value);
@@ -274,6 +464,9 @@ function buildAssignmentSheet(snapshot) {
     hiddenColumns: [0],
     autoFilter: { ref: `B3:${columnName(rows[0].length - 1)}${rowEnd}` },
     widths: [12, 22, ...snapshot.assignments.map(() => 16)],
+    columnStyles: formatVersion === WORKBOOK_FORMAT_VERSION
+      ? Object.fromEntries(snapshot.assignments.map((_, index) => [index + 2, STYLE_CENTER]))
+      : undefined,
     validations,
     comments: [
       { ref: 'B2', text: `每项作业的当前作业标记只能有一个 ${CHECKMARK}。` },
@@ -283,7 +476,7 @@ function buildAssignmentSheet(snapshot) {
   };
 }
 
-function buildPeopleSheet(snapshot) {
+function buildPeopleSheet(snapshot, formatVersion = V2_WORKBOOK_FORMAT_VERSION) {
   const { byId, labels } = displayStudentLabels(snapshot.students);
   const maxMembers = Math.max(
     4,
@@ -305,7 +498,7 @@ function buildPeopleSheet(snapshot) {
 
   rows[roleHeaderIndex][0] = '班干名称';
   for (let index = 0; index < maxMembers; index += 1) rows[roleHeaderIndex][index + 1] = `成员 ${index + 1}`;
-  rows[roleHeaderIndex][metadataColumn] = WORKBOOK_FORMAT_VERSION;
+  rows[roleHeaderIndex][metadataColumn] = formatVersion;
   rows[roleHeaderIndex][metadataColumn + 1] = ROSTER_SCHEMA_VERSION;
   rows[roleHeaderIndex][metadataColumn + 2] = snapshot.roles.length;
   rows[roleHeaderIndex][metadataColumn + 3] = snapshot.duties.length;
@@ -361,10 +554,10 @@ function buildPeopleSheet(snapshot) {
   };
 }
 
-function buildCourseSheet(snapshot) {
+function buildCourseSheet(snapshot, formatVersion = WORKBOOK_FORMAT_VERSION) {
   const schedule = new Map(snapshot.scheduleSlots.map((item) => [key(item.day, item.periodId), item.subject]));
   const rows = [
-    ['节次', ...DAY_LABELS, WORKBOOK_FORMAT_VERSION, ROSTER_SCHEMA_VERSION, PERIOD_COUNT],
+    ['节次', ...DAY_LABELS, formatVersion, ROSTER_SCHEMA_VERSION, PERIOD_COUNT],
     ...snapshot.periods.map((period) => [
       period.title,
       ...DAY_LABELS.map((_, day) => wrap(schedule.get(key(day, period.id)) ?? '')),
@@ -386,11 +579,11 @@ function buildCourseSheet(snapshot) {
   };
 }
 
-function buildExamSheet(snapshot) {
+function buildExamSheet(snapshot, formatVersion = WORKBOOK_FORMAT_VERSION) {
   const columns = snapshot.exams.flatMap((exam) => snapshot.subjects.map((subject) => ({ exam, subject })));
   const grades = new Map(snapshot.courseGrades.map((item) => [key(item.examId, item.subjectId, item.studentId), item.value]));
   const metadata = `${snapshot.students.length}|${snapshot.exams.length}|${snapshot.subjects.length}`;
-  const firstRow = [WORKBOOK_FORMAT_VERSION, '', ...columns.map(({ exam, subject }) => `${exam.id}｜${subject.id}`)];
+  const firstRow = [formatVersion, '', ...columns.map(({ exam, subject }) => `${exam.id}｜${subject.id}`)];
   const examHeaderRow = [ROSTER_SCHEMA_VERSION, '', ...columns.map(({ exam, subject }, index) => (
     index % snapshot.subjects.length === 0 ? styled(exam.title, index % snapshot.subjects.length === 0 && index > 0 ? STYLE_GROUP_HEADER : STYLE_GROUP_HEADER) : ''
   ))];
@@ -446,11 +639,23 @@ export function generateWorkbookFilename(date = new Date()) {
 export function buildRosterWorkbookSheets(snapshot, { exportedAt = new Date().toISOString() } = {}) {
   if (!isValidRosterState(snapshot)) throw new Error('invalid-roster-state');
   return [
-    buildStudentSheet(snapshot),
-    buildAssignmentSheet(snapshot),
-    buildPeopleSheet(snapshot),
-    buildCourseSheet(snapshot),
-    buildExamSheet(snapshot)
+    buildSeatSheet(snapshot),
+    buildAssignmentSheet(snapshot, WORKBOOK_FORMAT_VERSION),
+    buildV3PeopleSheet(snapshot, 'role'),
+    buildV3PeopleSheet(snapshot, 'duty'),
+    buildCourseSheet(snapshot, WORKBOOK_FORMAT_VERSION),
+    buildExamSheet(snapshot, WORKBOOK_FORMAT_VERSION)
+  ].map((sheet) => ({ ...sheet, exportedAt }));
+}
+
+export function buildRosterWorkbookSheetsV2(snapshot, { exportedAt = new Date().toISOString() } = {}) {
+  if (!isValidRosterState(snapshot)) throw new Error('invalid-roster-state');
+  return [
+    buildV2StudentSheet(snapshot),
+    buildAssignmentSheet(snapshot, V2_WORKBOOK_FORMAT_VERSION),
+    buildPeopleSheet(snapshot, V2_WORKBOOK_FORMAT_VERSION),
+    buildCourseSheet(snapshot, V2_WORKBOOK_FORMAT_VERSION),
+    buildExamSheet(snapshot, V2_WORKBOOK_FORMAT_VERSION)
   ].map((sheet) => ({ ...sheet, exportedAt }));
 }
 
@@ -483,10 +688,10 @@ function parseMetadataInt(rows, sheet, rowIndex, columnIndex, label) {
   return parsePositiveInt(rowCell(rows, rowIndex, columnIndex), sheet, rowIndex, columnIndex, label);
 }
 
-function checkFormatMetadata(rows, sheet, formatPosition, dataPosition) {
+function checkFormatMetadata(rows, sheet, formatPosition, dataPosition, expectedFormat = V2_WORKBOOK_FORMAT_VERSION) {
   const format = parseMetadataInt(rows, sheet, formatPosition[0], formatPosition[1], '格式版本');
   if (!format.ok) return format;
-  if (format.value !== WORKBOOK_FORMAT_VERSION) return workbookError(sheet, formatPosition[0], formatPosition[1], '暂不支持此工作簿格式版本');
+  if (format.value !== expectedFormat) return workbookError(sheet, formatPosition[0], formatPosition[1], '暂不支持此工作簿格式版本');
   const data = parseMetadataInt(rows, sheet, dataPosition[0], dataPosition[1], '数据版本');
   if (!data.ok) return data;
   if (data.value !== ROSTER_SCHEMA_VERSION) return workbookError(sheet, dataPosition[0], dataPosition[1], '暂不支持此数据版本');
@@ -561,9 +766,84 @@ function parseStudentsV2(rows) {
   return { ok: true, students, seats, studentIds, count: count.value };
 }
 
-function parseAssignmentSheetV2(rows, studentsInfo) {
+function parseSeatMetadata(rows, labelIndex, valueLabel, expectedValue) {
+  const sheet = '座位表';
+  const labelColumn = V3_SEAT_METADATA_START_COLUMN + labelIndex * 2;
+  const label = requireHeader(rows, sheet, 0, labelColumn, valueLabel);
+  if (!label.ok) return label;
+  const parsed = parseMetadataInt(rows, sheet, 0, labelColumn + 1, valueLabel);
+  if (!parsed.ok) return parsed;
+  if (parsed.value !== expectedValue) return workbookError(sheet, 0, labelColumn + 1, `${valueLabel}应为 ${expectedValue}`);
+  return parsed;
+}
+
+function parseSeatSheetV3(rows) {
+  const sheet = '座位表';
+  const direction = requireHeader(rows, sheet, 0, 0, SEAT_DIRECTION_LABEL);
+  if (!direction.ok) return direction;
+  const format = parseSeatMetadata(rows, 0, '格式版本', WORKBOOK_FORMAT_VERSION);
+  if (!format.ok) return format;
+  const data = parseSeatMetadata(rows, 1, '数据版本', ROSTER_SCHEMA_VERSION);
+  if (!data.ok) return data;
+  const seatRows = parseSeatMetadata(rows, 2, '座位行数', SEAT_ROWS);
+  if (!seatRows.ok) return seatRows;
+  const seatColumns = parseSeatMetadata(rows, 3, '座位列数', SEAT_COLUMNS);
+  if (!seatColumns.ok) return seatColumns;
+  const studentCount = parseMetadataInt(rows, sheet, 0, V3_SEAT_METADATA_START_COLUMN + 9, '学生数量');
+  const studentCountLabel = requireHeader(rows, sheet, 0, V3_SEAT_METADATA_START_COLUMN + 8, '学生数量');
+  if (!studentCountLabel.ok) return studentCountLabel;
+  if (!studentCount.ok) return studentCount;
+  if (studentCount.value < 1 || studentCount.value > SEAT_ROWS * SEAT_COLUMNS) {
+    return workbookError(sheet, 0, V3_SEAT_METADATA_START_COLUMN + 9, '学生数量超出座位容量');
+  }
+  const matrixStart = parseSeatMetadata(rows, 5, '矩阵开始行', V3_SEAT_MATRIX_START_ROW + 1);
+  if (!matrixStart.ok) return matrixStart;
+  const listHeader = parseSeatMetadata(rows, 6, '名单表头行', V3_SEAT_LIST_HEADER_ROW + 1);
+  if (!listHeader.ok) return listHeader;
+  if (rawText(rows, V3_SEAT_PODIUM_ROW, 0) !== PODIUM_LABEL) return workbookError(sheet, V3_SEAT_PODIUM_ROW, 0, '矩阵下方必须保留「讲台」');
+  for (const [column, header] of [[0, '姓名'], [1, '首字母'], [2, '座位行'], [3, '座位列']]) {
+    const result = requireHeader(rows, sheet, V3_SEAT_LIST_HEADER_ROW, column, header);
+    if (!result.ok) return result;
+  }
+  const students = [];
+  const seats = [];
+  const studentIds = new Set();
+  const seatIndexes = new Set();
+  for (let index = 0; index < studentCount.value; index += 1) {
+    const rowIndex = V3_SEAT_LIST_START_ROW + index;
+    if (!hasDataInRange(rows[rowIndex], 0, 4)) return workbookError(sheet, rowIndex, 0, '名单学生行不能为空');
+    const id = parsePositiveInt(rowCell(rows, rowIndex, V3_SEAT_LIST_ID_COLUMN), sheet, rowIndex, V3_SEAT_LIST_ID_COLUMN, '学生编号');
+    if (!id.ok) return id;
+    if (studentIds.has(id.value)) return workbookError(sheet, rowIndex, V3_SEAT_LIST_ID_COLUMN, '学生编号重复');
+    const name = parseLimitedText(rowCell(rows, rowIndex, 0), sheet, rowIndex, 0, '姓名', { maxLength: STUDENT_NAME_MAX_LENGTH });
+    if (!name.ok) return name;
+    const initial = text(rowCell(rows, rowIndex, 1)).toUpperCase();
+    if (!/^[A-Z#]$/.test(initial)) return workbookError(sheet, rowIndex, 1, '首字母无效');
+    const seatRow = parsePositiveInt(rowCell(rows, rowIndex, 2), sheet, rowIndex, 2, '座位行');
+    if (!seatRow.ok) return seatRow;
+    const seatColumn = parsePositiveInt(rowCell(rows, rowIndex, 3), sheet, rowIndex, 3, '座位列');
+    if (!seatColumn.ok) return seatColumn;
+    if (seatRow.value < 1 || seatRow.value > SEAT_ROWS) return workbookError(sheet, rowIndex, 2, '座位行只能为 1～8');
+    if (seatColumn.value < 1 || seatColumn.value > SEAT_COLUMNS) return workbookError(sheet, rowIndex, 3, '座位列只能为 1～13');
+    const seatIndex = (seatRow.value - 1) * SEAT_COLUMNS + seatColumn.value - 1;
+    if (seatIndexes.has(seatIndex)) return workbookError(sheet, rowIndex, 2, '座位重复');
+    studentIds.add(id.value);
+    seatIndexes.add(seatIndex);
+    students.push({ id: id.value, name: name.value, initial });
+    seats.push({ studentId: id.value, seatIndex });
+  }
+  const listEnd = V3_SEAT_LIST_START_ROW + studentCount.value;
+  for (let rowIndex = listEnd; rowIndex < rows.length; rowIndex += 1) {
+    if (hasDataInRange(rows[rowIndex], 0, 4) || text(rowCell(rows, rowIndex, V3_SEAT_LIST_ID_COLUMN))) {
+      return workbookError(sheet, rowIndex, 0, '名单行数量与隐藏记录不一致');
+    }
+  }
+  return { ok: true, students, seats, studentIds, count: studentCount.value };
+}
+
+function parseAssignmentSheetV2(rows, studentsInfo, expectedFormat = V2_WORKBOOK_FORMAT_VERSION) {
   const sheet = '作业登记';
-  const metadata = checkFormatMetadata(rows, sheet, [0, 0], [1, 0]);
+  const metadata = checkFormatMetadata(rows, sheet, [0, 0], [1, 0], expectedFormat);
   if (!metadata.ok) return metadata;
   const studentCount = parseMetadataInt(rows, sheet, 2, 0, '学生行数量');
   if (!studentCount.ok) return studentCount;
@@ -632,10 +912,170 @@ function parseAssignmentSheetV2(rows, studentsInfo) {
   };
 }
 
-function findPeopleMetadata(rows) {
+function isMemberTokenEscaped(source, index) {
+  let slashes = 0;
+  for (let cursor = index - 1; cursor >= 0 && source[cursor] === MEMBER_ESCAPE; cursor -= 1) slashes += 1;
+  return slashes % 2 === 1;
+}
+
+function splitMemberTokens(source) {
+  const tokens = [];
+  let token = '';
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index];
+    if (character === MEMBER_ESCAPE) {
+      if (index + 1 >= source.length) return { ok: false };
+      token += character + source[index + 1];
+      index += 1;
+      continue;
+    }
+    if (character === MEMBER_SEPARATOR) {
+      if (!token) return { ok: false };
+      tokens.push(token);
+      token = '';
+      continue;
+    }
+    token += character;
+  }
+  if (!token) return { ok: false };
+  tokens.push(token);
+  return { ok: true, tokens };
+}
+
+function unescapeMemberText(source) {
+  let value = '';
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index];
+    if (character !== MEMBER_ESCAPE) {
+      value += character;
+      continue;
+    }
+    const next = source[index + 1];
+    if (![MEMBER_ESCAPE, MEMBER_SEPARATOR, '（', '）'].includes(next)) return null;
+    value += next;
+    index += 1;
+  }
+  return value;
+}
+
+function parseMemberList(raw, studentsInfo, sheet, rowIndex, columnIndex) {
+  const source = text(raw);
+  if (!source) return { ok: true, value: [] };
+  const split = splitMemberTokens(source);
+  if (!split.ok) return workbookError(sheet, rowIndex, columnIndex, `成员格式无效，请使用「姓名（编号 n）」并用「${MEMBER_SEPARATOR}」分隔`);
+  const studentIds = [];
+  for (const token of split.tokens) {
+    let marker = -1;
+    for (let index = 0; index < token.length; index += 1) {
+      if (token.startsWith('（编号 ', index) && !isMemberTokenEscaped(token, index)) marker = index;
+    }
+    if (marker < 0 || !token.endsWith('）')) {
+      return workbookError(sheet, rowIndex, columnIndex, `成员格式无效，请使用「姓名（编号 n）」并用「${MEMBER_SEPARATOR}」分隔`);
+    }
+    const idText = token.slice(marker + '（编号 '.length, -1);
+    if (!/^[1-9]\d*$/.test(idText)) return workbookError(sheet, rowIndex, columnIndex, '成员编号无效');
+    const studentId = Number(idText);
+    if (!Number.isSafeInteger(studentId)) return workbookError(sheet, rowIndex, columnIndex, '成员编号无效');
+    const memberName = unescapeMemberText(token.slice(0, marker));
+    if (!memberName) return workbookError(sheet, rowIndex, columnIndex, '成员姓名不能为空或转义无效');
+    if (!studentsInfo.studentIds.has(studentId)) return workbookError(sheet, rowIndex, columnIndex, `学生编号 ${studentId} 不存在`);
+    if (studentIds.includes(studentId)) return workbookError(sheet, rowIndex, columnIndex, '同一行不能重复安排学生');
+    studentIds.push(studentId);
+  }
+  return { ok: true, value: studentIds };
+}
+
+function parseHiddenMemberIds(raw, studentsInfo, sheet, rowIndex, columnIndex) {
+  const source = text(raw);
+  if (!source) return { ok: true, value: [] };
+  const ids = [];
+  for (const part of source.split('|')) {
+    const id = parsePositiveInt(part, sheet, rowIndex, columnIndex, '隐藏成员编号');
+    if (!id.ok) return id;
+    if (!studentsInfo.studentIds.has(id.value)) return workbookError(sheet, rowIndex, columnIndex, `学生编号 ${id.value} 不存在`);
+    if (ids.includes(id.value)) return workbookError(sheet, rowIndex, columnIndex, '隐藏成员编号重复');
+    ids.push(id.value);
+  }
+  return { ok: true, value: ids };
+}
+
+function parseV3PeopleSheet(rows, studentsInfo, kind) {
+  const isRole = kind === 'role';
+  const sheet = isRole ? '班干安排' : '值日安排';
+  const memberColumn = isRole ? 1 : 2;
+  const entityIdColumn = 14;
+  const memberIdsColumn = 15;
+  const headers = isRole
+    ? [[0, '班干名称'], [1, '成员']]
+    : [[0, '值日名称'], [1, '说明'], [2, '成员']];
+  for (const [column, header] of headers) {
+    const result = requireHeader(rows, sheet, 0, column, header);
+    if (!result.ok) return result;
+  }
+  const metadata = [
+    [4, '格式版本', WORKBOOK_FORMAT_VERSION],
+    [6, '数据版本', ROSTER_SCHEMA_VERSION]
+  ];
+  for (const [column, label, expected] of metadata) {
+    const labelResult = requireHeader(rows, sheet, 0, column, label);
+    if (!labelResult.ok) return labelResult;
+    const value = parseMetadataInt(rows, sheet, 0, column + 1, label);
+    if (!value.ok) return value;
+    if (value.value !== expected) return workbookError(sheet, 0, column + 1, `${label}应为 ${expected}`);
+  }
+  const countLabel = requireHeader(rows, sheet, 0, 8, '行数量');
+  if (!countLabel.ok) return countLabel;
+  const count = parseMetadataInt(rows, sheet, 0, 9, '行数量');
+  if (!count.ok) return count;
+  if (count.value !== rows.length - 1) return workbookError(sheet, Math.min(count.value + 1, rows.length), 0, '行数量与隐藏记录不一致');
+  const studentCountLabel = requireHeader(rows, sheet, 0, 10, '学生数量');
+  if (!studentCountLabel.ok) return studentCountLabel;
+  const studentCount = parseMetadataInt(rows, sheet, 0, 11, '学生数量');
+  if (!studentCount.ok) return studentCount;
+  if (studentCount.value !== studentsInfo.count) return workbookError(sheet, 0, 11, '学生数量与座位表不一致');
+  const entityHeader = requireHeader(rows, sheet, 0, entityIdColumn, isRole ? '班干编号' : '值日编号');
+  if (!entityHeader.ok) return entityHeader;
+  const memberIdsHeader = requireHeader(rows, sheet, 0, memberIdsColumn, '成员编号序列');
+  if (!memberIdsHeader.ok) return memberIdsHeader;
+  for (let rowIndex = 0; rowIndex <= count.value; rowIndex += 1) {
+    if (hasDataInRange(rows[rowIndex], memberColumn + 1, 4)) {
+      return workbookError(sheet, rowIndex, memberColumn + 1, '全部成员必须放在同一个成员单元格');
+    }
+  }
+
+  const items = [];
+  const entityIds = new Set();
+  for (let index = 0; index < count.value; index += 1) {
+    const rowIndex = index + 1;
+    const id = parsePositiveInt(rowCell(rows, rowIndex, entityIdColumn), sheet, rowIndex, entityIdColumn, isRole ? '班干编号' : '值日编号');
+    if (!id.ok) return id;
+    if (entityIds.has(id.value)) return workbookError(sheet, rowIndex, entityIdColumn, `${isRole ? '班干' : '值日'}编号重复`);
+    const title = parseLimitedText(rowCell(rows, rowIndex, 0), sheet, rowIndex, 0, isRole ? '班干名称' : '值日名称');
+    if (!title.ok) return title;
+    let note = '';
+    if (!isRole) {
+      const parsedNote = parseLimitedText(rowCell(rows, rowIndex, 1), sheet, rowIndex, 1, '说明', { allowBlank: true });
+      if (!parsedNote.ok) return parsedNote;
+      note = parsedNote.value;
+    }
+    const members = parseMemberList(rowCell(rows, rowIndex, memberColumn), studentsInfo, sheet, rowIndex, memberColumn);
+    if (!members.ok) return members;
+    const hiddenMembers = parseHiddenMemberIds(rowCell(rows, rowIndex, memberIdsColumn), studentsInfo, sheet, rowIndex, memberIdsColumn);
+    if (!hiddenMembers.ok) return hiddenMembers;
+    entityIds.add(id.value);
+    items.push(isRole
+      ? { id: id.value, title: title.value, studentIds: members.value }
+      : { id: id.value, title: title.value, note, studentIds: members.value });
+  }
+  return isRole
+    ? { ok: true, roles: items, nextRoleId: nextId(items) }
+    : { ok: true, duties: items, nextDutyId: nextId(items) };
+}
+
+function findPeopleMetadata(rows, expectedFormat = V2_WORKBOOK_FORMAT_VERSION) {
   const row = rows[0] ?? [];
   for (let columnIndex = 0; columnIndex < row.length - 4; columnIndex += 1) {
-    if (text(row[columnIndex]) === String(WORKBOOK_FORMAT_VERSION) && text(row[columnIndex + 1]) === String(ROSTER_SCHEMA_VERSION)) {
+    if (text(row[columnIndex]) === String(expectedFormat) && text(row[columnIndex + 1]) === String(ROSTER_SCHEMA_VERSION)) {
       return {
         columnIndex,
         roleCount: row[columnIndex + 2],
@@ -658,16 +1098,16 @@ function resolveMember(raw, hiddenRaw, labels, studentIds, sheet, rowIndex, colu
   return workbookError(sheet, rowIndex, columnIndex, '请选择学生姓名');
 }
 
-function parsePeopleSheetV2(rows, studentsInfo) {
+function parsePeopleSheetV2(rows, studentsInfo, expectedFormat = V2_WORKBOOK_FORMAT_VERSION) {
   const sheet = '人员安排';
-  const metadata = findPeopleMetadata(rows);
+  const metadata = findPeopleMetadata(rows, expectedFormat);
   if (!metadata) return workbookError(sheet, 0, 0, '缺少隐藏版本信息');
   const metadataColumn = metadata.columnIndex;
   const format = parsePositiveInt(rowCell(rows, 0, metadataColumn), sheet, 0, metadataColumn, '格式版本');
   if (!format.ok) return format;
   const dataVersion = parsePositiveInt(rowCell(rows, 0, metadataColumn + 1), sheet, 0, metadataColumn + 1, '数据版本');
   if (!dataVersion.ok) return dataVersion;
-  if (format.value !== WORKBOOK_FORMAT_VERSION) return workbookError(sheet, 0, metadataColumn, '暂不支持此工作簿格式版本');
+  if (format.value !== expectedFormat) return workbookError(sheet, 0, metadataColumn, '暂不支持此工作簿格式版本');
   if (dataVersion.value !== ROSTER_SCHEMA_VERSION) return workbookError(sheet, 0, metadataColumn + 1, '暂不支持此数据版本');
   const roleCount = parsePositiveInt(metadata.roleCount, sheet, 0, metadataColumn + 2, '班干行数量');
   if (!roleCount.ok) return roleCount;
@@ -754,9 +1194,9 @@ function parsePeopleSheetV2(rows, studentsInfo) {
   return { ok: true, roles, duties, nextRoleId: nextId(roles), nextDutyId: nextId(duties) };
 }
 
-function parseCourseSheetV2(rows) {
+function parseCourseSheetV2(rows, expectedFormat = V2_WORKBOOK_FORMAT_VERSION) {
   const sheet = '课程表';
-  const metadata = checkFormatMetadata(rows, sheet, [0, 6], [0, 7]);
+  const metadata = checkFormatMetadata(rows, sheet, [0, 6], [0, 7], expectedFormat);
   if (!metadata.ok) return metadata;
   const periodCount = parseMetadataInt(rows, sheet, 0, 8, '节次数量');
   if (!periodCount.ok) return periodCount;
@@ -800,9 +1240,9 @@ function parseExamColumnToken(raw) {
   return { examId, subjectId };
 }
 
-function parseExamSheetV2(rows, studentsInfo) {
+function parseExamSheetV2(rows, studentsInfo, expectedFormat = V2_WORKBOOK_FORMAT_VERSION) {
   const sheet = '考试成绩';
-  const metadata = checkFormatMetadata(rows, sheet, [0, 0], [1, 0]);
+  const metadata = checkFormatMetadata(rows, sheet, [0, 0], [1, 0], expectedFormat);
   if (!metadata.ok) return metadata;
   const metaText = rawText(rows, 2, 0);
   const metaMatch = metaText.match(/^([1-9]\d*)\|([1-9]\d*)\|([1-9]\d*)$/);
@@ -880,8 +1320,8 @@ function parseExamSheetV2(rows, studentsInfo) {
   return { ok: true, subjects, exams, courseGrades, nextSubjectId: nextId(subjects), nextExamId: nextId(exams) };
 }
 
-export function parseRosterWorkbookSheets(workbook) {
-  for (const name of WORKBOOK_SHEET_NAMES) {
+export function parseRosterWorkbookSheetsV2(workbook) {
+  for (const name of V2_WORKBOOK_SHEET_NAMES) {
     const required = requireSheet(workbook, name);
     if (!required.ok) return required;
   }
@@ -919,6 +1359,74 @@ export function parseRosterWorkbookSheets(workbook) {
   };
   if (!isValidRosterState(data)) return workbookLevelError('工作簿数据格式不正确');
   return { ok: true, data };
+}
+
+export function parseRosterWorkbookSheetsV3(workbook) {
+  for (const name of WORKBOOK_SHEET_NAMES) {
+    const required = requireSheet(workbook, name);
+    if (!required.ok) return required;
+  }
+  const students = parseSeatSheetV3(workbook.get('座位表'));
+  if (!students.ok) return students;
+  const assignments = parseAssignmentSheetV2(workbook.get('作业登记'), students, WORKBOOK_FORMAT_VERSION);
+  if (!assignments.ok) return assignments;
+  const roles = parseV3PeopleSheet(workbook.get('班干安排'), students, 'role');
+  if (!roles.ok) return roles;
+  const duties = parseV3PeopleSheet(workbook.get('值日安排'), students, 'duty');
+  if (!duties.ok) return duties;
+  const course = parseCourseSheetV2(workbook.get('课程表'), WORKBOOK_FORMAT_VERSION);
+  if (!course.ok) return course;
+  const exams = parseExamSheetV2(workbook.get('考试成绩'), students, WORKBOOK_FORMAT_VERSION);
+  if (!exams.ok) return exams;
+  const data = {
+    schemaVersion: ROSTER_SCHEMA_VERSION,
+    students: students.students,
+    seats: students.seats,
+    assignments: assignments.assignments,
+    activeAssignmentId: assignments.activeAssignmentId,
+    submissions: assignments.submissions,
+    scores: assignments.scores,
+    nextAssignmentId: assignments.nextAssignmentId,
+    roles: roles.roles,
+    duties: duties.duties,
+    nextRoleId: roles.nextRoleId,
+    nextDutyId: duties.nextDutyId,
+    periods: course.periods,
+    scheduleSlots: course.scheduleSlots,
+    subjects: exams.subjects,
+    exams: exams.exams,
+    courseGrades: exams.courseGrades,
+    nextPeriodId: course.nextPeriodId,
+    nextSubjectId: exams.nextSubjectId,
+    nextExamId: exams.nextExamId
+  };
+  if (!isValidRosterState(data)) return workbookLevelError('工作簿数据格式不正确');
+  return { ok: true, data };
+}
+
+function hasVersionMarker(workbook, name, labelColumn, valueColumn, expectedFormat) {
+  const rows = workbook?.get?.(name);
+  return text(rowCell(rows, 0, labelColumn)) === '格式版本'
+    && text(rowCell(rows, 0, valueColumn)) === String(expectedFormat);
+}
+
+function hasAdjacentVersionMarker(workbook, name, expectedFormat) {
+  const rows = workbook?.get?.(name);
+  const row = rows?.[0] ?? [];
+  return row.some((value, index) => text(value) === String(expectedFormat) && text(row[index + 1]) === String(ROSTER_SCHEMA_VERSION));
+}
+
+export function parseRosterWorkbookSheets(workbook) {
+  const hasV3Marker = hasVersionMarker(workbook, '座位表', 14, 15, WORKBOOK_FORMAT_VERSION)
+    || hasVersionMarker(workbook, '班干安排', 4, 5, WORKBOOK_FORMAT_VERSION)
+    || hasVersionMarker(workbook, '值日安排', 4, 5, WORKBOOK_FORMAT_VERSION);
+  const hasV2Marker = hasAdjacentVersionMarker(workbook, '学生名单', V2_WORKBOOK_FORMAT_VERSION)
+    || hasAdjacentVersionMarker(workbook, '人员安排', V2_WORKBOOK_FORMAT_VERSION);
+  const hasV3Name = ['座位表', '班干安排', '值日安排'].some((name) => workbook?.has?.(name));
+  const hasV2Name = ['学生名单', '人员安排'].some((name) => workbook?.has?.(name));
+  if (hasV3Marker || (hasV3Name && !hasV2Marker)) return parseRosterWorkbookSheetsV3(workbook);
+  if (hasV2Marker || hasV2Name) return parseRosterWorkbookSheetsV2(workbook);
+  return workbookLevelError('缺少可识别的 v3 或 v2 固定工作表');
 }
 
 function legacyError(sheet, rowIndex, message) {
@@ -1239,6 +1747,12 @@ export function parseLegacyRosterWorkbookSheets(workbook) {
 export async function parseRosterWorkbook(input) {
   try {
     const workbook = await readXlsxWorkbook(input);
+    const looksLikeV3 = workbook.has('座位表')
+      || hasVersionMarker(workbook, '班干安排', 4, 5, WORKBOOK_FORMAT_VERSION)
+      || hasVersionMarker(workbook, '值日安排', 4, 5, WORKBOOK_FORMAT_VERSION);
+    const looksLikeV2 = hasAdjacentVersionMarker(workbook, '学生名单', V2_WORKBOOK_FORMAT_VERSION)
+      || hasAdjacentVersionMarker(workbook, '人员安排', V2_WORKBOOK_FORMAT_VERSION);
+    if (looksLikeV3 || looksLikeV2) return parseRosterWorkbookSheets(workbook);
     if (workbook.has('使用说明') && LEGACY_WORKBOOK_SHEET_NAMES.slice(2).some((name) => workbook.has(name))) {
       return parseLegacyRosterWorkbookSheets(workbook);
     }
