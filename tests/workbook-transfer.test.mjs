@@ -2,17 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createDefaultRosterState } from '../src/scripts/roster-model.js';
 import {
-  LEGACY_WORKBOOK_SHEET_NAMES,
-  V2_WORKBOOK_FORMAT_VERSION,
-  V2_WORKBOOK_SHEET_NAMES,
   WORKBOOK_FORMAT_VERSION,
   WORKBOOK_SHEET_NAMES,
   buildRosterWorkbookSheets,
-  buildRosterWorkbookSheetsV2,
   generateWorkbookFilename,
   parseRosterWorkbook,
   parseRosterWorkbookSheets,
-  parseRosterWorkbookSheetsV2,
   serializeRosterWorkbook
 } from '../src/scripts/workbook-transfer.js';
 import { createXlsxWorkbook, readXlsxWorkbook } from '../src/scripts/xlsx-workbook.js';
@@ -61,92 +56,6 @@ function byName(snapshot, build = buildRosterWorkbookSheets) {
 
 function seatListRow(sheet, studentId) {
   return sheet.rows.findIndex((row, index) => index >= 12 && cellValue(row[41]) === studentId);
-}
-
-function legacySheets(snapshot) {
-  const students = snapshot.students;
-  const seats = new Map(snapshot.seats.map((seat) => [seat.studentId, seat]));
-  const submitted = new Set(snapshot.submissions.map((item) => `${item.assignmentId}:${item.studentId}`));
-  const scores = new Map(snapshot.scores.map((item) => [`${item.assignmentId}:${item.studentId}`, item.value]));
-  const grades = new Map(snapshot.courseGrades.map((item) => [`${item.examId}:${item.subjectId}:${item.studentId}`, item.value]));
-  const studentRows = [
-    ['学生编号', '姓名', '首字母', '座位行', '座位列'],
-    ...students.map((student) => {
-      const seat = seats.get(student.id);
-      return [student.id, student.name, student.initial, Math.floor(seat.seatIndex / 13) + 1, seat.seatIndex % 13 + 1];
-    })
-  ];
-  const assignmentRows = [
-    ['作业编号', '作业名称', '当前作业'],
-    ...snapshot.assignments.map((item) => [item.id, item.name, item.id === snapshot.activeAssignmentId ? '是' : '否'])
-  ];
-  const assignmentRecordHeader = ['学生编号', '学生姓名（仅供查看）'];
-  for (const assignment of snapshot.assignments) {
-    assignmentRecordHeader.push(`已交｜${assignment.id}｜${assignment.name}`, `分数｜${assignment.id}｜${assignment.name}`);
-  }
-  const assignmentRecordRows = [assignmentRecordHeader, ...students.map((student) => [
-    student.id,
-    student.name,
-    ...snapshot.assignments.flatMap((assignment) => [
-      submitted.has(`${assignment.id}:${student.id}`) ? '是' : '否',
-      scores.get(`${assignment.id}:${student.id}`) ?? ''
-    ])
-  ])];
-  const roleRows = [['班干编号', '班干名称'], ...snapshot.roles.map((item) => [item.id, item.title])];
-  const roleMemberRows = [
-    ['班干编号', '班干名称（仅供查看）', '学生编号', '学生姓名（仅供查看）'],
-    ...snapshot.roles.flatMap((role) => role.studentIds.map((studentId) => [
-      role.id,
-      role.title,
-      studentId,
-      students.find((student) => student.id === studentId).name
-    ]))
-  ];
-  const dutyRows = [['值日编号', '值日名称', '说明'], ...snapshot.duties.map((item) => [item.id, item.title, item.note])];
-  const dutyMemberRows = [
-    ['值日编号', '值日名称（仅供查看）', '学生编号', '学生姓名（仅供查看）'],
-    ...snapshot.duties.flatMap((duty) => duty.studentIds.map((studentId) => [
-      duty.id,
-      duty.title,
-      studentId,
-      students.find((student) => student.id === studentId).name
-    ]))
-  ];
-  const dayLabels = ['星期一', '星期二', '星期三', '星期四', '星期五'];
-  const scheduleRows = [
-    ['节次编号', '节次名称', ...dayLabels],
-    ...snapshot.periods.map((period) => [
-      period.id,
-      period.title,
-      ...dayLabels.map((_, day) => snapshot.scheduleSlots.find((slot) => slot.day === day && slot.periodId === period.id)?.subject ?? '')
-    ])
-  ];
-  const subjectRows = [['科目编号', '科目名称'], ...snapshot.subjects.map((item) => [item.id, item.title])];
-  const examRows = [['考试编号', '考试名称'], ...snapshot.exams.map((item) => [item.id, item.title])];
-  const gradeRows = [
-    ['考试编号', '考试名称（仅供查看）', '学生编号', '学生姓名（仅供查看）', ...snapshot.subjects.map((subject) => `成绩｜${subject.id}｜${subject.title}`)],
-    ...snapshot.exams.flatMap((exam) => students.map((student) => [
-      exam.id,
-      exam.title,
-      student.id,
-      student.name,
-      ...snapshot.subjects.map((subject) => grades.get(`${exam.id}:${subject.id}:${student.id}`) ?? '')
-    ]))
-  ];
-  return [
-    { name: '使用说明', rows: [['教师工作台数据工作簿', ''], ['', ''], ['格式版本', 1], ['数据版本', 6]] },
-    { name: '学生名单', rows: studentRows },
-    { name: '作业', rows: assignmentRows },
-    { name: '作业记录', rows: assignmentRecordRows },
-    { name: '班干', rows: roleRows },
-    { name: '班干安排', rows: roleMemberRows },
-    { name: '值日', rows: dutyRows },
-    { name: '值日安排', rows: dutyMemberRows },
-    { name: '课表', rows: scheduleRows },
-    { name: '科目', rows: subjectRows },
-    { name: '考试', rows: examRows },
-    { name: '课程成绩', rows: gradeRows }
-  ];
 }
 
 test('完整业务数据可通过 v3 六工作表 XLSX 往返', async () => {
@@ -270,29 +179,6 @@ test('v3 班干和值日拆表，成员单格可读且能处理空成员、重�
   assert.deepEqual(result.data.duties[0].studentIds, []);
 });
 
-test('上一版 v3 座位标题和带编号成员仍可导入', () => {
-  const state = createDefaultRosterState();
-  state.roles[0].studentIds = [1, 2];
-  state.duties[0].studentIds = [3, 4];
-  const sheets = byName(state);
-  sheets.get('座位表').rows[0][0] = '讲台方向 ↓（讲台在下方）';
-  const studentsById = new Map(state.students.map((student) => [student.id, student]));
-  for (const [sheetName, memberColumn] of [['班干安排', 1], ['值日安排', 2]]) {
-    const sheet = sheets.get(sheetName);
-    sheet.rows[0].length = 16;
-    for (const row of sheet.rows.slice(1)) {
-      row[memberColumn] = String(row[15] ?? '').split('|').filter(Boolean)
-        .map((id) => `${studentsById.get(Number(id)).name}（编号 ${id}）`)
-        .join('；');
-      row.length = 16;
-    }
-  }
-  const result = parseRosterWorkbookSheets(new Map([...sheets].map(([name, sheet]) => [name, sheet.rows])));
-  assert.equal(result.ok, true, result.error);
-  assert.deepEqual(result.data.roles[0].studentIds, [1, 2]);
-  assert.deepEqual(result.data.duties[0].studentIds, [3, 4]);
-});
-
 test('v3 成员重复、缺失学生和错误格式指出准确单元格', () => {
   const state = createDefaultRosterState();
   state.roles[0].studentIds = [1, 2];
@@ -346,37 +232,12 @@ test('v3 作业状态校验、缺失学生和重复座位拒绝整份文件', ()
   assert.match(parseRosterWorkbookSheets(missingStudent).error, /^座位表!A\d+：名单学生行不能为空/);
 });
 
-test('个人附加工作表忽略，v2 五表与 v3 路由互不混淆', async () => {
+test('v3 导入忽略个人附加工作表', async () => {
   const state = richSnapshot();
   const v3 = buildRosterWorkbookSheets(state);
-  const withPersonal = [
-    ...v3,
-    { name: '我的备注', rows: [['仅供查看']] },
-    { name: '使用说明', rows: [['个人工作表，不是 v1 格式']] }
-  ];
+  const withPersonal = [...v3, { name: '我的备注', rows: [['仅供查看']] }];
   const v3Result = await parseRosterWorkbook(await createXlsxWorkbook(withPersonal));
   assert.equal(v3Result.ok, true, v3Result.error);
-
-  const v2 = buildRosterWorkbookSheetsV2(state);
-  assert.deepEqual(v2.map((sheet) => sheet.name), V2_WORKBOOK_SHEET_NAMES);
-  assert.equal(cellValue(v2[0].rows[0][0]), V2_WORKBOOK_FORMAT_VERSION);
-  const v2Result = await parseRosterWorkbook(await createXlsxWorkbook([...v2, { name: '我的备注', rows: [['忽略']] }]));
-  assert.equal(v2Result.ok, true, v2Result.error);
-  assert.deepEqual(v2Result.data, state);
-  const direct = parseRosterWorkbookSheetsV2(new Map(v2.map((sheet) => [sheet.name, sheet.rows])));
-  assert.equal(direct.ok, true, direct.error);
-});
-
-test('版本 1 的十二工作表 XLSX 仍可读取', async () => {
-  const state = createDefaultRosterState();
-  const sheets = legacySheets(state);
-  assert.deepEqual(sheets.map((sheet) => sheet.name), LEGACY_WORKBOOK_SHEET_NAMES);
-  const result = await parseRosterWorkbook(await createXlsxWorkbook(sheets));
-  assert.equal(result.ok, true, result.error);
-  assert.equal(result.data.students.length, state.students.length);
-  assert.equal(result.data.assignments[0].name, state.assignments[0].name);
-  assert.equal(result.data.periods.length, 10);
-  assert.equal(result.data.exams[0].title, state.exams[0].title);
 });
 
 test('generateWorkbookFilename 保持 XLSX 文件名', () => {
