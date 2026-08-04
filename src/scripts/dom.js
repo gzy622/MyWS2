@@ -36,6 +36,7 @@ export const elements = {
   dutyList: required('#dutyList'),
   weekStrip: required('#weekStrip'),
   gradeTable: required('#gradeTable'),
+  assignmentSummary: required('#assignmentSummary'),
   navButtons: requiredAll('.nav-btn'),
   pageElements: requiredAll('.page'),
   menuDrawer: required('#menuDrawer'),

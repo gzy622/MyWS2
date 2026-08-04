@@ -15,7 +15,7 @@ import { canHandOffAtScrollEdge } from './gesture-policy.js';
 
 const REGISTER_PAGE_INDEX = 1;
 const GRID_SUBVIEW_INDEX = 0;
-const COURSE_PAGE_INDEX = 2;
+const STATS_PAGE_INDEX = 2;
 const GRADES_SUBVIEW_INDEX = 1;
 function isRegisterGrid() {
   return state.currentPage === REGISTER_PAGE_INDEX
@@ -23,8 +23,8 @@ function isRegisterGrid() {
 }
 
 function isCourseGrades() {
-  return state.currentPage === COURSE_PAGE_INDEX
-    && state.subviews[COURSE_PAGE_INDEX] === GRADES_SUBVIEW_INDEX;
+  return state.currentPage === STATS_PAGE_INDEX
+    && state.subviews[STATS_PAGE_INDEX] === GRADES_SUBVIEW_INDEX;
 }
 
 function isInteractiveField(target) {

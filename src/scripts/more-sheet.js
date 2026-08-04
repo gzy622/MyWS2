@@ -6,23 +6,19 @@ import { haptic, Haptic } from './haptics.js';
 import { createSheetController } from './sheet-drag.js';
 import { blurIfSheetChrome, focusSilently, syncChromeInert } from './focus.js';
 
-const PEOPLE_PAGE_INDEX = 0;
+const ARRANGE_PAGE_INDEX = 0;
 const REGISTER_PAGE_INDEX = 1;
-const COURSES_PAGE_INDEX = 2;
+const STATS_PAGE_INDEX = 2;
 const GRID_SUBVIEW_INDEX = 0;
 const SEAT_SUBVIEW_INDEX = 1;
-const ROLE_SUBVIEW_INDEX = 0;
-const DUTY_SUBVIEW_INDEX = 1;
-const SCHEDULE_SUBVIEW_INDEX = 0;
+const PEOPLE_SUBVIEW_INDEX = 0;
+const SCHEDULE_SUBVIEW_INDEX = 1;
 const GRADES_SUBVIEW_INDEX = 1;
 
 const REGISTER_ACTIONS = new Set(['register-view', 'create-assignment', 'clear-assignment', 'quick-score', 'font-size', 'seat-edit']);
-const PEOPLE_ROLE_ACTIONS = new Set(['add-role', 'clear-roles']);
-const PEOPLE_DUTY_ACTIONS = new Set(['add-duty', 'clear-duties']);
-const PEOPLE_ACTIONS = new Set([...PEOPLE_ROLE_ACTIONS, ...PEOPLE_DUTY_ACTIONS]);
-const COURSES_SCHEDULE_ACTIONS = new Set(['clear-schedule', 'highlight-subjects']);
-const COURSES_GRADES_ACTIONS = new Set(['add-subject', 'add-exam', 'grade-stats', 'clear-grades']);
-const COURSES_ACTIONS = new Set([...COURSES_SCHEDULE_ACTIONS, ...COURSES_GRADES_ACTIONS]);
+const PEOPLE_ACTIONS = new Set(['add-role', 'add-duty', 'clear-roles', 'clear-duties']);
+const SCHEDULE_ACTIONS = new Set(['clear-schedule', 'highlight-subjects']);
+const GRADES_ACTIONS = new Set(['add-subject', 'add-exam', 'grade-stats', 'clear-grades']);
 const GLOBAL_ACTIONS = new Set(['toggle-theme', 'open-settings']);
 
 export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, closeOthers, highlightSubjects, openCreateAssignment, openCreateExam, openGradeStats, onQuickScoreChange }) {
@@ -101,14 +97,13 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
 
   function render() {
     const onRegister = state.currentPage === REGISTER_PAGE_INDEX;
-    const onPeople = state.currentPage === PEOPLE_PAGE_INDEX;
-    const onCourses = state.currentPage === COURSES_PAGE_INDEX;
+    const onArrange = state.currentPage === ARRANGE_PAGE_INDEX;
+    const onStats = state.currentPage === STATS_PAGE_INDEX;
     const isGrid = state.subviews[REGISTER_PAGE_INDEX] === GRID_SUBVIEW_INDEX;
     const isSeats = state.subviews[REGISTER_PAGE_INDEX] === SEAT_SUBVIEW_INDEX;
-    const isRoles = state.subviews[PEOPLE_PAGE_INDEX] === ROLE_SUBVIEW_INDEX;
-    const isDuties = state.subviews[PEOPLE_PAGE_INDEX] === DUTY_SUBVIEW_INDEX;
-    const isSchedule = state.subviews[COURSES_PAGE_INDEX] === SCHEDULE_SUBVIEW_INDEX;
-    const isGrades = state.subviews[COURSES_PAGE_INDEX] === GRADES_SUBVIEW_INDEX;
+    const isPeople = state.subviews[ARRANGE_PAGE_INDEX] === PEOPLE_SUBVIEW_INDEX;
+    const isSchedule = state.subviews[ARRANGE_PAGE_INDEX] === SCHEDULE_SUBVIEW_INDEX;
+    const isGrades = state.subviews[STATS_PAGE_INDEX] === GRADES_SUBVIEW_INDEX;
     const isDark = theme?.get() === 'dark';
     const themeButton = elements.moreMenu.querySelector('[data-more-action="toggle-theme"]');
     const themeValue = themeButton?.querySelector('[data-more-theme-value]');
@@ -124,13 +119,11 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
         hidden = !onRegister
           || (action === 'seat-edit' && !isSeats);
       } else if (PEOPLE_ACTIONS.has(action)) {
-        hidden = !onPeople
-          || (PEOPLE_ROLE_ACTIONS.has(action) && !isRoles)
-          || (PEOPLE_DUTY_ACTIONS.has(action) && !isDuties);
-      } else if (COURSES_ACTIONS.has(action)) {
-        hidden = !onCourses
-          || (COURSES_SCHEDULE_ACTIONS.has(action) && !isSchedule)
-          || (COURSES_GRADES_ACTIONS.has(action) && !isGrades);
+        hidden = !onArrange || !isPeople;
+      } else if (SCHEDULE_ACTIONS.has(action)) {
+        hidden = !onArrange || !isSchedule;
+      } else if (GRADES_ACTIONS.has(action)) {
+        hidden = !onStats || !isGrades;
       } else {
         hidden = true;
       }

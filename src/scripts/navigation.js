@@ -3,12 +3,12 @@ import { state, setCurrentPage, setSubview, toggleSubview } from './state.js';
 import { haptic, Haptic } from './haptics.js';
 import { setLetterIndexPageDragging, syncLetterIndexPageVisibility } from './letter-index.js';
 
-const COURSE_PAGE_INDEX = 2;
+const STATS_PAGE_INDEX = 2;
 const GRADES_SUBVIEW_INDEX = 1;
 const REGISTER_PAGE_INDEX = 1;
 
 let getRegistrationTitle = () => '登记';
-let getActiveExamTitle = () => '课程';
+let getActiveExamTitle = () => '统计';
 
 function pageTransform(offsetPx = 0) {
   return `translate3d(calc(${-state.currentPage * 100 / 3}% + ${offsetPx}px), 0, 0)`;
@@ -28,8 +28,8 @@ function segmentGliderTransform(subIndex, offsetPx = 0) {
 
 export function renderTopbarTitle() {
   const isAssignmentTitle = state.currentPage === 1;
-  const isExamTitle = state.currentPage === COURSE_PAGE_INDEX
-    && state.subviews[COURSE_PAGE_INDEX] === GRADES_SUBVIEW_INDEX;
+  const isExamTitle = state.currentPage === STATS_PAGE_INDEX
+    && state.subviews[STATS_PAGE_INDEX] === GRADES_SUBVIEW_INDEX;
   let pageTitle;
   if (isAssignmentTitle) pageTitle = getRegistrationTitle();
   else if (isExamTitle) pageTitle = getActiveExamTitle();

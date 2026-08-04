@@ -47,7 +47,7 @@ export function initRosterEditor({ store, showToast, viewport, closeOthers, conf
   nameLayer.innerHTML = [
     '<section class="roster-student-name-panel sheet-panel sheet-panel--top" role="dialog" aria-modal="true" aria-labelledby="rosterStudentNameTitle">',
     '<div class="sheet-title"><span>学生</span><h2 id="rosterStudentNameTitle">修改姓名</h2></div>',
-    '<p class="roster-student-name-hint">姓名会同步到登记、人员与课程。</p>',
+    '<p class="roster-student-name-hint">姓名会同步到登记、安排与统计。</p>',
     `<label class="assignment-name-field"><span>姓名</span>`,
     `<input type="text" maxlength="${STUDENT_NAME_MAX_LENGTH}" autocomplete="off"></label>`,
     '<div class="roster-student-initial-field"><span>首字母</span>',
@@ -166,7 +166,7 @@ export function initRosterEditor({ store, showToast, viewport, closeOthers, conf
     nameReturnFocus = trigger;
     if (mode === 'rename') {
       nameTitle.textContent = '修改姓名';
-      nameHint.textContent = '姓名会同步到登记、人员与课程。';
+      nameHint.textContent = '姓名会同步到登记、安排与统计。';
       nameSave.textContent = '保存';
       nameInput.value = student.name;
     } else {

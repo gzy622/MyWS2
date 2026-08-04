@@ -6,19 +6,19 @@ import { resolveGradeExamId } from './courses-renderer.js';
 import { renderTopbarTitle } from './navigation.js';
 import { bindImmediateAction, createGhostClickGuard } from './pointer-guards.js';
 
-const COURSE_PAGE_INDEX = 2;
+const STATS_PAGE_INDEX = 2;
 const GRADES_SUBVIEW_INDEX = 1;
 
 function isCourseGradesView() {
-  return state.currentPage === COURSE_PAGE_INDEX
-    && state.subviews[COURSE_PAGE_INDEX] === GRADES_SUBVIEW_INDEX;
+  return state.currentPage === STATS_PAGE_INDEX
+    && state.subviews[STATS_PAGE_INDEX] === GRADES_SUBVIEW_INDEX;
 }
 
 export function initExams({ store, showToast, viewport, closeOthers, confirm, onGradesUiChange }) {
   const layer = document.createElement('div');
   layer.className = 'exam-sheet';
   layer.inert = true;
-  layer.innerHTML = '<section class="exam-panel sheet-panel sheet-panel--top" role="dialog" aria-modal="true" aria-labelledby="examListTitle"><header class="sheet-head"><div class="sheet-title"><span>课程</span><h2 id="examListTitle">考试</h2></div><button type="button" class="sheet-close" data-action="close" aria-label="关闭">×</button></header><div class="exam-list scroll-thin"></div><button class="exam-add" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>新增考试</button><div class="sheet-handle-zone sheet-handle-zone--bottom" aria-hidden="true"><div class="sheet-handle"></div></div></section>';
+  layer.innerHTML = '<section class="exam-panel sheet-panel sheet-panel--top" role="dialog" aria-modal="true" aria-labelledby="examListTitle"><header class="sheet-head"><div class="sheet-title"><span>统计</span><h2 id="examListTitle">考试</h2></div><button type="button" class="sheet-close" data-action="close" aria-label="关闭">×</button></header><div class="exam-list scroll-thin"></div><button class="exam-add" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>新增考试</button><div class="sheet-handle-zone sheet-handle-zone--bottom" aria-hidden="true"><div class="sheet-handle"></div></div></section>';
   elements.app.append(layer);
 
   const list = layer.querySelector('.exam-list');
@@ -27,7 +27,7 @@ export function initExams({ store, showToast, viewport, closeOthers, confirm, on
   const nameLayer = document.createElement('div');
   nameLayer.className = 'exam-name-sheet';
   nameLayer.inert = true;
-  nameLayer.innerHTML = '<section class="exam-name-panel sheet-panel sheet-panel--top" role="dialog" aria-modal="true" aria-labelledby="examRenameTitle"><div class="sheet-title"><span>考试</span><h2 id="examRenameTitle">修改名称</h2></div><p class="exam-name-hint">新名称会同步显示在课程页顶栏。</p><label class="exam-name-field"><span>名称</span><input type="text" maxlength="40" autocomplete="off"></label><div class="exam-name-actions"><button type="button" data-action="cancel">取消</button><button type="button" class="primary" data-action="save">保存</button></div><div class="sheet-handle-zone sheet-handle-zone--bottom" aria-hidden="true"><div class="sheet-handle"></div></div></section>';
+  nameLayer.innerHTML = '<section class="exam-name-panel sheet-panel sheet-panel--top" role="dialog" aria-modal="true" aria-labelledby="examRenameTitle"><div class="sheet-title"><span>考试</span><h2 id="examRenameTitle">修改名称</h2></div><p class="exam-name-hint">新名称会同步显示在统计页顶栏。</p><label class="exam-name-field"><span>名称</span><input type="text" maxlength="40" autocomplete="off"></label><div class="exam-name-actions"><button type="button" data-action="cancel">取消</button><button type="button" class="primary" data-action="save">保存</button></div><div class="sheet-handle-zone sheet-handle-zone--bottom" aria-hidden="true"><div class="sheet-handle"></div></div></section>';
   elements.app.append(nameLayer);
   const nameTitle = nameLayer.querySelector('#examRenameTitle');
   const nameHint = nameLayer.querySelector('.exam-name-hint');
@@ -96,12 +96,12 @@ export function initExams({ store, showToast, viewport, closeOthers, confirm, on
     nameReturnFocus = trigger;
     if (mode === 'rename') {
       nameTitle.textContent = '修改名称';
-      nameHint.textContent = '新名称会同步显示在课程页顶栏。';
+      nameHint.textContent = '新名称会同步显示在统计页顶栏。';
       nameSave.textContent = '保存';
       nameInput.value = exam.title;
     } else {
       nameTitle.textContent = '新增';
-      nameHint.textContent = '创建后可在课程页顶栏切换。';
+      nameHint.textContent = '创建后可在统计页顶栏切换。';
       nameSave.textContent = '添加';
       nameInput.value = '';
     }

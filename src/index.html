@@ -45,20 +45,23 @@
 
       <div class="viewport" id="viewport">
         <div class="pages" id="pages">
-          <section class="page" data-page="0" aria-label="人员">
+          <section class="page" data-page="0" aria-label="安排">
             <div class="page-inner">
-              <div class="segments" role="tablist" aria-label="人员分类">
+              <div class="segments" role="tablist" aria-label="安排分类">
                 <div class="segment-glider" aria-hidden="true"></div>
-                <button class="segment active" role="tab" aria-selected="true" data-sub="0">班干</button>
-                <button class="segment" role="tab" aria-selected="false" data-sub="1">值日</button>
+                <button class="segment active" role="tab" aria-selected="true" data-sub="0">人员</button>
+                <button class="segment" role="tab" aria-selected="false" data-sub="1">课表</button>
               </div>
               <div class="subview active" data-view="0">
-                <div class="section-title">班干名单</div>
-                <div class="people-stack role-list" id="roleList" aria-label="班干职位"></div>
+                <div class="card people-card" id="peopleCard">
+                  <div class="people-section-title">班干名单</div>
+                  <div class="people-list" id="roleList" aria-label="班干职位"></div>
+                  <div class="people-section-title">本周值日</div>
+                  <div class="people-list" id="dutyList" aria-label="值日轮换"></div>
+                </div>
               </div>
               <div class="subview" data-view="1">
-                <div class="section-title">本周值日</div>
-                <div class="people-stack duty-list" id="dutyList" aria-label="值日轮换"></div>
+                <div class="card week-strip" id="weekStrip" aria-label="本周课表"></div>
               </div>
             </div>
           </section>
@@ -95,18 +98,18 @@
             </div>
           </section>
 
-          <section class="page" data-page="2" aria-label="课程">
+          <section class="page" data-page="2" aria-label="统计">
             <div class="page-inner">
-              <div class="segments" role="tablist" aria-label="课程分类">
+              <div class="segments" role="tablist" aria-label="统计分类">
                 <div class="segment-glider" aria-hidden="true"></div>
-                <button class="segment active" role="tab" aria-selected="true" data-sub="0">课表</button>
-                <button class="segment" role="tab" aria-selected="false" data-sub="1">成绩</button>
+                <button class="segment active" role="tab" aria-selected="true" data-sub="0">作业</button>
+                <button class="segment" role="tab" aria-selected="false" data-sub="1">考试</button>
               </div>
               <div class="subview active" data-view="0">
-                <div class="card week-strip" id="weekStrip" aria-label="本周课表"></div>
+                <div class="card summary-table" id="assignmentSummary" role="table" aria-label="作业登记汇总"></div>
               </div>
               <div class="subview" data-view="1">
-                <div class="card grade-table" id="gradeTable" role="table" aria-label="成绩一览"></div>
+                <div class="card grade-table" id="gradeTable" role="table" aria-label="考试成绩一览"></div>
               </div>
             </div>
           </section>
@@ -116,7 +119,7 @@
       <div class="bottom-shell">
         <nav class="nav" id="nav" aria-label="主导航">
           <div class="nav-glider" id="glider"></div>
-          <button class="nav-btn" data-index="0" aria-label="人员">
+          <button class="nav-btn" data-index="0" aria-label="安排">
             <span class="nav-icon">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="9" cy="8" r="3" />
@@ -135,7 +138,7 @@
             </span>
             <span class="subdots"><i class="on"></i><i></i></span>
           </button>
-          <button class="nav-btn" data-index="2" aria-label="课程">
+          <button class="nav-btn" data-index="2" aria-label="统计">
             <span class="nav-icon">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M4 5.5A3.5 3.5 0 0 1 7.5 4H11v16H7.5A3.5 3.5 0 0 0 4 21.5z" />
