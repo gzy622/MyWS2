@@ -120,15 +120,20 @@ function startedAtHorizontalPageEdge(port, startScrollLeft, deltaX) {
 }
 
 /**
- * Grades table uses one dual-axis `.grade-scroll` so sticky head/name share a port.
- * Prefer that scroller whenever the gesture starts in the grades subview.
+ * Grades/summary tables use one dual-axis `.grade-scroll` so sticky head/name share a port.
+ * Prefer that scroller whenever the gesture starts in either stats subview. The arrange
+ * people card owns its own vertical scroll (single rounded card over the two lists).
  */
 function findVerticalScrollPort(target, pageElement) {
   if (!pageElement) return null;
   if (target instanceof Element && pageElement.contains(target)) {
-    const gradesView = target.closest('.page[data-page="2"] .subview[data-view="1"]');
-    if (gradesView && pageElement.contains(gradesView)) {
-      return gradesView.querySelector('.grade-scroll') || gradesView;
+    const statsView = target.closest('.page[data-page="2"] .subview.active');
+    if (statsView && pageElement.contains(statsView)) {
+      return statsView.querySelector('.grade-scroll') || statsView;
+    }
+    const peopleView = target.closest('.page[data-page="0"] .subview[data-view="0"]');
+    if (peopleView && pageElement.contains(peopleView)) {
+      return peopleView.querySelector('.people-card') || peopleView;
     }
     const nested = target.closest('.subview.active');
     if (nested && pageElement.contains(nested) && canScrollY(nested)) return nested;

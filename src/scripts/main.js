@@ -11,6 +11,7 @@ import { initRosterRenderer } from './roster-renderer.js';
 import { initPeopleRenderer } from './people-renderer.js';
 import { initPeopleInteractions } from './people-interactions.js';
 import { initCoursesRenderer, resolveGradeExamId } from './courses-renderer.js';
+import { initSummaryRenderer } from './summary-renderer.js';
 import { initCoursesInteractions } from './courses-interactions.js';
 import { initExams } from './exams.js';
 import { initHighlightSubjects } from './highlight-subjects.js';
@@ -42,13 +43,14 @@ initNavigation({
   getActiveExamTitle: () => {
     const snapshot = rosterStore.getSnapshot();
     const examId = resolveGradeExamId(snapshot);
-    return snapshot.exams.find((exam) => exam.id === examId)?.title ?? '课程';
+    return snapshot.exams.find((exam) => exam.id === examId)?.title ?? '统计';
   },
 });
 const fontSize = initStudentFontSize();
 const rosterRenderer = initRosterRenderer(rosterStore);
 initLetterIndex(rosterStore);
 initPeopleRenderer(rosterStore);
+initSummaryRenderer(rosterStore);
 let studentRecord;
 let assignments;
 let rosterEditor;

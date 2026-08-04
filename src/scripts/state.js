@@ -22,7 +22,9 @@ export const state = {
   /** @type {number | null} null resolves to the first exam at render time */
   gradeExamId: null,
   /** @type {{ subjectId: number, direction: 'asc' | 'desc' } | null} */
-  gradeSort: null
+  gradeSort: null,
+  /** @type {{ assignmentId: number, direction: 'asc' | 'desc' } | null} */
+  summarySort: null
 };
 
 export function clampPage(index) {
@@ -106,4 +108,18 @@ export function setGradeSort(value) {
     || (value.direction !== 'asc' && value.direction !== 'desc')
   ) return;
   state.gradeSort = { subjectId: value.subjectId, direction: value.direction };
+}
+
+export function setSummarySort(value) {
+  if (value === null) {
+    state.summarySort = null;
+    return;
+  }
+  if (
+    !value
+    || !Number.isSafeInteger(value.assignmentId)
+    || value.assignmentId <= 0
+    || (value.direction !== 'asc' && value.direction !== 'desc')
+  ) return;
+  state.summarySort = { assignmentId: value.assignmentId, direction: value.direction };
 }
