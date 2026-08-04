@@ -154,6 +154,29 @@ function rowHeight(sheet, rowIndex) {
   return Number.isFinite(Number(value)) ? ` ht="${Number(value)}" customHeight="1"` : '';
 }
 
+function pageMarginsXml(pageMargins) {
+  if (!pageMargins) return '';
+  const values = {
+    left: pageMargins.left ?? 0.7,
+    right: pageMargins.right ?? 0.7,
+    top: pageMargins.top ?? 0.75,
+    bottom: pageMargins.bottom ?? 0.75,
+    header: pageMargins.header ?? 0.3,
+    footer: pageMargins.footer ?? 0.3
+  };
+  return `<pageMargins ${Object.entries(values).map(([name, value]) => `${name}="${Number(value)}"`).join(' ')}/>`;
+}
+
+function pageSetupXml(pageSetup) {
+  if (!pageSetup) return '';
+  const attributes = [];
+  if (Number.isInteger(pageSetup.paperSize)) attributes.push(`paperSize="${pageSetup.paperSize}"`);
+  if (pageSetup.orientation) attributes.push(`orientation="${xmlEscape(pageSetup.orientation)}"`);
+  if (Number.isInteger(pageSetup.fitToWidth)) attributes.push(`fitToWidth="${pageSetup.fitToWidth}"`);
+  if (Number.isInteger(pageSetup.fitToHeight)) attributes.push(`fitToHeight="${pageSetup.fitToHeight}"`);
+  return `<pageSetup ${attributes.join(' ')}/>`;
+}
+
 function worksheetXml(sheet, commentsRelationId = '') {
   const rows = sheet.rows ?? [];
   const columnCount = Math.max(1, ...rows.map((row) => row.length));
@@ -175,13 +198,25 @@ function worksheetXml(sheet, commentsRelationId = '') {
     ? `<mergeCells count="${sheet.merges.length}">${sheet.merges.map((ref) => `<mergeCell ref="${xmlEscape(ref)}"/>`).join('')}</mergeCells>`
     : '';
   const legacyDrawing = commentsRelationId ? `<legacyDrawing r:id="${xmlEscape(commentsRelationId)}"/>` : '';
+  const pageSetup = pageSetupXml(sheet.pageSetup);
+  const sheetProperties = pageSetup ? '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>' : '';
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><dimension ref="${dimension}"/>${freezeXml(sheet.freezeRows ?? 0, sheet.freezeColumns ?? 0)}<sheetFormatPr defaultRowHeight="20"/>${worksheetColumnsXml(sheet) ? `<cols>${worksheetColumnsXml(sheet)}</cols>` : ''}<sheetData>${rowXml}</sheetData>${filter}${merges}${validationXml(sheet.validations)}${legacyDrawing}</worksheet>`;
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${sheetProperties}<dimension ref="${dimension}"/>${freezeXml(sheet.freezeRows ?? 0, sheet.freezeColumns ?? 0)}<sheetFormatPr defaultRowHeight="20"/>${worksheetColumnsXml(sheet) ? `<cols>${worksheetColumnsXml(sheet)}</cols>` : ''}<sheetData>${rowXml}</sheetData>${filter}${merges}${validationXml(sheet.validations)}${pageMarginsXml(sheet.pageMargins)}${pageSetup}${legacyDrawing}</worksheet>`;
+}
+
+function printAreaXml(sheets) {
+  const names = sheets.flatMap((sheet, index) => {
+    if (!sheet.printArea) return [];
+    const sheetName = `'${String(sheet.name).replaceAll("'", "''")}'`;
+    const range = String(sheet.printArea).replace(/([A-Z]+)(\d+)/gi, (_, column, row) => `$${column.toUpperCase()}$${row}`);
+    return [`<definedName name="_xlnm.Print_Area" localSheetId="${index}">${xmlEscape(`${sheetName}!${range}`)}</definedName>`];
+  });
+  return names.length ? `<definedNames>${names.join('')}</definedNames>` : '';
 }
 
 function workbookXml(sheets) {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView xWindow="0" yWindow="0" windowWidth="24000" windowHeight="12000"/></bookViews><sheets>${sheets.map((sheet, index) => `<sheet name="${xmlEscape(sheet.name)}" sheetId="${index + 1}" r:id="rId${index + 1}"/>`).join('')}</sheets><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`;
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView xWindow="0" yWindow="0" windowWidth="24000" windowHeight="12000"/></bookViews><sheets>${sheets.map((sheet, index) => `<sheet name="${xmlEscape(sheet.name)}" sheetId="${index + 1}" r:id="rId${index + 1}"/>`).join('')}</sheets>${printAreaXml(sheets)}<calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`;
 }
 
 function workbookRelsXml(sheets) {
@@ -206,7 +241,7 @@ const STYLES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="3"><font><sz val="11"/><name val="Microsoft YaHei"/><family val="2"/></font><font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="Microsoft YaHei"/><family val="2"/></font><font><b/><color rgb="FF24558A"/><sz val="16"/><name val="Microsoft YaHei"/><family val="2"/></font></fonts><fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF24558A"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF2F2F4"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFE6E6E6"/></left><right style="thin"><color rgb="FFE6E6E6"/></right><top style="thin"><color rgb="FFE6E6E6"/></top><bottom style="thin"><color rgb="FFE6E6E6"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="8"><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf><xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf></cellXfs><cellStyles count="1"><cellStyle name="常规" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
 
 const STYLES_XML_V2 = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="4"><font><sz val="11"/><name val="Microsoft YaHei"/><family val="2"/></font><font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="Microsoft YaHei"/><family val="2"/></font><font><b/><color rgb="FF24558A"/><sz val="16"/><name val="Microsoft YaHei"/><family val="2"/></font><font><b/><color rgb="FF24558A"/><sz val="11"/><name val="Microsoft YaHei"/><family val="2"/></font></fonts><fills count="7"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF24558A"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF2F2F4"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEAF4FF"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF7F7F8"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF0F2F5"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="3"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFE6E6E6"/></left><right style="thin"><color rgb="FFE6E6E6"/></right><top style="thin"><color rgb="FFE6E6E6"/></top><bottom style="thin"><color rgb="FFE6E6E6"/></bottom><diagonal/></border><border><left style="medium"><color rgb="FF9AB8D5"/></left><right style="thin"><color rgb="FFE6E6E6"/></right><top style="thin"><color rgb="FFE6E6E6"/></top><bottom style="thin"><color rgb="FFE6E6E6"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="14"><xf numFmtId="0" fontId="0" borderId="1" xfId="0" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf><xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="3" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf><xf numFmtId="0" fontId="0" fillId="6" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="2" xfId="0" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="2" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="2" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf></cellXfs><cellStyles count="1"><cellStyle name="常规" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="4"><font><sz val="11"/><name val="Microsoft YaHei"/><family val="2"/></font><font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="Microsoft YaHei"/><family val="2"/></font><font><b/><color rgb="FF24558A"/><sz val="16"/><name val="Microsoft YaHei"/><family val="2"/></font><font><b/><color rgb="FF24558A"/><sz val="11"/><name val="Microsoft YaHei"/><family val="2"/></font></fonts><fills count="7"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF24558A"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF2F2F4"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEAF4FF"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF7F7F8"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF0F2F5"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="3"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFE6E6E6"/></left><right style="thin"><color rgb="FFE6E6E6"/></right><top style="thin"><color rgb="FFE6E6E6"/></top><bottom style="thin"><color rgb="FFE6E6E6"/></bottom><diagonal/></border><border><left style="medium"><color rgb="FF9AB8D5"/></left><right style="thin"><color rgb="FFE6E6E6"/></right><top style="thin"><color rgb="FFE6E6E6"/></top><bottom style="thin"><color rgb="FFE6E6E6"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="15"><xf numFmtId="0" fontId="0" borderId="1" xfId="0" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf><xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="3" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf><xf numFmtId="0" fontId="0" fillId="6" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="2" xfId="0" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="2" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="2" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" textRotation="255" wrapText="1"/></xf></cellXfs><cellStyles count="1"><cellStyle name="常规" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
 
 function coreXml(createdAt) {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -450,6 +485,8 @@ function parseWorksheet(xml, sharedStrings) {
   }
   const merges = [...xml.matchAll(/<mergeCell\b([^>]*?)(?:\/>|>)/g)].map((match) => attr(match[1], 'ref')).filter(Boolean);
   const filterMatch = xml.match(/<autoFilter\b([^>]*?)(?:\/>|>)/);
+  const pageSetupMatch = xml.match(/<pageSetup\b([^>]*?)(?:\/>|>)/);
+  const pageMarginsMatch = xml.match(/<pageMargins\b([^>]*?)(?:\/>|>)/);
   return {
     rows,
     meta: {
@@ -457,7 +494,16 @@ function parseWorksheet(xml, sharedStrings) {
       hiddenColumns,
       columnStyles,
       merges,
-      autoFilter: filterMatch ? attr(filterMatch[1], 'ref') : ''
+      autoFilter: filterMatch ? attr(filterMatch[1], 'ref') : '',
+      pageSetup: pageSetupMatch ? {
+        paperSize: Number(attr(pageSetupMatch[1], 'paperSize')),
+        orientation: attr(pageSetupMatch[1], 'orientation'),
+        fitToWidth: Number(attr(pageSetupMatch[1], 'fitToWidth')),
+        fitToHeight: Number(attr(pageSetupMatch[1], 'fitToHeight'))
+      } : null,
+      pageMargins: pageMarginsMatch ? Object.fromEntries(
+        ['left', 'right', 'top', 'bottom', 'header', 'footer'].map((name) => [name, Number(attr(pageMarginsMatch[1], name))])
+      ) : null
     }
   };
 }
@@ -530,15 +576,25 @@ export async function readXlsxWorkbook(input) {
   }
   const sharedData = entries.get('xl/sharedStrings.xml');
   const sharedStrings = sharedData ? parseSharedStrings(textDecoder.decode(sharedData)) : [];
+  const printAreas = new Map();
+  for (const match of workbook.matchAll(/<definedName\b([^>]*)>([\s\S]*?)<\/definedName>/g)) {
+    if (attr(match[1], 'name') !== '_xlnm.Print_Area') continue;
+    const sheetIndex = Number(attr(match[1], 'localSheetId'));
+    const reference = xmlDecode(match[2]).split('!').slice(1).join('!').replaceAll('$', '');
+    if (Number.isInteger(sheetIndex) && reference) printAreas.set(sheetIndex, reference);
+  }
   const sheets = new XlsxWorkbook();
+  let sheetIndex = 0;
   for (const match of workbook.matchAll(/<sheet\b([^>]*?)(?:\/>|>)/g)) {
+    const currentSheetIndex = sheetIndex;
+    sheetIndex += 1;
     const name = attr(match[1], 'name');
     const target = targets.get(attr(match[1], 'r:id'));
     const sheetData = target ? entries.get(target) : null;
     if (!name || !sheetData) continue;
     const parsed = parseWorksheet(textDecoder.decode(sheetData), sharedStrings);
     sheets.set(name, parsed.rows);
-    sheets.setSheetMeta(name, parsed.meta);
+    sheets.setSheetMeta(name, { ...parsed.meta, printArea: printAreas.get(currentSheetIndex) ?? '' });
   }
   if (!sheets.size) throw new Error('xlsx-sheets-missing');
   return sheets;

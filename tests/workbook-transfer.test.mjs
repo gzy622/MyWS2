@@ -166,11 +166,15 @@ test('v3 严格生成六表顺序、8×13 座位矩阵和讲台', async () => {
 
   const seat = sheets[0];
   assert.equal(seat.rows.length, 58);
-  assert.equal(cellValue(seat.rows[0][0]), '讲台方向 ↓（讲台在下方）');
+  assert.equal(cellValue(seat.rows[0][0]), '座位表 · 讲台在下方');
   assert.deepEqual(seat.rows[9].slice(0, 13).map(cellValue), ['讲台', ...Array(12).fill('')]);
   assert.deepEqual(seat.merges, ['A1:M1', 'A10:M10']);
   assert.deepEqual(seat.rows[11].slice(0, 4), ['姓名', '首字母', '座位行', '座位列']);
-  assert.ok(seat.hiddenColumns.some((range) => range[0] === 14 && range[1] === 41));
+  assert.deepEqual(seat.hiddenRows, Array.from({ length: 48 }, (_, index) => index + 10));
+  assert.ok(seat.hiddenColumns.some((range) => range[0] === 13 && range[1] === 41));
+  assert.deepEqual(seat.widths.slice(0, 13), Array(13).fill(5.5));
+  assert.equal(seat.printArea, 'A1:M10');
+  assert.deepEqual(seat.pageSetup, { paperSize: 9, orientation: 'portrait', fitToWidth: 1, fitToHeight: 1 });
 
   const studentsById = new Map(state.students.map((student) => [student.id, student]));
   const seatsByIndex = new Map(state.seats.map((item) => [item.seatIndex, item.studentId]));
@@ -182,7 +186,7 @@ test('v3 严格生成六表顺序、8×13 座位矩阵和讲台', async () => {
       const studentId = seatsByIndex.get(seatIndex);
       const expected = studentId == null ? '' : studentsById.get(studentId).name;
       assert.equal(cellValue(seat.rows[row + 1][column]), expected);
-      assert.equal(seat.rows[row + 1][column].style, 5);
+      assert.equal(seat.rows[row + 1][column].style, 14);
       if (!studentId) emptyCount += 1;
     }
   }
@@ -190,6 +194,7 @@ test('v3 严格生成六表顺序、8×13 座位矩阵和讲台', async () => {
   assert.equal(cellValue(seat.rows[12][41]), state.students[0].id);
 
   const assignment = sheets[1];
+  assert.deepEqual(assignment.widths.slice(0, 2), [8, 14]);
   assert.deepEqual(assignment.rows[2].slice(2).map(cellValue), ['作业 1', '作业 2']);
   assert.deepEqual(assignment.rows[3].slice(2).map(cellValue), ['✓', '']);
   assert.deepEqual(assignment.columnStyles, { 2: 5, 3: 5 });
@@ -201,10 +206,15 @@ test('v3 严格生成六表顺序、8×13 座位矩阵和讲台', async () => {
     }
   }
 
+  assert.deepEqual(sheets[4].widths.slice(0, 6), [10, 12, 12, 12, 12, 12]);
+  assert.deepEqual(sheets[5].widths.slice(0, 3), [8, 14, 10]);
+
   const workbook = await readXlsxWorkbook(await serializeRosterWorkbook(state));
   assert.deepEqual([...workbook.keys()], WORKBOOK_SHEET_NAMES);
   assert.deepEqual(workbook.get('座位表').slice(1, 9).map((row) => row.slice(0, 13).length), Array(8).fill(13));
-  assert.equal(workbook.getSheetMeta('座位表').autoFilter, 'A12:D58');
+  assert.deepEqual(workbook.getSheetMeta('座位表').hiddenRows, Array.from({ length: 48 }, (_, index) => index + 10));
+  assert.equal(workbook.getSheetMeta('座位表').printArea, 'A1:M10');
+  assert.deepEqual(workbook.getSheetMeta('座位表').pageSetup, { paperSize: 9, orientation: 'portrait', fitToWidth: 1, fitToHeight: 1 });
   assert.equal(workbook.getSheetMeta('作业登记').columnStyles[2], 5);
   assert.equal(workbook.getSheetMeta('作业登记').columnStyles[3], 5);
 });
@@ -247,16 +257,40 @@ test('v3 班干和值日拆表，成员单格可读且能处理空成员、重�
   assert.equal(duty.rows[0][0], '值日名称');
   assert.equal(duty.rows[0][1], '说明');
   assert.equal(duty.rows[0][2], '成员');
-  assert.match(role.rows[1][1], /编号 1/);
+  assert.doesNotMatch(role.rows[1][1], /编号/);
+  assert.match(role.rows[1][1], /张\\；\\\\括号（甲）/);
   assert.match(role.rows[1][1], /；/);
   assert.equal(role.rows[0][2], '');
   assert.equal(duty.rows[1][2], '');
-  assert.match(role.comments[0].text, /反斜杠/);
+  assert.match(role.comments[0].text, /只显示姓名/);
 
   const result = parseRosterWorkbookSheets(new Map([...sheets].map(([name, sheet]) => [name, sheet.rows])));
   assert.equal(result.ok, true, result.error);
   assert.deepEqual(result.data.roles[0].studentIds, [1, 2, 3]);
   assert.deepEqual(result.data.duties[0].studentIds, []);
+});
+
+test('上一版 v3 座位标题和带编号成员仍可导入', () => {
+  const state = createDefaultRosterState();
+  state.roles[0].studentIds = [1, 2];
+  state.duties[0].studentIds = [3, 4];
+  const sheets = byName(state);
+  sheets.get('座位表').rows[0][0] = '讲台方向 ↓（讲台在下方）';
+  const studentsById = new Map(state.students.map((student) => [student.id, student]));
+  for (const [sheetName, memberColumn] of [['班干安排', 1], ['值日安排', 2]]) {
+    const sheet = sheets.get(sheetName);
+    sheet.rows[0].length = 16;
+    for (const row of sheet.rows.slice(1)) {
+      row[memberColumn] = String(row[15] ?? '').split('|').filter(Boolean)
+        .map((id) => `${studentsById.get(Number(id)).name}（编号 ${id}）`)
+        .join('；');
+      row.length = 16;
+    }
+  }
+  const result = parseRosterWorkbookSheets(new Map([...sheets].map(([name, sheet]) => [name, sheet.rows])));
+  assert.equal(result.ok, true, result.error);
+  assert.deepEqual(result.data.roles[0].studentIds, [1, 2]);
+  assert.deepEqual(result.data.duties[0].studentIds, [3, 4]);
 });
 
 test('v3 成员重复、缺失学生和错误格式指出准确单元格', () => {
@@ -267,12 +301,14 @@ test('v3 成员重复、缺失学生和错误格式指出准确单元格', () =>
   assert.match(parseRosterWorkbookSheets(new Map([...duplicate].map(([name, sheet]) => [name, sheet.rows]))).error, /^班干安排!B2：/);
 
   const missing = byName(state);
-  missing.get('班干安排').rows[1][1] = '不存在（编号 999）';
-  assert.match(parseRosterWorkbookSheets(new Map([...missing].map(([name, sheet]) => [name, sheet.rows]))).error, /^班干安排!B2：学生编号 999 不存在/);
+  missing.get('班干安排').rows[1][1] = '不存在';
+  assert.match(parseRosterWorkbookSheets(new Map([...missing].map(([name, sheet]) => [name, sheet.rows]))).error, /^班干安排!B2：学生「不存在」不存在/);
 
-  const malformed = byName(state);
-  malformed.get('值日安排').rows[1][2] = '只写姓名';
-  assert.match(parseRosterWorkbookSheets(new Map([...malformed].map(([name, sheet]) => [name, sheet.rows]))).error, /^值日安排!C2：/);
+  const ambiguous = byName(state);
+  ambiguous.get('座位表').rows[12][0] = '同名学生';
+  ambiguous.get('座位表').rows[13][0] = '同名学生';
+  ambiguous.get('值日安排').rows[1][2] = '同名学生';
+  assert.match(parseRosterWorkbookSheets(new Map([...ambiguous].map(([name, sheet]) => [name, sheet.rows]))).error, /^值日安排!C2：学生姓名「同名学生」重名/);
 
   const splitMembers = byName(state);
   splitMembers.get('班干安排').rows[1][2] = '不应出现的成员列';
