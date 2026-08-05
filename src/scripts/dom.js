@@ -32,6 +32,7 @@ export const elements = {
   seatEditStatus: required('#seatEditStatus'),
   exitSeatEditButton: required('#exitSeatEdit'),
   seatLetterIndex: required('#seatLetterIndex'),
+  peopleCard: required('#peopleCard'),
   roleList: required('#roleList'),
   dutyList: required('#dutyList'),
   weekStrip: required('#weekStrip'),

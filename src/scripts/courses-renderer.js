@@ -221,6 +221,10 @@ function renderGradeTable({ students, subjects, courseGrades }, examId) {
 
 export function initCoursesRenderer(store, highlightSubjects) {
   let releaseGradeScrollChrome = () => {};
+  /** Grade DOM filled while hidden; first visible pass rebinds chrome after pages settle. */
+  let gradeTableWarmed = false;
+  let weekDirty = true;
+  let gradesDirty = true;
 
   function isScheduleVisible() {
     return state.currentPage === 0 && state.subviews[0] === 1;
@@ -232,19 +236,42 @@ export function initCoursesRenderer(store, highlightSubjects) {
 
   function renderWeek(snapshot = store.getSnapshot()) {
     renderWeekStrip(snapshot, (subject) => highlightSubjects?.matches?.(subject));
+    weekDirty = false;
+  }
+
+  function buildGradeTable(snapshot) {
+    releaseGradeScrollChrome();
+    const examId = resolveGradeExamId(snapshot);
+    if (examId != null) {
+      releaseGradeScrollChrome = renderGradeTable(snapshot, examId);
+      gradesDirty = false;
+      return true;
+    }
+    elements.gradeTable.replaceChildren();
+    releaseGradeScrollChrome = () => {};
+    gradesDirty = false;
+    return false;
   }
 
   function render(snapshot = store.getSnapshot()) {
-    if (isScheduleVisible()) renderWeek(snapshot);
+    if (isScheduleVisible()) {
+      if (weekDirty || !elements.weekStrip.querySelector('.week-matrix')) {
+        renderWeek(snapshot);
+      }
+    }
 
     if (isGradesVisible()) {
-      releaseGradeScrollChrome();
-      const examId = resolveGradeExamId(snapshot);
-      if (examId != null) releaseGradeScrollChrome = renderGradeTable(snapshot, examId);
-      else {
-        elements.gradeTable.replaceChildren();
-        releaseGradeScrollChrome = () => {};
+      if (gradeTableWarmed && !gradesDirty) {
+        const scroller = elements.gradeTable.querySelector('.grade-scroll');
+        gradeTableWarmed = false;
+        if (scroller instanceof HTMLElement) {
+          releaseGradeScrollChrome();
+          releaseGradeScrollChrome = bindGradeScrollChrome(scroller);
+          return;
+        }
       }
+      gradeTableWarmed = false;
+      buildGradeTable(snapshot);
       return;
     }
 
@@ -252,8 +279,27 @@ export function initCoursesRenderer(store, highlightSubjects) {
     releaseGradeScrollChrome = () => {};
   }
 
+  function invalidateWarm() {
+    gradeTableWarmed = false;
+    weekDirty = true;
+    gradesDirty = true;
+  }
+
+  /** Fill week + grades DOM off the navigation critical path; no scroll chrome. */
+  function warm(snapshot = store.getSnapshot()) {
+    renderWeek(snapshot);
+    if (buildGradeTable(snapshot)) {
+      releaseGradeScrollChrome();
+      releaseGradeScrollChrome = () => {};
+      gradeTableWarmed = true;
+    } else {
+      gradeTableWarmed = false;
+    }
+  }
+
   highlightSubjects?.subscribe?.(() => {
+    weekDirty = true;
     if (isScheduleVisible()) renderWeek();
   });
-  return { render };
+  return { render, warm, invalidateWarm };
 }

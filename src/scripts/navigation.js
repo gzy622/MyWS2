@@ -6,6 +6,9 @@ import { setLetterIndexPageDragging, syncLetterIndexPageVisibility } from './let
 const STATS_PAGE_INDEX = 2;
 const GRADES_SUBVIEW_INDEX = 1;
 const REGISTER_PAGE_INDEX = 1;
+/** Match `.pages { transition: transform .42s }` in shell.css. */
+export const PAGE_TRANSITION_MS = 420;
+const PAGE_TRANSITION_BUFFER_MS = 60;
 
 const navigationSettledListeners = new Set();
 
@@ -14,12 +17,21 @@ let getActiveExamTitle = () => '统计';
 /** Last page/subview reported to settled listeners; skip no-op settle paints. */
 let lastSettledPage = state.currentPage;
 let lastSettledSubview = state.subviews[state.currentPage];
+/** Token + listener for `#pages` transform settle (cold first-paint gating). */
+let pagesSettleToken = 0;
+let pagesSettleTimer = 0;
+/** @type {((event: TransitionEvent) => void) | null} */
+let pagesSettleHandler = null;
 
 export function subscribeNavigationSettled(listener) {
   navigationSettledListeners.add(listener);
   return () => navigationSettledListeners.delete(listener);
 }
 
+/**
+ * State chrome has updated (not CSS settle). Listeners decide whether heavy
+ * paint must wait for `whenPagesTransitionSettled`.
+ */
 function notifyNavigationSettled() {
   const page = state.currentPage;
   const subview = state.subviews[page];
@@ -27,6 +39,59 @@ function notifyNavigationSettled() {
   lastSettledPage = page;
   lastSettledSubview = subview;
   for (const listener of navigationSettledListeners) listener();
+}
+
+function clearPagesSettleWait() {
+  if (pagesSettleTimer) {
+    window.clearTimeout(pagesSettleTimer);
+    pagesSettleTimer = 0;
+  }
+  if (pagesSettleHandler) {
+    elements.pages.removeEventListener('transitionend', pagesSettleHandler);
+    pagesSettleHandler = null;
+  }
+}
+
+/**
+ * Run after `#pages` transform transition ends. `instant` skips waiting (reduced
+ * motion, subview-only changes, or no transform). Timeout backs up missed events.
+ * Newer calls cancel older callbacks via token.
+ * @param {() => void} callback
+ * @param {{ instant?: boolean }} [options]
+ * @returns {() => void} cancel
+ */
+export function whenPagesTransitionSettled(callback, { instant = false } = {}) {
+  const token = ++pagesSettleToken;
+  clearPagesSettleWait();
+
+  const finish = () => {
+    if (token !== pagesSettleToken) return;
+    clearPagesSettleWait();
+    callback();
+  };
+
+  if (instant) {
+    requestAnimationFrame(() => {
+      if (token !== pagesSettleToken) return;
+      finish();
+    });
+    return () => {
+      if (token === pagesSettleToken) pagesSettleToken += 1;
+    };
+  }
+
+  pagesSettleHandler = (event) => {
+    if (event.target !== elements.pages) return;
+    if (event.propertyName && event.propertyName !== 'transform') return;
+    finish();
+  };
+  elements.pages.addEventListener('transitionend', pagesSettleHandler);
+  pagesSettleTimer = window.setTimeout(finish, PAGE_TRANSITION_MS + PAGE_TRANSITION_BUFFER_MS);
+  return () => {
+    if (token !== pagesSettleToken) return;
+    pagesSettleToken += 1;
+    clearPagesSettleWait();
+  };
 }
 
 function pageTransform(offsetPx = 0) {

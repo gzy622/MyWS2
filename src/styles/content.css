@@ -52,6 +52,16 @@
   color: var(--ink);
 }
 
+/* Deferred business views stay invisible until first paint, then fade in. */
+.business-view-host:not(.is-ready) {
+  opacity: 0;
+}
+
+.business-view-host.is-ready {
+  opacity: 1;
+  transition: opacity var(--duration-fade) var(--ease);
+}
+
 .subview {
   display: none;
   animation: rise .35s var(--ease);

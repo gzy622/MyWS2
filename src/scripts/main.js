@@ -1,5 +1,10 @@
 import { elements } from './dom.js';
-import { initNavigation, renderNavigation, subscribeNavigationSettled } from './navigation.js';
+import {
+  initNavigation,
+  renderNavigation,
+  subscribeNavigationSettled,
+  whenPagesTransitionSettled,
+} from './navigation.js';
 import { state } from './state.js';
 import { initHorizontalGestures, cancelActivePointerGesture } from './gestures.js';
 import { closeDrawer, initDrawer } from './drawer.js';
@@ -60,15 +65,188 @@ let people;
 let courses;
 let highlightSubjects;
 let coursesRenderer;
-function renderVisibleBusinessView(snapshot = rosterStore.getSnapshot()) {
+let deferredFirstPaintToken = 0;
+/** @type {(() => void) | null} */
+let cancelPagesSettleWait = null;
+/** Tracks last page used for nav paint gating (subview-only skips pages wait). */
+let lastNavPaintPage = state.currentPage;
+let peopleDirty = true;
+let summaryDirty = true;
+
+function prefersReducedMotion() {
+  return globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
+}
+
+/** Reveal a deferred business host once after opacity:0 has been painted. */
+function revealBusinessViewHost(host) {
+  if (!(host instanceof HTMLElement) || host.classList.contains('is-ready')) return;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      host.classList.add('is-ready');
+    });
+  });
+}
+
+/** Offscreen warm: mark hosts displayable without a user-visible fade. */
+function markDeferredHostsReady() {
+  for (const host of [
+    elements.peopleCard,
+    elements.weekStrip,
+    elements.assignmentSummary,
+    elements.gradeTable,
+  ]) {
+    if (host instanceof HTMLElement) host.classList.add('is-ready');
+  }
+}
+
+function hostForVisibleBusinessView(page = state.currentPage, subview = state.subviews[page]) {
+  if (page === 0 && subview === 0) return elements.peopleCard;
+  if (page === 0 && subview === 1) return elements.weekStrip;
+  if (page === 2 && subview === 0) return elements.assignmentSummary;
+  if (page === 2 && subview === 1) return elements.gradeTable;
+  return null;
+}
+
+function paintVisibleBusinessView(snapshot = rosterStore.getSnapshot()) {
   const page = state.currentPage;
   const subview = state.subviews[page];
 
   coursesRenderer.render(snapshot);
-  if (page === 0 && subview === 0) peopleRenderer.render(snapshot);
-  else if (page === 1) rosterRenderer.render(snapshot);
-  else if (page === 2 && subview === 0) summaryRenderer.render(snapshot);
+  if (page === 0 && subview === 0) {
+    if (peopleDirty || !hostLooksFilled(elements.peopleCard)) {
+      peopleRenderer.render(snapshot);
+      peopleDirty = false;
+    }
+    revealBusinessViewHost(elements.peopleCard);
+  } else if (page === 0 && subview === 1) {
+    revealBusinessViewHost(elements.weekStrip);
+  } else if (page === 1) {
+    rosterRenderer.render(snapshot);
+  } else if (page === 2 && subview === 0) {
+    if (summaryDirty || !hostLooksFilled(elements.assignmentSummary)) {
+      summaryRenderer.render(snapshot);
+      summaryDirty = false;
+    }
+    revealBusinessViewHost(elements.assignmentSummary);
+  } else if (page === 2 && subview === 1) {
+    revealBusinessViewHost(elements.gradeTable);
+  }
 }
+
+function cancelDeferredFirstPaint() {
+  deferredFirstPaintToken += 1;
+  cancelPagesSettleWait?.();
+  cancelPagesSettleWait = null;
+}
+
+function hostLooksFilled(host) {
+  if (!(host instanceof HTMLElement)) return false;
+  if (host === elements.peopleCard) return Boolean(host.querySelector('.people-row'));
+  if (host === elements.weekStrip) return Boolean(host.querySelector('.week-matrix'));
+  if (host === elements.assignmentSummary || host === elements.gradeTable) {
+    return Boolean(host.querySelector('.grade-scroll'));
+  }
+  return false;
+}
+
+/**
+ * After `#pages` transform settles (or instantly for subview-only / reduced motion).
+ * @param {number} page
+ * @param {number} subview
+ * @param {() => void} callback
+ * @param {{ instant?: boolean }} [options]
+ */
+function scheduleAfterPagesSettle(page, subview, callback, { instant = false } = {}) {
+  const token = ++deferredFirstPaintToken;
+  cancelPagesSettleWait?.();
+  cancelPagesSettleWait = whenPagesTransitionSettled(() => {
+    cancelPagesSettleWait = null;
+    if (token !== deferredFirstPaintToken) return;
+    if (state.currentPage !== page || state.subviews[page] !== subview) return;
+    callback();
+  }, { instant: instant || prefersReducedMotion() });
+}
+
+/**
+ * Store updates paint immediately. Navigation never does heavy DOM in the same
+ * turn as starting the pages transform: fully warmed hosts only refresh after
+ * settle; true cold hosts paint+fade after settle; half-warm only reveals.
+ */
+function renderVisibleBusinessView(snapshot = rosterStore.getSnapshot(), { fromNavigation = false } = {}) {
+  if (!fromNavigation) {
+    cancelDeferredFirstPaint();
+    paintVisibleBusinessView(snapshot);
+    return;
+  }
+
+  const page = state.currentPage;
+  const subview = state.subviews[page];
+  const host = hostForVisibleBusinessView(page, subview);
+  const pagesMoved = page !== lastNavPaintPage;
+  lastNavPaintPage = page;
+
+  // Register page is startup-eager; keep it sync so roster stays current.
+  if (!host) {
+    cancelDeferredFirstPaint();
+    paintVisibleBusinessView(snapshot);
+    return;
+  }
+
+  const instant = !pagesMoved || prefersReducedMotion();
+
+  if (host.classList.contains('is-ready')) {
+    // Fully warm: defer dirty refresh + grade scroll chrome past the slide.
+    scheduleAfterPagesSettle(page, subview, () => paintVisibleBusinessView(), { instant });
+    return;
+  }
+
+  if (hostLooksFilled(host)) {
+    // Half-warm: reveal only — no replaceChildren on the nav critical path.
+    scheduleAfterPagesSettle(page, subview, () => {
+      coursesRenderer.render(rosterStore.getSnapshot());
+      revealBusinessViewHost(host);
+    }, { instant });
+    return;
+  }
+
+  // True cold: release hidden grade chrome cheaply, paint after transform settle.
+  if (page !== 2 || subview !== 1) coursesRenderer.render(snapshot);
+  scheduleAfterPagesSettle(page, subview, () => paintVisibleBusinessView(), { instant });
+}
+
+function warmDeferredBusinessViews() {
+  const snapshot = rosterStore.getSnapshot();
+  peopleRenderer.render(snapshot);
+  peopleDirty = false;
+  summaryRenderer.render(snapshot);
+  summaryDirty = false;
+  coursesRenderer.warm(snapshot);
+  // Offscreen pages are clipped by #viewport; mark displayable so first nav
+  // only runs transform (ViewPager-style), with no sync rebuild or fade.
+  markDeferredHostsReady();
+}
+
+function scheduleWarmDeferredBusinessViews() {
+  const run = () => {
+    try {
+      warmDeferredBusinessViews();
+    } catch {
+      // Warm is best-effort; first visit still paints via deferred cold path.
+    }
+  };
+  const arm = () => {
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(run, { timeout: 900 });
+    } else {
+      window.setTimeout(run, 240);
+    }
+  };
+  // Let startup first paint commit before arming idle warm.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(arm);
+  });
+}
+
 function closeOverlays(except) {
   const candidates = Array.isArray(except) ? except : [except];
   const keep = new Set(candidates.filter(isOverlayId));
@@ -96,7 +274,12 @@ highlightSubjects = initHighlightSubjects({
 });
 coursesRenderer = initCoursesRenderer(rosterStore, highlightSubjects);
 renderVisibleBusinessView();
-rosterStore.subscribe(renderVisibleBusinessView);
+rosterStore.subscribe((snapshot) => {
+  peopleDirty = true;
+  summaryDirty = true;
+  coursesRenderer.invalidateWarm();
+  renderVisibleBusinessView(snapshot);
+});
 studentRecord = initStudentRecord({ store: rosterStore, showToast, viewport: appViewport, closeOthers: closeOverlays });
 assignments = initAssignments({
   store: rosterStore,
@@ -213,4 +396,7 @@ createSystemBackController({
 });
 initScrollThinChrome();
 renderNavigation({ animate: false });
-subscribeNavigationSettled(() => renderVisibleBusinessView());
+subscribeNavigationSettled(() => {
+  renderVisibleBusinessView(rosterStore.getSnapshot(), { fromNavigation: true });
+});
+scheduleWarmDeferredBusinessViews();
