@@ -197,6 +197,13 @@ button.topbar-title { cursor: default; }
   transform: translateX(0);
   transition-delay: 0s;
 }
+/* Keep a compositing layer while open and through close settle so transform end
+   does not demote the layer and flash the title / add button (WebView). */
+.roster-editor.show,
+.roster-editor.is-settling {
+  will-change: transform;
+  backface-visibility: hidden;
+}
 .roster-editor-panel {
   display: flex;
   flex-direction: column;
@@ -215,7 +222,10 @@ button.topbar-title { cursor: default; }
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
 }
-/* 全屏左滑跟手：与设置页头部同规则，跟手期间关闭 backdrop-filter（R2）。 */
+/* Presented roster covers opaque paper; keep a solid head while shown / settling /
+   gesturing. Re-enabling blur at settle end was flashing the title and add button. */
+.roster-editor.show .roster-editor-head,
+.roster-editor.is-settling .roster-editor-head,
 .app.is-drawer-gesturing .roster-editor-head {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;

@@ -78,6 +78,24 @@ export function initRosterEditor({ store, showToast, viewport, closeOthers, conf
   /** '#' 表示不归属任何字母；手动点选后不再跟随姓名输入自动推导。 */
   let initialTouched = false;
   let selectedInitial = '#';
+  /** Holds head blur off through programmatic open/close CSS settle. */
+  let settleTimer = 0;
+
+  function readSheetDurationMs() {
+    const raw = getComputedStyle(document.documentElement).getPropertyValue('--duration-sheet').trim();
+    const value = Number.parseFloat(raw);
+    return Number.isFinite(value) ? value : 300;
+  }
+
+  /** Keep compositing + solid head through close CSS settle after `.show` is cleared. */
+  function armFullscreenSettle() {
+    layer.classList.add('is-settling');
+    if (settleTimer) window.clearTimeout(settleTimer);
+    settleTimer = window.setTimeout(() => {
+      settleTimer = 0;
+      layer.classList.remove('is-settling');
+    }, readSheetDurationMs() + 60);
+  }
 
   const nameGhostGuard = createGhostClickGuard({
     owner: 'roster-editor',
@@ -151,6 +169,7 @@ export function initRosterEditor({ store, showToast, viewport, closeOthers, conf
     if (!isPresented() && !layer.classList.contains('show')) return;
     closeNameEditor({ restoreFocus: false });
     closing = true;
+    armFullscreenSettle();
     syncChrome(false);
     closing = false;
     const focus = editorReturnFocus;
@@ -213,8 +232,8 @@ export function initRosterEditor({ store, showToast, viewport, closeOthers, conf
     closeNameEditor();
   }
 
-  function render() {
-    if (!isPresented() && !closing) return;
+  function render({ force = false } = {}) {
+    if (!force && !isPresented() && !closing) return;
     const snapshot = store.getSnapshot();
     const total = snapshot.students.length;
     countLabel.textContent = `${total} 人`;
@@ -329,8 +348,11 @@ export function initRosterEditor({ store, showToast, viewport, closeOthers, conf
     preserveDrawer = keepDrawer;
     editorReturnFocus = returnFocus;
     closeOthers?.(keepDrawer ? ['roster-editor', 'drawer'] : 'roster-editor');
+    // Fill the list while still off-screen so the first slide-in paint already
+    // has resting layout. Do not toggle settle-blur on open: re-enabling blur
+    // when the CSS transition ends flashes the title and add button.
+    render({ force: true });
     syncChrome(true);
-    render();
     focusSilently(backButton);
   }
 
