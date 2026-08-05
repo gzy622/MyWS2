@@ -6,6 +6,16 @@ import { setLetterIndexPageDragging, syncLetterIndexPageVisibility } from './let
 const STATS_PAGE_INDEX = 2;
 const GRADES_SUBVIEW_INDEX = 1;
 const REGISTER_PAGE_INDEX = 1;
+const ARRANGE_PAGE_INDEX = 0;
+/**
+ * 子页面顶栏标题：随子页切换并与页面内容对应。
+ * 安排页「人员」→ 班干与值日（班干名单、本周值日），「课表」→ 本周课表；
+ * 统计页「作业」→ 作业汇总（考试沿用当前考试名，登记页沿用当前作业名）。
+ */
+const SUBVIEW_TITLES = {
+  [ARRANGE_PAGE_INDEX]: ['班干与值日', '本周课表'],
+  [STATS_PAGE_INDEX]: ['作业汇总'],
+};
 /** Match `.pages { transition: transform .42s }` in shell.css. */
 export const PAGE_TRANSITION_MS = 420;
 const PAGE_TRANSITION_BUFFER_MS = 60;
@@ -111,13 +121,19 @@ function segmentGliderTransform(subIndex, offsetPx = 0) {
 }
 
 export function renderTopbarTitle() {
-  const isAssignmentTitle = state.currentPage === 1;
+  const isAssignmentTitle = state.currentPage === REGISTER_PAGE_INDEX;
   const isExamTitle = state.currentPage === STATS_PAGE_INDEX
     && state.subviews[STATS_PAGE_INDEX] === GRADES_SUBVIEW_INDEX;
   let pageTitle;
-  if (isAssignmentTitle) pageTitle = getRegistrationTitle();
-  else if (isExamTitle) pageTitle = getActiveExamTitle();
-  else pageTitle = elements.pageElements[state.currentPage].getAttribute('aria-label');
+  if (isAssignmentTitle) {
+    pageTitle = getRegistrationTitle();
+  } else if (isExamTitle) {
+    pageTitle = getActiveExamTitle();
+  } else {
+    const subviewTitles = SUBVIEW_TITLES[state.currentPage];
+    pageTitle = subviewTitles?.[state.subviews[state.currentPage]]
+      ?? elements.pageElements[state.currentPage].getAttribute('aria-label');
+  }
 
   elements.topbarTitleLabel.textContent = pageTitle;
   elements.topbarTitle.classList.toggle('is-assignment', isAssignmentTitle);

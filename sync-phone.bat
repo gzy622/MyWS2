@@ -27,22 +27,6 @@ if not exist "%~dp0node_modules\@capacitor\cli\" (
   goto :fail
 )
 
-if defined WT_SESSION goto :inwt
-
-where wt >nul 2>&1
-if errorlevel 1 (
-  echo [Error] Windows Terminal ^(wt.exe^) not found.
-  echo   Install it with: winget install Microsoft.WindowsTerminal
-  echo   or search "Windows Terminal" in the Microsoft Store.
-  goto :fail
-)
-
-echo Opening phone sync console in Windows Terminal...
-start "" wt.exe pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0tools\sync-phone.ps1" %*
-exit /b 0
-
-:inwt
-rem Already inside Windows Terminal: reuse the current window.
 title Teacher Workbench - Phone Sync
 echo Opening phone sync console...
 echo Tip: press W in the console to pair or connect over Wi-Fi.
