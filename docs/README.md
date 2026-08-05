@@ -28,7 +28,7 @@
 
 | 文档 | 状态 | 用途 |
 | --- | --- | --- |
-| [`android-webview-performance-plan.md`](android-webview-performance-plan.md) | 待实施（2026-08-04） | Capacitor Android WebView 可见页面渲染、表格模块延迟加载与单文件导出适配 |
+| [`android-webview-performance-plan.md`](android-webview-performance-plan.md) | 已实施（2026-08-05） | Capacitor Android WebView 可见页面渲染、表格模块延迟加载与单文件导出适配 |
 | [`archive/webview-flicker-remediation-plan.md`](archive/webview-flicker-remediation-plan.md) | 已完成并验收通过（2026-08-03） | WebView 闪烁风险修订、分批实施和验证记录 |
 | [`archive/milestone-one-unification-plan.md`](archive/milestone-one-unification-plan.md) | 已完成（2026-07-30） | 里程碑一触摸可靠性、滚动与 UI 统一收口记录 |
 

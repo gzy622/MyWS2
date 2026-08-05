@@ -1,7 +1,7 @@
 # Android WebView 性能优化实施方案
 
-> 状态：待实施  
-> 主要平台：Capacitor Android App / Android System WebView  
+> 状态：已实施（阶段 A/B/C）
+> 主要平台：Capacitor Android App / Android System WebView
 > 制定日期：2026-08-04
 
 ## 背景与目标

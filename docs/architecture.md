@@ -84,7 +84,7 @@ Capacitor 依赖只用于原生壳。浏览器代码通过 `globalThis.Capacitor
 - 班干、值日及人员指派；
 - 节次、课表格、科目、考试与课程成绩。
 
-渲染器只订阅 Store，交互模块只调用 Store 方法。浮层可以保留未提交草稿，但确认前不得写入业务状态。
+渲染器只读取 Store 快照，不直接修改领域数组。交互模块只调用 Store 方法。浮层可以保留未提交草稿，但确认前不得写入业务状态。四个高成本业务渲染器（人员、登记、课表/成绩、汇总）由 `main.js` 统一协调：Store 变更与导航落位后只重建当前可见业务视图；作业、考试、字母索引、名单编辑和高亮科目等低频或已有显示控制的模块仍可各自订阅。
 
 ### 持久化
 
@@ -106,7 +106,7 @@ Capacitor 依赖只用于原生壳。浏览器代码通过 `globalThis.Capacitor
 
 | 模块 | 职责 |
 | --- | --- |
-| `navigation.js` | 主页面、子视图、顶栏标题和导航状态渲染 |
+| `navigation.js` | 主页面、子视图、顶栏标题和导航状态渲染；落位后通知可见业务视图协调器 |
 | `gestures.js` | 主页面、底栏、分段与全屏 Sheet 手势路由 |
 | `overlay-stack.js` | 浮层 ID、类型、视觉层级和唯一关闭优先级；不承载业务规则 |
 | `sheet-drag.js` | Sheet progress 控制器、注册表和从 `overlay-stack.js` 派生的最上层顺序 |
@@ -126,10 +126,10 @@ Capacitor 依赖只用于原生壳。浏览器代码通过 `globalThis.Capacitor
 | 课表与考试成绩（安排页课表 / 统计页考试） | `courses-renderer.js`、`courses-interactions.js`、`score-keypad.js`、`exams.js`、`highlight-subjects-model.js`、`highlight-subjects.js` |
 | 登记汇总（统计页作业子视图） | `summary-renderer.js` |
 | 备份 | `backup.js` |
-| 表格数据交换 | `workbook-transfer.js`、`xlsx-workbook.js`；`csv-transfer.js` 保留旧文件导入 |
+| 表格数据交换 | `workbook-transfer.js`、`xlsx-workbook.js`；`csv-transfer.js` 保留旧文件导入；由 `main.js` 首次导入/导出时动态加载 |
 | 文本与二进制文件读写 | `text-file-transfer.js` |
 
-表格交换模块将 Store 快照转换为 v3 六个固定工作表：`workbook-transfer.js` 负责 v3/v2/v1 版本与工作表路由、六表生成、座位/成员稳定编号读取、数据校验和整库替换前的数据准备；`xlsx-workbook.js` 负责 Office Open XML、ZIP、隐藏行列、列级默认样式、冻结窗格、筛选、合并表头、批注、样式、输入限制和打印页面设置。v2 五工作表、v1 十二工作表读取函数与旧 CSV 读取路径独立保留，导出只走 v3。
+表格交换模块将 Store 快照转换为 v3 六个固定工作表：`workbook-transfer.js` 负责 v3/v2/v1 版本与工作表路由、六表生成、座位/成员稳定编号读取、数据校验和整库替换前的数据准备；`xlsx-workbook.js` 负责 Office Open XML、ZIP、隐藏行列、列级默认样式、冻结窗格、筛选、合并表头、批注、样式、输入限制和打印页面设置。v2 五工作表、v1 十二工作表读取函数与旧 CSV 读取路径独立保留，导出只走 v3。启动时不静态导入表格模块，首次触发表格导入或导出时才加载并缓存；加载失败须允许用户重试。
 
 ## 6. 数据流
 
@@ -137,7 +137,8 @@ Capacitor 依赖只用于原生壳。浏览器代码通过 `globalThis.Capacitor
 用户输入
   → 交互模块
   → UI state 或 roster-store
-  → 导航渲染器 / 业务渲染器订阅
+  → 导航落位通知 / main.js 可见业务视图协调器
+  → 当前可见业务渲染器
   → DOM 与 ARIA
 
 roster-store 成功变更
@@ -145,7 +146,7 @@ roster-store 成功变更
   → 刷新时严格读取或整体回退默认值
 ```
 
-CSS class、ARIA 属性和 CSS 自定义属性都是状态的渲染结果，不是新的状态源。座位画布 transform 仅保存在 `seat-canvas.js` 内存中。
+CSS class、ARIA 属性和 CSS 自定义属性都是状态的渲染结果，不是新的状态源。座位画布 transform 仅保存在 `seat-canvas.js` 内存中。备份或表格导入可能在任意页面发生：Store 通知只更新当前可见业务视图；切页后由导航落位通知用最新快照渲染目标视图。
 
 ## 7. DOM 与手势契约
 

@@ -77,10 +77,10 @@
 | 登记汇总渲染（统计页作业子视图） | `src/scripts/summary-renderer.js` |
 | 高亮科目校验、存储与 Sheet | `src/scripts/highlight-subjects-model.js`、`src/scripts/highlight-subjects.js` |
 | 备份导入导出 | `src/scripts/backup.js` |
-| 表格导入导出 | `src/scripts/workbook-transfer.js`；旧 CSV 导入兼容保留在 `csv-transfer.js` |
+| 表格导入导出 | `src/scripts/workbook-transfer.js`（由 `main.js` 首次使用时动态加载）；旧 CSV 导入兼容保留在 `csv-transfer.js` |
 | XLSX 文件生成与读取 | `src/scripts/xlsx-workbook.js` |
 | 文本/二进制文件读写 | `src/scripts/text-file-transfer.js` |
-| 主/子导航 | `src/scripts/navigation.js` |
+| 主/子导航 | `src/scripts/navigation.js`（含导航落位通知） |
 | 页面、底栏、分段与 Sheet 手势路由 | `src/scripts/gestures.js`、`src/scripts/sheet-gestures.js` |
 | 手势阈值与点击保护纯判定 | `src/scripts/gesture-policy.js` |
 | IME 立即操作与幽灵点击保护 | `src/scripts/pointer-guards.js` |
@@ -90,10 +90,10 @@
 | 全屏设置、更多底部 Sheet 与确认 | `src/scripts/drawer.js`、`src/scripts/more-sheet.js` |
 | Escape / Android 返回 | `src/scripts/system-back.js`（读取 `overlay-stack.js`） |
 | 主题、视口、触觉、焦点、Toast | 对应同名模块 |
-| 初始化和依赖注入 | `src/scripts/main.js` |
+| 初始化、依赖注入、可见业务视图协调与表格模块延迟加载 | `src/scripts/main.js` |
 | 内容指纹 | `tools/content-id.cjs`、`src/scripts/build-id.js` |
 | 浏览器自动验收 | `tools/verify-web.ps1` |
-| 单文件导出 | `tools/build-single-html.ps1` |
+| 单文件导出（含相对路径动态 `import()`） | `tools/build-single-html.ps1` |
 | Web 资源同步 | `tools/sync-web-assets.ps1` |
 | Android 预览、部署、手机同步 | `tools/preview-native.ps1`、`tools/deploy-apk.ps1`、`tools/sync-phone.ps1`、`tools/live-reload-connections.js` |
 | Pi 子智能体 WebUI | `tools/pi-agent-webui/`、`tests/pi-agent-webui.test.mjs` |
@@ -103,12 +103,12 @@
 ## 4. 状态与模块边界
 
 - `state.js` 是 UI 瞬时状态来源；`roster-store.js` 是业务状态唯一可写来源。
-- 渲染器只读取 Store 快照并订阅变更，不直接修改领域数组。
+- 高成本业务渲染器（人员、登记、课表/成绩、汇总）由 `main.js` 协调：读取 Store 快照，不直接修改领域数组；Store 变更与导航落位后只重建当前可见业务视图。其它渲染器可各自订阅 Store。
 - 交互模块只调用 Store 方法；浮层草稿确认前可保存在模块内。
 - `roster-storage.js` 只负责严格读取、已知迁移和写入，不承载业务操作。
-- `navigation.js` 统一将页面状态渲染到轨道、顶栏、导航、分段、子视图和指示点。
+- `navigation.js` 统一将页面状态渲染到轨道、顶栏、导航、分段、子视图和指示点；落位完成后通知可见业务视图协调器，跟手拖动期间不通知。
 - `gestures.js` 可调用导航渲染接口，但不得建立新的导航状态。
-- `main.js` 只创建 Store、初始化模块和注入接口，禁止承载业务规则。
+- `main.js` 只创建 Store、初始化模块、注入接口，并协调可见业务视图与表格模块延迟加载；禁止承载业务规则。
 - CSS class、ARIA、data 属性和 CSS 自定义属性都是渲染结果，不是第二份状态。
 - 跨模块外壳 DOM 查询集中在 `dom.js`；模块私有面板允许在所属模块内查询，但不得被其他模块依赖。
 
@@ -231,7 +231,7 @@
 - `tools/sync-web-assets.ps1` 只复制 `src/index.html`、`src/styles/` 和 `src/scripts/` 到 `www/`。
 - `tools/content-id.cjs` 只对上述 Web 源码计算指纹；结果使用 `XXXX-XXXX-XX` 格式的 Crockford Base32，排除易混淆的 `I`、`L`、`O`、`U`。
 - `tools/verify-web.ps1` 使用本机 PowerShell 7、Node.js 与 Microsoft Edge，通过临时 LAN 服务和 CDP 模拟 320px、390px、430px 视口，并检查 DOM、控制台、成绩表横拖、幽灵点击和 Sheet 合成层生命周期；不引入第三方依赖，不写入 Web 源码或业务存储。
-- `tools/build-single-html.ps1` 默认从 `src/index.html` 生成 `dist/teacher-workbench.single.html`。
+- `tools/build-single-html.ps1` 默认从 `src/index.html` 生成 `dist/teacher-workbench.single.html`。模块图同时收集静态 `import`/`export … from`、side-effect `import` 与相对路径字符串字面量的动态 `import()`；动态导入不得使用模板字符串或变量路径。验收须解码生成 HTML 中的 `manifestBase64`，确认清单含完整依赖，不能只靠构建成功或源码字面量搜索。
 - `lan-server.js` 的 `POST /__rec` 接收 App 调试录制文本并保存到 `.debug-rec/`（git 忽略）；该目录是运行期调试产物，不属于 Web 源码或生成物，`www/`、`dist/` 重建不涉及它。
 - `tools/live-reload-connections.js` 记录 LAN 服务当前 Live Reload 客户端数与累计连接序号，手机同步控制台用序号区分启动前已有连接和本次新连接。
 - `tools/pi-agent-webui/` 是独立的本机开发工具，使用 Node 内置 HTTP 服务与 Pi JSON 事件管理子智能体；Codex 通过 `control.mjs` 分派和停止任务，浏览器页面只读；服务只监听 `127.0.0.1`，不进入教师工作台浏览器模块、内容指纹、`www/` 或 `dist/`。
