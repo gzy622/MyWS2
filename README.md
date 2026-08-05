@@ -42,7 +42,7 @@ npm run sync:www
 npm run build:apk
 ```
 
-Android 命令需要先执行 `npm install`，并准备 JDK 21+、Android SDK 与 adb。完整流程见 [`docs/guides/development.md`](docs/guides/development.md)。
+Android 命令需要先执行 `npm install`，并准备 JDK 21+、Android SDK 与 adb。
 
 ## 目录结构
 
@@ -52,7 +52,6 @@ Android 命令需要先执行 `npm install`，并准备 JDK 21+、Android SDK �
 ├─ src/                 Web 源码：HTML、浏览器脚本与样式
 ├─ tests/               零依赖 Node 单元测试
 ├─ tools/               构建、同步、内容指纹、Android 与 Python 辅助工具
-├─ docs/                现行文档、开发指南与历史档案
 ├─ android/             可选 Capacitor Android 工程
 ├─ dist/                单文件导出（生成目录，不提交）
 ├─ www/                 Capacitor Web 资源（生成目录，不提交）
@@ -63,19 +62,9 @@ Android 命令需要先执行 `npm install`，并准备 JDK 21+、Android SDK �
 
 `src/` 是 Web 资源的唯一源码；`www/` 和 `dist/` 均由工具生成，不应手工修改。
 
-## 文档入口
-
-- [文档导航与优先级](docs/README.md)
-- [产品与范围](docs/product.md)
-- [视觉设计](docs/visual-design.md)
-- [交互与状态](docs/interaction.md)
-- [工程与验收](docs/engineering.md)
-- [架构说明](docs/architecture.md)
-- [项目术语表](docs/glossary.md)
-
 ## 项目边界
 
 - 不引入 Web 运行时框架、打包器或远程 CDN。
 - 不把可选 Android 工具链变成 Web Demo 的启动前置。
-- 导航与浮层状态不持久化；业务数据只使用文档允许的受控存储键。
-- 修改前遵守根目录 [`AGENTS.md`](AGENTS.md) 的执行规则。
+- 导航与浮层状态不持久化；业务数据只用受控 `localStorage` 键。
+- 修改前遵守根目录 [`AGENTS.md`](AGENTS.md)。
