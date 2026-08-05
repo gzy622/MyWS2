@@ -106,7 +106,7 @@ Capacitor 依赖只用于原生壳。浏览器代码通过 `globalThis.Capacitor
 
 | 模块 | 职责 |
 | --- | --- |
-| `navigation.js` | 主页面、子视图、顶栏标题和导航状态渲染；落位后通知可见业务视图协调器 |
+| `navigation.js` | 主页面、子视图、顶栏标题和导航状态渲染；主页面或子视图变化落位后通知可见业务视图协调器 |
 | `gestures.js` | 主页面、底栏、分段与全屏 Sheet 手势路由 |
 | `overlay-stack.js` | 浮层 ID、类型、视觉层级和唯一关闭优先级；不承载业务规则 |
 | `sheet-drag.js` | Sheet progress 控制器、注册表和从 `overlay-stack.js` 派生的最上层顺序 |

@@ -11,6 +11,9 @@ const navigationSettledListeners = new Set();
 
 let getRegistrationTitle = () => '登记';
 let getActiveExamTitle = () => '统计';
+/** Last page/subview reported to settled listeners; skip no-op settle paints. */
+let lastSettledPage = state.currentPage;
+let lastSettledSubview = state.subviews[state.currentPage];
 
 export function subscribeNavigationSettled(listener) {
   navigationSettledListeners.add(listener);
@@ -18,6 +21,11 @@ export function subscribeNavigationSettled(listener) {
 }
 
 function notifyNavigationSettled() {
+  const page = state.currentPage;
+  const subview = state.subviews[page];
+  if (page === lastSettledPage && subview === lastSettledSubview) return;
+  lastSettledPage = page;
+  lastSettledSubview = subview;
   for (const listener of navigationSettledListeners) listener();
 }
 
