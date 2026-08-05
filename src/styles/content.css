@@ -1339,13 +1339,16 @@
   --grade-cols: 3;
   --grade-name-col: minmax(72px, 96px);
   --grade-col-gap: 8px;
+  /* Tracks grow with header (incl. sort arrow), but never past --grade-col-max. */
+  --grade-col-min: 56px;
+  --grade-col-max: 108px;
   min-width: calc(96px + var(--grade-cols) * 64px);
 }
 
 .grade-head,
 .grade-row {
   display: grid;
-  grid-template-columns: var(--grade-name-col) repeat(var(--grade-cols), minmax(56px, 72px));
+  grid-template-columns: var(--grade-name-col) repeat(var(--grade-cols), minmax(var(--grade-col-min), max-content));
   gap: var(--grade-col-gap);
   align-items: center;
 }
@@ -1402,10 +1405,22 @@
   align-items: center;
   justify-content: flex-end;
   gap: 2px;
+  max-width: var(--grade-col-max);
+  min-width: 0;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+.grade-subject-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .grade-subject-head[data-sort]::after {
   content: '';
+  flex: none;
   width: 0;
   height: 0;
   border-left: 3.5px solid transparent;
@@ -1446,6 +1461,8 @@
 .grade-score-cell {
   color: var(--disabled);
   min-height: 28px;
+  max-width: var(--grade-col-max);
+  box-sizing: border-box;
 }
 
 .grade-score-cell.is-filled {

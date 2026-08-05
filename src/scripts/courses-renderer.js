@@ -1,7 +1,7 @@
 import { elements } from './dom.js';
 import { SCHEDULE_DAY_LABELS, formatPeriodColumnLabel } from './roster-model.js';
 import { state } from './state.js';
-import { bindGradeScrollChrome } from './scroll-thin.js';
+import { applyGradeScroll, bindGradeScrollChrome, readGradeScroll } from './scroll-thin.js';
 
 function slotMap(scheduleSlots) {
   const map = new Map();
@@ -172,7 +172,10 @@ function renderGradeTable({ students, subjects, courseGrades }, examId) {
     col.className = 'grade-subject-head';
     col.dataset.subjectId = String(subject.id);
     col.setAttribute('role', 'columnheader');
-    col.textContent = subject.title;
+    const label = document.createElement('span');
+    label.className = 'grade-subject-label';
+    label.textContent = subject.title;
+    col.append(label);
     if (sort?.subjectId === subject.id) {
       col.dataset.sort = sort.direction;
       const directionLabel = sort.direction === 'desc' ? '降序' : '升序';
@@ -215,7 +218,9 @@ function renderGradeTable({ students, subjects, courseGrades }, examId) {
   }
 
   scroller.append(table);
+  const preservedScroll = readGradeScroll(elements.gradeTable);
   elements.gradeTable.replaceChildren(scroller);
+  applyGradeScroll(scroller, preservedScroll);
   return bindGradeScrollChrome(scroller);
 }
 

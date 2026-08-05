@@ -1,6 +1,6 @@
 import { elements } from './dom.js';
 import { state, setSummarySort } from './state.js';
-import { bindGradeScrollChrome } from './scroll-thin.js';
+import { applyGradeScroll, bindGradeScrollChrome, readGradeScroll } from './scroll-thin.js';
 
 /**
  * 登记汇总：学生 × 作业的只读矩阵（统计页「作业」子视图）。
@@ -91,7 +91,10 @@ function renderSummary({ students, assignments, submissions, scores }) {
     col.className = 'grade-subject-head';
     col.dataset.assignmentId = String(assignment.id);
     col.setAttribute('role', 'columnheader');
-    col.textContent = assignment.name;
+    const label = document.createElement('span');
+    label.className = 'grade-subject-label';
+    label.textContent = assignment.name;
+    col.append(label);
     if (sort?.assignmentId === assignment.id) {
       col.dataset.sort = sort.direction;
       const directionLabel = sort.direction === 'desc' ? '降序' : '升序';
@@ -135,7 +138,9 @@ function renderSummary({ students, assignments, submissions, scores }) {
   }
 
   scroller.append(table);
+  const preservedScroll = readGradeScroll(elements.assignmentSummary);
   elements.assignmentSummary.replaceChildren(scroller);
+  applyGradeScroll(scroller, preservedScroll);
   return bindGradeScrollChrome(scroller);
 }
 

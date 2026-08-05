@@ -224,6 +224,28 @@ export function initScrollThinChrome(root = document) {
 }
 
 /**
+ * Snapshot dual-axis scroll under a grade/summary host so a `replaceChildren`
+ * rebuild (e.g. column-header sort cycle) can restore the viewport.
+ * @param {ParentNode | null | undefined} host
+ * @returns {{ left: number, top: number } | null}
+ */
+export function readGradeScroll(host) {
+  const scroller = host instanceof Element ? host.querySelector('.grade-scroll') : null;
+  if (!(scroller instanceof HTMLElement)) return null;
+  return { left: scroller.scrollLeft, top: scroller.scrollTop };
+}
+
+/**
+ * @param {HTMLElement} scroller
+ * @param {{ left: number, top: number } | null | undefined} scroll
+ */
+export function applyGradeScroll(scroller, scroll) {
+  if (!(scroller instanceof HTMLElement) || !scroll) return;
+  scroller.scrollLeft = scroll.left;
+  scroller.scrollTop = scroll.top;
+}
+
+/**
  * Bind soft horizontal and vertical overflow indicators to the dual-axis grade
  * table. Thumbs live on the card rather than inside the scrolling matrix, so
  * sticky cells and content width remain unaffected.
