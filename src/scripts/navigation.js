@@ -7,8 +7,19 @@ const STATS_PAGE_INDEX = 2;
 const GRADES_SUBVIEW_INDEX = 1;
 const REGISTER_PAGE_INDEX = 1;
 
+const navigationSettledListeners = new Set();
+
 let getRegistrationTitle = () => '登记';
 let getActiveExamTitle = () => '统计';
+
+export function subscribeNavigationSettled(listener) {
+  navigationSettledListeners.add(listener);
+  return () => navigationSettledListeners.delete(listener);
+}
+
+function notifyNavigationSettled() {
+  for (const listener of navigationSettledListeners) listener();
+}
 
 function pageTransform(offsetPx = 0) {
   return `translate3d(calc(${-state.currentPage * 100 / 3}% + ${offsetPx}px), 0, 0)`;
@@ -92,6 +103,7 @@ export function renderNavigation({ animate = true } = {}) {
   });
   syncLetterIndexPageVisibility({ animate });
   syncQuickScoreModeHint();
+  notifyNavigationSettled();
 }
 
 export function renderDrag(offsetPx) {

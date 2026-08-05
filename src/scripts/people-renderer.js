@@ -72,7 +72,5 @@ export function initPeopleRenderer(store) {
     );
   }
 
-  store.subscribe(render);
-  render();
   return { render };
 }

@@ -164,6 +164,5 @@ export function initRosterRenderer(store) {
     });
   }
 
-  render();
-  return { render, unsubscribe: store.subscribe(render) };
+  return { render };
 }

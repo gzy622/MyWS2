@@ -1,5 +1,6 @@
 import { elements } from './dom.js';
-import { initNavigation, renderNavigation } from './navigation.js';
+import { initNavigation, renderNavigation, subscribeNavigationSettled } from './navigation.js';
+import { state } from './state.js';
 import { initHorizontalGestures, cancelActivePointerGesture } from './gestures.js';
 import { closeDrawer, initDrawer } from './drawer.js';
 import { showToast } from './toast.js';
@@ -49,8 +50,8 @@ initNavigation({
 const fontSize = initStudentFontSize();
 const rosterRenderer = initRosterRenderer(rosterStore);
 initLetterIndex(rosterStore);
-initPeopleRenderer(rosterStore);
-initSummaryRenderer(rosterStore);
+const peopleRenderer = initPeopleRenderer(rosterStore);
+const summaryRenderer = initSummaryRenderer(rosterStore);
 let studentRecord;
 let assignments;
 let rosterEditor;
@@ -59,6 +60,16 @@ let moreSheet;
 let people;
 let courses;
 let highlightSubjects;
+let coursesRenderer;
+function renderVisibleBusinessView(snapshot = rosterStore.getSnapshot()) {
+  const page = state.currentPage;
+  const subview = state.subviews[page];
+
+  coursesRenderer.render(snapshot);
+  if (page === 0 && subview === 0) peopleRenderer.render(snapshot);
+  else if (page === 1) rosterRenderer.render(snapshot);
+  else if (page === 2 && subview === 0) summaryRenderer.render(snapshot);
+}
 function closeOverlays(except) {
   const candidates = Array.isArray(except) ? except : [except];
   const keep = new Set(candidates.filter(isOverlayId));
@@ -84,7 +95,9 @@ highlightSubjects = initHighlightSubjects({
   viewport: appViewport,
   closeOthers: closeOverlays,
 });
-const coursesRenderer = initCoursesRenderer(rosterStore, highlightSubjects);
+coursesRenderer = initCoursesRenderer(rosterStore, highlightSubjects);
+renderVisibleBusinessView();
+rosterStore.subscribe(renderVisibleBusinessView);
 studentRecord = initStudentRecord({ store: rosterStore, showToast, viewport: appViewport, closeOthers: closeOverlays });
 assignments = initAssignments({
   store: rosterStore,
@@ -106,7 +119,7 @@ exams = initExams({
   viewport: appViewport,
   closeOthers: closeOverlays,
   confirm: (...args) => moreSheet.confirm(...args),
-  onGradesUiChange: () => coursesRenderer.render(),
+  onGradesUiChange: () => renderVisibleBusinessView(),
 });
 initStudentInteractions({ store: rosterStore, showToast, openStudentRecord: studentRecord.open });
 export const seatCanvas = initSeatCanvas({ store: rosterStore, showToast, openStudentRecord: studentRecord.open });
@@ -141,7 +154,7 @@ moreSheet = initMoreSheet({
   openCreateAssignment: (options) => assignments.openCreate(options),
   openCreateExam: (options) => exams.openCreate(options),
   openGradeStats: (...args) => courses?.openStats(...args),
-  onQuickScoreChange: () => rosterRenderer.render(),
+  onQuickScoreChange: () => renderVisibleBusinessView(),
 });
 people = initPeopleInteractions({
   store: rosterStore,
@@ -156,7 +169,7 @@ courses = initCoursesInteractions({
   viewport: appViewport,
   closeOthers: closeOverlays,
   confirm: (...args) => moreSheet.confirm(...args),
-  onGradesUiChange: () => coursesRenderer.render(),
+  onGradesUiChange: () => renderVisibleBusinessView(),
 });
 initDrawer({
   closeOverlays,
@@ -184,3 +197,4 @@ createSystemBackController({
 });
 initScrollThinChrome();
 renderNavigation({ animate: false });
+subscribeNavigationSettled(() => renderVisibleBusinessView());

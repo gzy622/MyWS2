@@ -170,7 +170,5 @@ export function initSummaryRenderer(store) {
     render();
   });
 
-  store.subscribe(render);
-  render();
   return { render };
 }

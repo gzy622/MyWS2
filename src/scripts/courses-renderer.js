@@ -222,19 +222,38 @@ function renderGradeTable({ students, subjects, courseGrades }, examId) {
 export function initCoursesRenderer(store, highlightSubjects) {
   let releaseGradeScrollChrome = () => {};
 
-  function render(snapshot = store.getSnapshot()) {
-    renderWeekStrip(snapshot, (subject) => highlightSubjects?.matches?.(subject));
-    releaseGradeScrollChrome();
-    const examId = resolveGradeExamId(snapshot);
-    if (examId != null) releaseGradeScrollChrome = renderGradeTable(snapshot, examId);
-    else {
-      elements.gradeTable.replaceChildren();
-      releaseGradeScrollChrome = () => {};
-    }
+  function isScheduleVisible() {
+    return state.currentPage === 0 && state.subviews[0] === 1;
   }
 
-  store.subscribe(render);
-  highlightSubjects?.subscribe?.(render);
-  render();
+  function isGradesVisible() {
+    return state.currentPage === 2 && state.subviews[2] === 1;
+  }
+
+  function renderWeek(snapshot = store.getSnapshot()) {
+    renderWeekStrip(snapshot, (subject) => highlightSubjects?.matches?.(subject));
+  }
+
+  function render(snapshot = store.getSnapshot()) {
+    if (isScheduleVisible()) renderWeek(snapshot);
+
+    if (isGradesVisible()) {
+      releaseGradeScrollChrome();
+      const examId = resolveGradeExamId(snapshot);
+      if (examId != null) releaseGradeScrollChrome = renderGradeTable(snapshot, examId);
+      else {
+        elements.gradeTable.replaceChildren();
+        releaseGradeScrollChrome = () => {};
+      }
+      return;
+    }
+
+    releaseGradeScrollChrome();
+    releaseGradeScrollChrome = () => {};
+  }
+
+  highlightSubjects?.subscribe?.(() => {
+    if (isScheduleVisible()) renderWeek();
+  });
   return { render };
 }
