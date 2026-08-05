@@ -92,8 +92,9 @@ function renderWeekStrip({ periods, scheduleSlots }, matchesHighlight) {
   body.setAttribute('aria-label', '本周课表');
 
   periods.forEach((period, index) => {
-    // Soft band breaks before 午测 / 课后服务 — keeps am·noon·pm rhythm readable.
-    if (index === 5 || index === 9) {
+    // Soft band breaks after 早读, flanking 午测, and before 课后服务 —
+    // keeps dawn·am·noon·pm·dusk rhythm readable.
+    if (index === 1 || index === 5 || index === 6 || index === 9) {
       const gap = document.createElement('div');
       gap.className = 'week-matrix-band-gap';
       gap.setAttribute('aria-hidden', 'true');

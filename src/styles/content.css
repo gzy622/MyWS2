@@ -1145,9 +1145,10 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  /* 5 lesson rows · band · 4 lesson rows · band · 1 dusk row */
+  /* 早读 · band · 4 lesson rows · band · 午测 · band · 3 lesson rows · band · 课后服务 */
   grid-template-rows:
-    repeat(5, minmax(0, 1fr)) 4px repeat(4, minmax(0, 1fr)) 4px minmax(0, 1fr);
+    minmax(0, 1fr) 4px repeat(4, minmax(0, 1fr)) 4px minmax(0, 1fr)
+    4px repeat(3, minmax(0, 1fr)) 4px minmax(0, 1fr);
   gap: var(--week-gap);
   overflow: hidden;
 }
