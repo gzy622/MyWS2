@@ -1416,6 +1416,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  /* Stretch the frozen cell over the full row height so the opaque cover also
+     hides score cells that pass underneath — a centered auto-height cell would
+     leave transparent bands above/below and leak the scrolling text. */
+  align-self: stretch;
 }
 
 .grade-row {

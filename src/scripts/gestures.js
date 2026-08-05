@@ -145,6 +145,10 @@ function isGradeScroller(element) {
   return Boolean(element?.classList?.contains('grade-scroll'));
 }
 
+function isPeopleScroller(element) {
+  return Boolean(element?.classList?.contains('people-card'));
+}
+
 function applyHorizontalScrollDelta(port, deltaXFromStart, startScrollLeft) {
   if (!port) return;
   const max = Math.max(0, port.scrollWidth - port.clientWidth);
@@ -174,6 +178,8 @@ export function initHorizontalGestures({ closeRosterEditor = () => {} } = {}) {
   let startHorizontalScrollLeft = 0;
   /** True once this pointer moved a grades-table scroll port (for release inertia). */
   let gradePortScrolled = false;
+  /** True once this pointer moved the arrange page's people-card (for release inertia). */
+  let peoplePortScrolled = false;
   let isNav = false;
   let isSegments = false;
   let blockGestureClick = false;
@@ -352,6 +358,7 @@ export function initHorizontalGestures({ closeRosterEditor = () => {} } = {}) {
       : null;
     startHorizontalScrollLeft = horizontalScrollPort?.scrollLeft || 0;
     gradePortScrolled = false;
+    peoplePortScrolled = false;
     startPage = state.currentPage;
     startSubview = state.subviews[state.currentPage];
     gestureTarget = describeDebugTarget(event.target);
@@ -484,6 +491,7 @@ export function initHorizontalGestures({ closeRosterEditor = () => {} } = {}) {
           gradePortScrolled = true;
         } else {
           scrollPage.scrollTop = startScrollTop - deltaY;
+          if (isPeopleScroller(scrollPage)) peoplePortScrolled = true;
         }
       }
       event.preventDefault();
@@ -897,9 +905,17 @@ export function initHorizontalGestures({ closeRosterEditor = () => {} } = {}) {
     const gradePointerVelocity = shouldCoastGrade
       ? (event.timeStamp - sampleTime > VELOCITY_STALE_MS ? 0 : readTrailVelocity(gradeInertiaAxis))
       : 0;
+    const scrolledPeoplePort = peoplePortScrolled && isPeopleScroller(scrollPage) ? scrollPage : null;
+    const shouldCoastPeople = Boolean(
+      scrolledPeoplePort && axis === 'y' && !handledSheet && !cancelled
+    );
+    const peoplePointerVelocity = shouldCoastPeople
+      ? (event.timeStamp - sampleTime > VELOCITY_STALE_MS ? 0 : readTrailVelocity('y'))
+      : 0;
     horizontalScrollPort = null;
     startHorizontalScrollLeft = 0;
     gradePortScrolled = false;
+    peoplePortScrolled = false;
     claim = null;
     postSheetCloseTapControl = null;
     postPageSwipeTapControl = null;
@@ -910,6 +926,10 @@ export function initHorizontalGestures({ closeRosterEditor = () => {} } = {}) {
 
     if (shouldCoastGrade) {
       startScrollPortInertia(scrolledGradePort, gradePointerVelocity, gradeInertiaAxis);
+    }
+
+    if (shouldCoastPeople) {
+      startScrollPortInertia(scrolledPeoplePort, peoplePointerVelocity, 'y');
     }
 
     if (tapControl) {
