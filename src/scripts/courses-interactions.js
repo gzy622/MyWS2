@@ -13,6 +13,8 @@ import { isTensScoreKey, renderScoreKeypad, syncTensToggle } from './score-keypa
 const MOVE_CANCEL_DISTANCE = 9;
 const LONG_PRESS_MS = 480;
 const CLICK_SUPPRESSION_MS = 450;
+const STATS_PAGE_INDEX = 2;
+const ASSIGNMENT_SUMMARY_SUBVIEW_INDEX = 0;
 
 function isCoarsePointer() {
   return Boolean(globalThis.matchMedia?.('(pointer: coarse)')?.matches)
@@ -425,18 +427,7 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
     return Number.isInteger(value) ? String(value) : value.toFixed(1);
   }
 
-  function openStats({ returnFocus } = {}) {
-    const snapshot = store.getSnapshot();
-    const examId = currentExamId(snapshot);
-    const exam = snapshot.exams.find((item) => item.id === examId);
-    if (!exam) {
-      showToast('当前没有考试');
-      return;
-    }
-    const stats = store.getExamGradeStats(examId);
-    closeOthers?.('course-stats');
-    statsReturnFocus = returnFocus ?? null;
-    statsTitle.textContent = exam.title;
+  function fillStatsList(stats) {
     const fragment = document.createDocumentFragment();
     for (const row of stats) {
       const item = document.createElement('div');
@@ -461,6 +452,37 @@ export function initCoursesInteractions({ store, showToast, viewport, closeOther
       fragment.append(item);
     }
     statsList.replaceChildren(fragment);
+  }
+
+  function openStats({ returnFocus } = {}) {
+    const onAssignmentSummary = state.currentPage === STATS_PAGE_INDEX
+      && state.subviews[STATS_PAGE_INDEX] === ASSIGNMENT_SUMMARY_SUBVIEW_INDEX;
+    if (onAssignmentSummary) {
+      const stats = store.getAssignmentGradeStats();
+      if (!stats.length) {
+        showToast('当前没有作业');
+        return;
+      }
+      closeOthers?.('course-stats');
+      statsReturnFocus = returnFocus ?? null;
+      statsTitle.textContent = '作业';
+      fillStatsList(stats);
+      statsSheet.openInstant();
+      return;
+    }
+
+    const snapshot = store.getSnapshot();
+    const examId = currentExamId(snapshot);
+    const exam = snapshot.exams.find((item) => item.id === examId);
+    if (!exam) {
+      showToast('当前没有考试');
+      return;
+    }
+    const stats = store.getExamGradeStats(examId);
+    closeOthers?.('course-stats');
+    statsReturnFocus = returnFocus ?? null;
+    statsTitle.textContent = exam.title;
+    fillStatsList(stats);
     statsSheet.openInstant();
   }
 

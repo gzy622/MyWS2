@@ -498,6 +498,38 @@ export class RosterStore {
     });
   }
 
+  /** Per-assignment score stats (avg / max / min / scored count); unchecked submissions ignored. */
+  getAssignmentGradeStats() {
+    const studentCount = this.#state.students.length;
+    return this.#state.assignments.map((assignment) => {
+      const values = this.#state.scores
+        .filter((score) => score.assignmentId === assignment.id)
+        .map((score) => score.value);
+      if (!values.length) {
+        return {
+          assignmentId: assignment.id,
+          title: assignment.name,
+          count: 0,
+          average: undefined,
+          max: undefined,
+          min: undefined,
+          studentCount
+        };
+      }
+      const sum = values.reduce((total, value) => total + value, 0);
+      const average = Math.round((sum / values.length) * 10) / 10;
+      return {
+        assignmentId: assignment.id,
+        title: assignment.name,
+        count: values.length,
+        average,
+        max: Math.max(...values),
+        min: Math.min(...values),
+        studentCount
+      };
+    });
+  }
+
   addExam(value = '新考试') {
     const title = cleanPeopleTitle(value);
     if (!title || this.#state.nextExamId >= Number.MAX_SAFE_INTEGER) return null;

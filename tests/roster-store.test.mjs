@@ -262,6 +262,30 @@ test('考试可增删改，成绩按考试隔离，统计可算平均与极值',
   assert.equal(store.getSnapshot().courseGrades.every((grade) => grade.examId === exam.id), true);
 });
 
+test('作业成绩统计按项计算平均与极值，已交未计分不计入', () => {
+  const store = createRosterStore();
+  store.setScore(1, 90);
+  store.setScore(2, 80);
+  const second = store.addAssignment('第二次作业');
+  assert.ok(second);
+  store.setScore(1, 70);
+  store.markStudentCompleted(2);
+
+  const stats = store.getAssignmentGradeStats();
+  assert.equal(stats.length, 2);
+  assert.equal(stats[0].title, '作业 1');
+  assert.equal(stats[0].count, 2);
+  assert.equal(stats[0].average, 85);
+  assert.equal(stats[0].max, 90);
+  assert.equal(stats[0].min, 80);
+  assert.equal(stats[0].studentCount, 46);
+  assert.equal(stats[1].title, '第二次作业');
+  assert.equal(stats[1].count, 1);
+  assert.equal(stats[1].average, 70);
+  assert.equal(stats[1].max, 70);
+  assert.equal(stats[1].min, 70);
+});
+
 test('考试已录入学生数按场次去重统计', () => {
   const store = createRosterStore();
   const exam = store.addExam();

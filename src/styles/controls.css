@@ -462,6 +462,8 @@
 .more-action-group--danger button { color: var(--accent-text); }
 .more-action-group--danger { position: sticky; bottom: 0; z-index: 1; }
 .more-toggle-action { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+/* Author display:flex would otherwise override the UA [hidden] rule. */
+.more-toggle-action[hidden] { display: none; }
 .more-toggle-action .theme-switch { flex: 0 0 40px; }
 .more-toggle-action[aria-pressed="true"] .theme-switch { background: var(--teal); }
 .more-toggle-action[aria-pressed="true"] .theme-switch span { transform: translateX(18px); }

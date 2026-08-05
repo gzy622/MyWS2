@@ -18,7 +18,9 @@ const GRADES_SUBVIEW_INDEX = 1;
 const REGISTER_ACTIONS = new Set(['register-view', 'create-assignment', 'clear-assignment', 'quick-score', 'font-size', 'seat-edit']);
 const PEOPLE_ACTIONS = new Set(['add-role', 'add-duty', 'clear-roles', 'clear-duties']);
 const SCHEDULE_ACTIONS = new Set(['clear-schedule', 'highlight-subjects']);
-const GRADES_ACTIONS = new Set(['add-subject', 'add-exam', 'grade-stats', 'clear-grades']);
+const ASSIGNMENT_SUMMARY_SUBVIEW_INDEX = 0;
+const GRADES_ONLY_ACTIONS = new Set(['add-subject', 'add-exam', 'clear-grades']);
+const STATS_SHARED_ACTIONS = new Set(['grade-stats']);
 const GLOBAL_ACTIONS = new Set(['toggle-theme', 'open-settings']);
 
 export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, closeOthers, highlightSubjects, openCreateAssignment, openCreateExam, openGradeStats, onQuickScoreChange }) {
@@ -103,6 +105,7 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
     const isSeats = state.subviews[REGISTER_PAGE_INDEX] === SEAT_SUBVIEW_INDEX;
     const isPeople = state.subviews[ARRANGE_PAGE_INDEX] === PEOPLE_SUBVIEW_INDEX;
     const isSchedule = state.subviews[ARRANGE_PAGE_INDEX] === SCHEDULE_SUBVIEW_INDEX;
+    const isAssignmentSummary = state.subviews[STATS_PAGE_INDEX] === ASSIGNMENT_SUMMARY_SUBVIEW_INDEX;
     const isGrades = state.subviews[STATS_PAGE_INDEX] === GRADES_SUBVIEW_INDEX;
     const isDark = theme?.get() === 'dark';
     const themeButton = elements.moreMenu.querySelector('[data-more-action="toggle-theme"]');
@@ -122,7 +125,9 @@ export function initMoreSheet({ store, showToast, seatCanvas, fontSize, theme, c
         hidden = !onArrange || !isPeople;
       } else if (SCHEDULE_ACTIONS.has(action)) {
         hidden = !onArrange || !isSchedule;
-      } else if (GRADES_ACTIONS.has(action)) {
+      } else if (STATS_SHARED_ACTIONS.has(action)) {
+        hidden = !onStats || !(isGrades || isAssignmentSummary);
+      } else if (GRADES_ONLY_ACTIONS.has(action)) {
         hidden = !onStats || !isGrades;
       } else {
         hidden = true;
