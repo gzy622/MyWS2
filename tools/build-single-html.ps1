@@ -124,7 +124,7 @@ function Expand-CssFile {
 }
 
 $moduleImportPattern = [regex]::new(
-  '(?ms)\b(?:import|export)\s+(?:[^;"'']+?\s+from\s+)?(?<quote>["''])(?<specifier>\.[^"'']+)\k<quote>',
+  '(?ms)\b(?:import\s*\(\s*|(?:import|export)\s+(?:[^;"'']+?\s+from\s+)?)(?<quote>["''])(?<specifier>\.[^"'']+)\k<quote>',
   [Text.RegularExpressions.RegexOptions]::CultureInvariant
 )
 $moduleStates = @{}

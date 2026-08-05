@@ -22,7 +22,6 @@ import { initAssignments } from './assignments.js';
 import { initRosterEditor } from './roster-editor.js';
 import { initMoreSheet } from './more-sheet.js';
 import { initBackup } from './backup.js';
-import { initWorkbookTransfer } from './workbook-transfer.js';
 import { loadRosterState, saveRosterState } from './roster-storage.js';
 import { initTheme } from './theme.js';
 import { initViewport } from './viewport.js';
@@ -135,13 +134,30 @@ const backup = initBackup({
   fileInput: transferFileInput,
   onAfterImport: afterDataReplace
 });
-const workbookTransfer = initWorkbookTransfer({
-  store: rosterStore,
-  showToast,
-  confirm: (...args) => moreSheet.confirm(...args),
-  fileInput: transferFileInput,
-  onAfterImport: afterDataReplace
-});
+let workbookTransferPromise;
+function ensureWorkbookTransfer() {
+  workbookTransferPromise ??= import('./workbook-transfer.js')
+    .then(({ initWorkbookTransfer }) => initWorkbookTransfer({
+      store: rosterStore,
+      showToast,
+      confirm: (...args) => moreSheet.confirm(...args),
+      fileInput: transferFileInput,
+      onAfterImport: afterDataReplace,
+    }))
+    .catch((error) => {
+      workbookTransferPromise = undefined;
+      throw error;
+    });
+  return workbookTransferPromise;
+}
+async function runWorkbookAction(method, failureMessage) {
+  try {
+    const transfer = await ensureWorkbookTransfer();
+    await transfer[method]();
+  } catch {
+    showToast(failureMessage);
+  }
+}
 
 moreSheet = initMoreSheet({
   store: rosterStore,
@@ -177,8 +193,8 @@ initDrawer({
   showToast,
   onBackupImport: () => backup.importBackup(),
   onBackupExport: () => backup.exportBackup(),
-  onWorkbookImport: () => workbookTransfer.importWorkbook(),
-  onWorkbookExport: () => workbookTransfer.exportWorkbook(),
+  onWorkbookImport: () => runWorkbookAction('importWorkbook', '导入表格失败'),
+  onWorkbookExport: () => runWorkbookAction('exportWorkbook', '导出表格失败'),
   onEditRoster: (options) => rosterEditor.open({ ...options, preserveDrawer: true }),
 });
 initHorizontalGestures({ closeRosterEditor: () => rosterEditor.close() });
